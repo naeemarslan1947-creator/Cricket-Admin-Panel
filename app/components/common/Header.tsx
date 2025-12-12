@@ -119,10 +119,10 @@ const handleLogout = () => {
                             <button onClick={() => router.push("/profile-settings")} className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
                                 Profile Settings
                             </button>
-                            <button className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
+                            <button onClick={() => router.push("/safety-settings")} className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
                                 Security & 2FA
                             </button>
-                            <button className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
+                            <button onClick={() => router.push("/activity-log")} className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
                                 Activity Log
                             </button>
                             <div className="border-t border-[#e2e8f0]" />

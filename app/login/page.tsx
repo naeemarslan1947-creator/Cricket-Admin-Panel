@@ -1,3 +1,4 @@
+
 // app/login/page.tsx
 "use client";
 
@@ -6,22 +7,12 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Users, TrendingUp, BarChart3, Shield } from "lucide-react";
 import { LoginScreen } from "../components/login/LoginScreen";
-
-interface UserRole {
-  id: string;
-  name: "Super Admin" | "Moderator" | "Support" | "Developer";
-  permissions: string[];
-  color: string;
-}
-
-interface AuthUser {
-  email: string;
-  name: string;
-  role: UserRole;
-  avatar?: string;
-  token?: string;
-  isAdmin: boolean;
-}
+import { AuthUser } from "../types/auth";
+import makeRequest from "../../Api's/apiHelper";
+import { LoginClientApiCall } from "../../Api's/repo";
+import { handleApiError } from "../../Api's/errorHandler";
+import store from "../../redux/store";
+import { setUser } from "../../redux/actions";
 
 const statsData = [
   { icon: Users, label: "Active Users", value: "12.5K+", color: "from-blue-500 to-blue-600" },
@@ -31,129 +22,70 @@ const statsData = [
 
 export default function LoginPage() {
   const router = useRouter();
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // const handleLogin = async (email: string, password: string, remember: boolean) => {
-  //   setIsLoading(true);
-  //   setError("");
+  const handleLogin = async (email: string, password: string, remember: boolean): Promise<void> => {
+    setIsLoading(true);
+    setError("");
 
-  //   try {
-  //     const response = (await makeRequest({
-  //       url: LoginClientApiCall,
-  //       method: "POST",
-  //       data: { email, password },
-  //     })) as LoginResponse;
+    try {
+      const response = await makeRequest({
+        url: LoginClientApiCall,
+        method: "POST",
+        data: { email, password },
+      });
 
-  //     if (response.data?.status_code === 200 && response.data.result.isAdmin !== false) {
-  //       if (!response.data.result.isAdmin ) {
-  //         setError("You do not have admin access.");
-  //         setIsLoading(false);
-  //         return;
-  //       }
+      const loginData = response.data;
+      
+      if (loginData?.result?.data?.item?.status_code === 200 && loginData?.result?.data?.item?.is_admin !== false) {
 
-  //       const authUser: AuthUser = {
-  //         ...response.data.user,
-  //         token: response.data.token,
-  //       };
+        console.log("📢[page.tsx:41]: response.data.result.data.item.is_admin: ", response);
+        if (!loginData?.result?.data?.item?.is_admin) {
+          setError("You do not have admin access.");
+          setIsLoading(false);
+          return;
+        }
 
-  //       // Save session
-  //       localStorage.setItem("auth", "true");
-  //       localStorage.setItem("user", JSON.stringify(authUser));
-  //       if (authUser.token) {
-  //         localStorage.setItem("authToken", authUser.token);
-  //       }
+        const authUser: AuthUser = {
+          ...loginData.result.data.item.user,
+          token: loginData.result.data.item.token,
+        };
 
-  //       // Remember me
-  //       if (remember) {
-  //         localStorage.setItem(
-  //           "rememberedUser",
-  //           JSON.stringify({
-  //             email: authUser.email,
-  //             name: authUser.name,
-  //           })
-  //         );
-  //       }
+        // Save to Redux store
+        store.dispatch(setUser(authUser));
 
-  //       router.push("/dashboard");
-  //     } else {
-  //       setError(response.message || "Invalid email or password.");
-  //     }
-  //   } catch (err) {
-  //     const parsedError = handleApiError(err);
-  //     setError(parsedError.message);
-  //   } finally {
+        // Save session to localStorage
+        localStorage.setItem("auth", "true");
+        localStorage.setItem("user", JSON.stringify(authUser));
+        if (authUser.token) {
+          localStorage.setItem("authToken", authUser.token);
+        }
 
-  //     setIsLoading(false);
-  //   }
-  // };
+        // Remember me
+        if (remember) {
+          localStorage.setItem(
+            "rememberedUser",
+            JSON.stringify({
+              email: authUser.email,
+              name: authUser.name,
+            })
+          );
+        }
 
- const handleLogin = async (email: string, password: string, remember: boolean) => {
-  setIsLoading(true);
-  setError("");
 
-  try {
-    // --- MOCKED API DELAY ---
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // --- MOCK USER DATA ---
-    const mockUser = {
-      email: "admin@demo.com",
-      password: "123456",
-      name: "Demo Admin",
-      isAdmin: true,
-      token: "mock-token-12345",
-    };
-
-    // --- AUTH VALIDATION ---
-    if (email !== mockUser.email || password !== mockUser.password) {
-      setError("Invalid email or password.");
-      return;
+        router.push("/dashboard");
+      } else {
+        setError(loginData?.result?.data?.item?.message || "Invalid email or password.");
+      }
+    } catch (err) {
+      const parsedError = handleApiError(err);
+      setError(parsedError.message);
+    } finally {
+      setIsLoading(false);
     }
-
-    if (!mockUser.isAdmin) {
-      setError("You do not have admin access.");
-      return;
-    }
-
-    // --- BUILD AUTH USER OBJECT ---
-    const authUser: AuthUser = {
-      email: mockUser.email,
-      name: mockUser.name,
-      role: {
-        id: "1",
-        name: "Super Admin" as const,
-        permissions: ["all"],
-        color: "#007BFF"
-      },
-      token: mockUser.token,
-      isAdmin: mockUser.isAdmin,
-    };
-
-    // SAVE SESSION
-    localStorage.setItem("auth", "true");
-    localStorage.setItem("user", JSON.stringify(authUser));
-    localStorage.setItem("authToken", mockUser.token);
-
-    // REMEMBER ME
-    if (remember) {
-      localStorage.setItem(
-        "rememberedUser",
-        JSON.stringify({
-          email: authUser.email,
-          name: authUser.name,
-        })
-      );
-    }
-
-    router.push("/dashboard");
-
-  } catch (error) {
-    setError("Something went wrong.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen flex bg-linear-to-br from-gray-50 via-blue-50/30 to-green-50/30 relative overflow-hidden">
@@ -218,7 +150,8 @@ export default function LoginPage() {
               </motion.div>
             ))}
           </motion.div>
-          <motion.div
+
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.6 }}
@@ -226,18 +159,12 @@ export default function LoginPage() {
               >
                 <div className="flex items-center gap-2 mb-3">
                   <Shield className="w-5 h-5 text-[#007BFF]" />
-                  <h3 className="text-gray-900">Test Login Credentials</h3>
+                  <h3 className="text-gray-900">Secure Admin Access</h3>
                 </div>
-                <div className="space-y-2">
-                    <div  className="flex items-center justify-between text-sm bg-white/60 backdrop-blur-sm rounded-lg p-2">
-                      <span className={`px-2 py-1 rounded text-xs `}>Demo Admin</span>
-                      <code className="text-xs text-gray-600">admin@demo.com</code>
-                    </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-3">
-                  Password for all: <code className="bg-white px-2 py-0.5 rounded">123456</code> 
+                <p className="text-sm text-gray-600">
+                  Welcome to the Cricket Admin Panel. Please use your admin credentials to access the dashboard.
                 </p>
-              </motion.div>
+                </motion.div>
         </div>
       </div>
 

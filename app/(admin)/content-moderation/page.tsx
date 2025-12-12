@@ -4,13 +4,17 @@ import ContentModerationHeader from '@/app/components/admin/content-moderation/C
 import ContentModerationSummary from '@/app/components/admin/content-moderation/ContentModerationSummary';
 import ContentModerationTabs from '@/app/components/admin/content-moderation/ContentModerationTabs';
 
+
 interface Report {
   id: number;
-  content: string;
-  reporter: string;
-  reason: string;
-  reported: string;
+  reporterName: string;
+  reportedContent: string;
+  reasonCode: string;
+  timestamp: string;
+  reportedUser: string;
   status: 'open' | 'closed';
+  hasMedia: boolean;
+  mediaType: string | null;
 }
 
 interface ReportsData {

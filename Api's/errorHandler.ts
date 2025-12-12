@@ -1,3 +1,7 @@
+
+
+import { AxiosError } from "axios";
+
 /**
  * API Error Handling Utilities
  */
@@ -11,16 +15,30 @@ export const ErrorTypes = {
   NOT_FOUND: "NOT_FOUND",
   VALIDATION_ERROR: "VALIDATION_ERROR",
   UNKNOWN_ERROR: "UNKNOWN_ERROR",
-};
+} as const;
+
+export type ErrorType = typeof ErrorTypes[keyof typeof ErrorTypes];
+
+// Interface for standardized error response
+export interface ParsedError {
+  type: ErrorType;
+  status: number | null;
+  message: string;
+  details: unknown;
+  originalError: AxiosError | unknown;
+}
+
+// Interface for notification function
+export type NotifyUserFunction = (message: string, type?: "success" | "error" | "info" | "warning") => void;
 
 /**
  * Parse error response and return a standardized error object
- * @param {Error} error - The axios error object
- * @returns {Object} Standardized error object
+ * @param {AxiosError} error - The axios error object
+ * @returns {ParsedError} Standardized error object
  */
-export const parseApiError = (error) => {
+export const parseApiError = (error: AxiosError | unknown): ParsedError => {
   // Default error structure
-  const errorResponse = {
+  const errorResponse: ParsedError = {
     type: ErrorTypes.UNKNOWN_ERROR,
     status: null,
     message: "An unknown error occurred",
@@ -29,26 +47,24 @@ export const parseApiError = (error) => {
   };
 
   // No response from server (network error)
-  if (error.message === "Network Error") {
+  if (error instanceof Error && error.message === "Network Error") {
     return {
       ...errorResponse,
       type: ErrorTypes.NETWORK_ERROR,
-      message:
-        "Unable to connect to the server. Please check your internet connection.",
+      message: "Unable to connect to the server. Please check your internet connection.",
     };
   }
 
   // Server responded with an error
-  if (error.response) {
+  if (error instanceof AxiosError && error.response) {
     errorResponse.status = error.response.status;
 
     // Extract error message and details from response if available
     const responseData = error.response.data;
-    if (responseData) {
-      errorResponse.message =
-        responseData.message || responseData.error || error.message;
-      errorResponse.details =
-        responseData.details || responseData.errors || null;
+    if (responseData && typeof responseData === 'object') {
+      const data = responseData as { message?: string; error?: string; details?: unknown; errors?: unknown };
+      errorResponse.message = data.message || data.error || error.message || "An error occurred";
+      errorResponse.details = data.details || data.errors || null;
     }
 
     // Categorize by status code
@@ -59,14 +75,11 @@ export const parseApiError = (error) => {
         break;
       case 401:
         errorResponse.type = ErrorTypes.UNAUTHORIZED;
-        errorResponse.message =
-          errorResponse.message || "Authentication required";
+        errorResponse.message = errorResponse.message || "Authentication required";
         break;
       case 403:
         errorResponse.type = ErrorTypes.FORBIDDEN;
-        errorResponse.message =
-          errorResponse.message ||
-          "You do not have permission to access this resource";
+        errorResponse.message = errorResponse.message || "You do not have permission to access this resource";
         break;
       case 404:
         errorResponse.type = ErrorTypes.NOT_FOUND;
@@ -77,8 +90,7 @@ export const parseApiError = (error) => {
       case 503:
       case 504:
         errorResponse.type = ErrorTypes.SERVER_ERROR;
-        errorResponse.message =
-          errorResponse.message || "Server error occurred";
+        errorResponse.message = errorResponse.message || "Server error occurred";
         break;
       default:
         errorResponse.type = ErrorTypes.UNKNOWN_ERROR;
@@ -90,11 +102,11 @@ export const parseApiError = (error) => {
 
 /**
  * Handle API errors with appropriate user feedback
- * @param {Error} error - The axios error object
- * @param {Function} notifyUser - Function to show notification to user (optional)
- * @returns {Object} Parsed error object
+ * @param {AxiosError | unknown} error - The axios error object
+ * @param {NotifyUserFunction | null} notifyUser - Function to show notification to user (optional)
+ * @returns {ParsedError} Parsed error object
  */
-export const handleApiError = (error, notifyUser = null) => {
+export const handleApiError = (error: AxiosError | unknown, notifyUser: NotifyUserFunction | null = null): ParsedError => {
   const parsedError = parseApiError(error);
 
   // Log error to console in development
@@ -110,8 +122,10 @@ export const handleApiError = (error, notifyUser = null) => {
   return parsedError;
 };
 
-export default {
+const errorHandler = {
   ErrorTypes,
   parseApiError,
   handleApiError,
 };
+
+export default errorHandler;

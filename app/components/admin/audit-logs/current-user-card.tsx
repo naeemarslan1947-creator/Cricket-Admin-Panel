@@ -1,10 +1,11 @@
+
 import { Shield } from 'lucide-react';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
-import { User } from '@/app/types/users';
+import { AdminUser } from '@/app/types/audit-logs';
 
 interface CurrentUserCardProps {
-  currentUser: User;
+  currentUser: AdminUser;
   activityLogsCount: number;
 }
 

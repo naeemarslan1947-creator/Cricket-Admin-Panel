@@ -3,15 +3,19 @@ import PostReports from './PostReports';
 import CommentReports from './CommentReports';
 import MediaReports from './MediaReports';
 
+
+
 // FINAL FIXED TYPE (matches all child components)
 interface Report {
   id: number;
-  content: string;
   reporterName: string;
+  reportedContent: string;
   reasonCode: string;
-  reportedUser: string;
   timestamp: string;
+  reportedUser: string;
   status: 'open' | 'closed';
+  hasMedia?: boolean;
+  mediaType?: 'image' | 'video' | null;
 }
 
 interface ReportsData {

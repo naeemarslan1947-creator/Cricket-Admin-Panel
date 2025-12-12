@@ -1,6 +1,5 @@
 "use client";
 
-import { User } from '@/app/types/users';
 import { CurrentUserCard } from '@/app/components/admin/audit-logs/current-user-card';
 import { RealTimeAlert } from '@/app/components/admin/audit-logs/real-time-alert';
 import { LogsTable } from '@/app/components/admin/audit-logs/logs-table';
@@ -60,7 +59,8 @@ const SAMPLE_LOGS: ActivityLog[] = [
   },
 ];
 
-const MOCK_CURRENT_USER: User = {
+
+const MOCK_CURRENT_USER = {
   id: 1,
   name: 'John Doe',
   email: 'john.doe@example.com',
@@ -68,7 +68,11 @@ const MOCK_CURRENT_USER: User = {
     name: 'Super Admin',
     level: 10
   },
-  lastActive: '2024-12-04 10:45 AM'
+  lastActive: '2024-12-04 10:45 AM',
+  club: 'Admin Club',
+  subscription: 'Premium',
+  status: 'Active' as const,
+  joined: '2023-01-01'
 };
 
 export default function AuditLogs({ activityLogs = [], currentUser = MOCK_CURRENT_USER }: AuditLogsProps) {

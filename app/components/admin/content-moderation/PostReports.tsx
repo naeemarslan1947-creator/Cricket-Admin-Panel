@@ -3,6 +3,7 @@ import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 
+
 interface Report {
   id: number;
   reporterName: string;
@@ -12,7 +13,7 @@ interface Report {
   timestamp: string;
   status: 'open' | 'closed';
   hasMedia?: boolean;
-  mediaType?: 'image' | 'video';
+  mediaType?: 'image' | 'video' | null;
 }
 
 interface PostReportsProps {

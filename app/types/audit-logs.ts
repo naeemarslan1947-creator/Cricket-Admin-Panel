@@ -1,3 +1,4 @@
+
 export interface ActivityLog {
   id: number;
   admin: string;
@@ -9,7 +10,7 @@ export interface ActivityLog {
   ipAddress?: string;
 }
 
-export interface User {
+export interface AdminUser {
   id: number;
   name: string;
   email: string;
@@ -22,5 +23,5 @@ export interface User {
 
 export interface AuditLogsProps {
   activityLogs?: ActivityLog[];
-  currentUser?: User;
+  currentUser?: AdminUser;
 }

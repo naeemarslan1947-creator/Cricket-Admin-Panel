@@ -20,6 +20,7 @@ interface AuthUser {
   role: UserRole;
   avatar?: string;
   token?: string;
+  isAdmin: boolean;
 }
 
 const statsData = [
@@ -82,6 +83,7 @@ export default function LoginPage() {
   //     const parsedError = handleApiError(err);
   //     setError(parsedError.message);
   //   } finally {
+
   //     setIsLoading(false);
   //   }
   // };
@@ -118,6 +120,12 @@ export default function LoginPage() {
     const authUser: AuthUser = {
       email: mockUser.email,
       name: mockUser.name,
+      role: {
+        id: "1",
+        name: "Super Admin" as const,
+        permissions: ["all"],
+        color: "#007BFF"
+      },
       token: mockUser.token,
       isAdmin: mockUser.isAdmin,
     };

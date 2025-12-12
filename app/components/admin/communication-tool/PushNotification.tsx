@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
@@ -6,7 +7,24 @@ import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
 
-const PushNotification = ({showNewNotification,setShowNewNotification,sentNotifications}) => {
+interface Notification {
+  id: string
+  title: string
+  message: string
+  type: string
+  status: string
+  recipients: number
+  sentDate: string
+  color: string
+}
+
+interface PushNotificationProps {
+  showNewNotification: boolean
+  setShowNewNotification: (show: boolean) => void
+  sentNotifications: Notification[]
+}
+
+const PushNotification: React.FC<PushNotificationProps> = ({showNewNotification,setShowNewNotification,sentNotifications}) => {
   return (
     <Card className="border-[#e2e8f0] ">
             <CardHeader>

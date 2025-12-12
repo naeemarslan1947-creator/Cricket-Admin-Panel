@@ -8,7 +8,9 @@ import { Button } from '@/app/components/ui/button';
 import QuickExport from '@/app/components/admin/data-export/QuickExport';
 
 export default function DataExportTools() {
-  const [selectedDataType, setSelectedDataType] = useState('');
+
+
+  const [selectedDataType, setSelectedDataType] = useState<string>('');
   const [showQuickExport, setShowQuickExport] = useState(false);
 
   // Data types available for export
@@ -215,8 +217,16 @@ export default function DataExportTools() {
           <TabsTrigger value="scheduled">Scheduled Exports</TabsTrigger>
         </TabsList>
 
+
+
         <TabsContent value="export" className="space-y-4">
-          <QuickExport dataTypes={dataTypes} selectedDataType={selectedDataType} setSelectedDataType={setSelectedDataType} setShowQuickExport={setShowQuickExport} showQuickExport={showQuickExport} />
+          <QuickExport 
+            dataTypes={dataTypes} 
+            selectedDataType={selectedDataType} 
+            setSelectedDataType={setSelectedDataType} 
+            setShowQuickExport={setShowQuickExport} 
+            showQuickExport={showQuickExport} 
+          />
         </TabsContent>
 
         {/* Export History */}

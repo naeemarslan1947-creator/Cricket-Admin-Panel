@@ -3,14 +3,17 @@ import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 
+
 interface Report {
   id: number;
   reporterName: string;
+  reportedContent: string;
   reasonCode: string;
   timestamp: string;
-  reportedContent: string;
   reportedUser: string;
   status: 'open' | 'closed';
+  hasMedia?: boolean;
+  mediaType?: 'image' | 'video' | null;
 }
 
 interface CommentReportsProps {

@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
@@ -6,7 +7,24 @@ import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
 
-const InAppAnnouncements = ({announcements,setShowNewAnnouncement, showNewAnnouncement }) => {
+interface Announcement {
+  id: string
+  title: string
+  content: string
+  displayLocation: string
+  status: string
+  views: number
+  startDate: string
+  endDate: string
+}
+
+interface InAppAnnouncementsProps {
+  announcements: Announcement[]
+  setShowNewAnnouncement: (show: boolean) => void
+  showNewAnnouncement: boolean
+}
+
+const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({announcements,setShowNewAnnouncement, showNewAnnouncement }) => {
   return (
     <Card className="border-[#e2e8f0] ">
             <CardHeader>

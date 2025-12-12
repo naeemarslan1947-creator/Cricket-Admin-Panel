@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
@@ -6,7 +7,24 @@ import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
 
-const ScheduledNotifications = ({scheduledNotifications, setShowNewScheduled, showNewScheduled}) => {
+interface ScheduledNotification {
+  id: string
+  title: string
+  message: string
+  trigger: string
+  targetAudience: string
+  status: string
+  sentCount: number
+  lastTriggered: string
+}
+
+interface ScheduledNotificationsProps {
+  scheduledNotifications: ScheduledNotification[]
+  setShowNewScheduled: (show: boolean) => void
+  showNewScheduled: boolean
+}
+
+const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({scheduledNotifications, setShowNewScheduled, showNewScheduled}) => {
   return (
     <Card className="border-[#e2e8f0] ">
             <CardHeader>

@@ -19,11 +19,12 @@ interface DataType {
   fields: string[];
 }
 
+
 // Props for the component
 interface QuickExportProps {
   dataTypes: DataType[];
-  selectedDataType: string | null;
-  setSelectedDataType: (id: string | null) => void;
+  selectedDataType: string;
+  setSelectedDataType: (id: string) => void;
   showQuickExport: boolean;
   setShowQuickExport: (show: boolean) => void;
 }
@@ -92,12 +93,13 @@ const QuickExport: React.FC<QuickExportProps> = ({
                 <h4 className="text-[#1e293b]">
                   Configure Export: {dataTypes.find((t) => t.id === selectedDataType)?.name}
                 </h4>
+
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => {
                     setShowQuickExport(false);
-                    setSelectedDataType(null);
+                    setSelectedDataType('');
                   }}
                 >
                   ✕

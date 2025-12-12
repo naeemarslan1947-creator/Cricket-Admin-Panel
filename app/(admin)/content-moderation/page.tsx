@@ -5,6 +5,7 @@ import ContentModerationSummary from '@/app/components/admin/content-moderation/
 import ContentModerationTabs from '@/app/components/admin/content-moderation/ContentModerationTabs';
 
 
+
 interface Report {
   id: number;
   reporterName: string;
@@ -13,8 +14,8 @@ interface Report {
   timestamp: string;
   reportedUser: string;
   status: 'open' | 'closed';
-  hasMedia: boolean;
-  mediaType: string | null;
+  hasMedia?: boolean;
+  mediaType?: 'image' | 'video' | null;
 }
 
 interface ReportsData {
@@ -26,7 +27,8 @@ interface ReportsData {
 export default function ContentModeration() {
   const [activeTab, setActiveTab] = useState<string>('posts');
 
-  const reports = {
+
+  const reports: ReportsData = {
     posts: [
       {
         id: 1,
@@ -35,9 +37,9 @@ export default function ContentModeration() {
         reasonCode: 'SPAM',
         timestamp: '2024-12-05 14:30:00',
         reportedUser: 'Ben Stokes',
-        status: 'open',
+        status: 'open' as const,
         hasMedia: true,
-        mediaType: 'image'
+        mediaType: 'image' as const
       },
       {
         id: 2,
@@ -46,9 +48,9 @@ export default function ContentModeration() {
         reasonCode: 'INAPPROPRIATE_CONTENT',
         timestamp: '2024-12-05 11:15:00',
         reportedUser: 'Jonny Bairstow',
-        status: 'open',
+        status: 'open' as const,
         hasMedia: true,
-        mediaType: 'video'
+        mediaType: 'video' as const
       },
     ],
     comments: [
@@ -59,7 +61,7 @@ export default function ContentModeration() {
         reasonCode: 'MISINFORMATION',
         timestamp: '2024-12-04 16:45:00',
         reportedUser: 'Moeen Ali',
-        status: 'open',
+        status: 'open' as const,
         hasMedia: false,
         mediaType: null
       },
@@ -72,9 +74,9 @@ export default function ContentModeration() {
         reasonCode: 'INAPPROPRIATE_IMAGE',
         timestamp: '2024-12-05 13:20:00',
         reportedUser: 'Jofra Archer',
-        status: 'open',
+        status: 'open' as const,
         hasMedia: true,
-        mediaType: 'image'
+        mediaType: 'image' as const
       },
     ]
   };

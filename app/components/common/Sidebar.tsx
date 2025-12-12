@@ -1,0 +1,117 @@
+'use client';
+
+import { useRouter, usePathname } from 'next/navigation';
+import { 
+  LayoutDashboard, Users, Building2, Shield,  
+  Star, CreditCard, AlertTriangle, BarChart3, 
+  FileText, Settings, ChevronLeft, ChevronRight, 
+  Download,
+  Bell
+} from 'lucide-react';
+import Image from 'next/image';
+
+interface SidebarProps {
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
+    { id: 'users-management', label: 'Users Management', icon: Users, path: '/users-management' },
+    { id: 'club-management', label: 'Clubs Management', icon: Building2, path: '/club-management' },
+    { id: 'moderation', label: 'Content Moderation', icon: Shield, path: '/content-moderation' },
+    { id: 'reviews-rating', label: 'Reviews & Ratings', icon: Star, path: '/reviews-rating' },
+    { id: 'billing-subscription', label: 'Billing & Subscriptions', icon: CreditCard, path: '/billing-subscription' },
+    { id: 'reports-abuse', label: 'Reports & Abuse', icon: AlertTriangle, path: '/reports-abuse' },
+    { id: 'analytics-insights', label: 'Analytics & Insights', icon: BarChart3, path: '/analytics-insights' },
+    { id: 'communication-tool', label: 'Communication Tool', icon: Bell, path: '/communication-tool' },
+    { id: 'data-export', label: 'Data Export', icon: Download, path: '/data-export' },
+    { id: 'audit-log', label: 'Audit Logs', icon: FileText, path: '/audit-log' },
+    { id: 'settings', label: 'System Settings', icon: Settings, path: '/settings' },
+  ];
+
+  const handleClick = (item: typeof menuItems[0]) => {
+    router.push(item.path);
+  };
+
+  return (
+    <div 
+      className={`fixed left-0 top-0 h-screen bg-white border-r border-[#e2e8f0] transition-all duration-300 z-50 ${
+        collapsed ? 'w-16' : 'w-64'
+      }`}
+    >
+      <div className="h-16 flex items-center justify-between px-4 border-b border-[#e2e8f0]">
+  {!collapsed && (
+    <div className="flex items-center gap-3">
+      <Image
+        src="/svg/logo.svg"
+        width={20}
+        height={20}
+        alt="Crickit Logo"
+        className="w-8 h-8 object-contain"
+      />
+
+      <div className="leading-tight">
+        <h1 className="text-[#0F172A] text-base font-semibold">Crickit</h1>
+        <p className="text-xs text-[#64748B]">Admin Panel</p>
+      </div>
+    </div>
+  )}
+
+  <button
+    onClick={onToggleCollapse}
+    className="p-1.5 hover:bg-[#F8FAFC] rounded-lg transition-colors"
+  >
+    {collapsed ? (
+      <ChevronRight className="w-5 h-5 text-[#64748B]" />
+    ) : (
+      <ChevronLeft className="w-5 h-5 text-[#64748B]" />
+    )}
+  </button>
+</div>
+
+
+      {/* Navigation */}
+      <nav className="p-3 space-y-1">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+
+          // ✅ Determine active tab based on pathname
+          const isActive = pathname.startsWith(item.path);
+
+          return (
+            <button
+              key={item.id}
+              onClick={() => handleClick(item)}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${
+                isActive
+                  ? 'bg-[#91C137] text-white '
+                  : 'text-[#64748b] hover:bg-[#F8FAFC] hover:text-[#1e293b]'
+              }`}
+            >
+              <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : ''}`} />
+              {!collapsed && <span>{item.label}</span>}
+            </button>
+          );
+        })}
+      </nav>
+       {!collapsed  && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#e2e8f0] bg-gradient-to-r from-blue-50 to-green-50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00C853] to-[#007BFF] flex items-center justify-center shadow-lg">
+              <span className="text-white text-sm">J</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-[#1e293b] truncate">John Smith</p>
+              <p className="text-xs text-[#64748b] truncate">Super Admin</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

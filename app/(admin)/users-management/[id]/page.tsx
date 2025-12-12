@@ -1,0 +1,655 @@
+"use client";
+
+import { Badge } from "@/app/components/ui/badge";
+import { Button } from "@/app/components/ui/button";
+import {
+  CheckCircle,
+  Mail,
+  TrendingUp,
+  MessageSquare,
+  Star,
+  Flag,
+  User,
+  Shield,
+  BarChart3,
+  FileText,
+  Activity,
+  Edit,
+  KeyRound,
+  Zap,
+  Ban,
+  Trash2,
+  ArrowLeft,
+  Calendar,
+  Clock,
+  Users,
+} from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
+import EditUserModal from "@/app/components/admin/users-management/id/EditUserModal";
+import ResetPasswordModal from "@/app/components/admin/users-management/id/ResetPasswordModal";
+import SendMessageModal from "@/app/components/admin/users-management/id/SendMessageModal";
+import SuspendDialog from "@/app/components/admin/users-management/id/SuspendDialog";
+import DeleteDialog from "@/app/components/admin/users-management/id/DeleteDialog";
+import UpgradeDowngradeModal from "@/app/components/admin/users-management/id/UpgradeDowngradeModal";
+import ViewActivityModal from "@/app/components/admin/users-management/id/ViewActivityModal";
+import { Card, CardContent } from "@/app/components/ui/card";
+
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  club: string;
+  status: string;
+  lastActive: string;
+  joined: string;
+  subscription?: string;
+};
+
+// ---- Same array reused here ----
+const users : User[] = [
+    {
+      id: 1,
+      name: 'Rajesh Kumar',
+      email: 'rajesh.kumar@example.com',
+      role: 'Player',
+      subscription: 'Premium',
+      status: 'Active',
+      club: 'Mumbai Cricket Club',
+      joined: 'Jan 2024',
+      lastActive: '2 hours ago'
+    },
+    {
+      id: 2,
+      name: 'Priya Sharma',
+      email: 'priya.sharma@example.com',
+      role: 'Coach',
+      subscription: 'Free',
+      status: 'Active',
+      club: 'Delhi Sports Academy',
+      joined: 'Feb 2024',
+      lastActive: '1 day ago'
+    },
+    {
+      id: 3,
+      name: 'Amit Patel',
+      email: 'amit.patel@example.com',
+      role: 'Player',
+      subscription: 'Premium',
+      status: 'Suspended',
+      club: 'Bangalore Youth Cricket',
+      joined: 'Mar 2024',
+      lastActive: '5 days ago'
+    },
+    {
+      id: 4,
+      name: 'Sneha Reddy',
+      email: 'sneha.reddy@example.com',
+      role: 'Admin',
+      subscription: 'Premium',
+      status: 'Active',
+      club: 'Chennai Cricket Academy',
+      joined: 'Dec 2023',
+      lastActive: '30 mins ago'
+    },
+    {
+      id: 5,
+      name: 'Vikram Singh',
+      email: 'vikram.singh@example.com',
+      role: 'Player',
+      subscription: 'Free',
+      status: 'Inactive',
+      club: 'Kolkata Cricket Club',
+      joined: 'Apr 2024',
+      lastActive: '2 weeks ago'
+    },
+  ];
+export default function UserProfilePage() {
+  const params = useParams();
+  const router = useRouter();
+  const userId = Number(params.id);
+
+  // State management for modals
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
+  const [sendMessageOpen, setSendMessageOpen] = useState(false);
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [upgradeDowngradeOpen, setUpgradeDowngradeOpen] = useState(false);
+  const [viewActivityOpen, setViewActivityOpen] = useState(false);
+  const [upgradeAction, setUpgradeAction] = useState<"upgrade" | "downgrade">(
+    "upgrade"
+  );
+
+  const [editForm, setEditForm] = useState({
+    name: "",
+    email: "",
+    role: "",
+    subscription: "",
+  });
+
+  const [messageForm, setMessageForm] = useState({
+    subject: "",
+    message: "",
+  });
+
+  const [suspendReason, setSuspendReason] = useState("");
+
+  const selectedUser = useMemo(
+    () => users.find((u) => u.id === userId),
+    [userId]
+  );
+
+  if (!selectedUser) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-slate-900">User Not Found</h1>
+          <p className="text-slate-600 mt-2">
+            The requested user does not exist.
+          </p>
+          <Button onClick={() => router.back()} className="mt-4">
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  const subscription = selectedUser.subscription ?? "Premium";
+
+  // Helper functions
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "Active":
+        return (
+          <Badge className="bg-emerald-50 text-emerald-600 border border-emerald-100">
+            Active
+          </Badge>
+        );
+      case "Suspended":
+        return (
+          <Badge className="bg-red-50 text-red-600 border border-red-100">
+            Suspended
+          </Badge>
+        );
+      case "Pending":
+        return (
+          <Badge className="bg-amber-50 text-amber-600 border border-amber-100">
+            Pending
+          </Badge>
+        );
+      default:
+        return <Badge>{status}</Badge>;
+    }
+  };
+
+  const getRoleBadge = (role: string) => {
+    const colors: Record<string, string> = {
+      Player: "bg-blue-50 text-blue-700 border border-blue-100",
+      "Club Admin": "bg-purple-50 text-purple-700 border border-purple-100",
+      Youth: "bg-green-50 text-green-700 border border-green-100",
+      Parent: "bg-orange-50 text-orange-700 border border-orange-100",
+    };
+
+    const colorClass =
+      colors[role] || "bg-slate-50 text-slate-700 border border-slate-100";
+
+    return <Badge className={colorClass}>{role}</Badge>;
+  };
+
+  const getSubscriptionBadge = (subscription?: string) => {
+    const sub = subscription ?? "None";
+    switch (sub) {
+      case "Premium":
+        return (
+          <Badge className="bg-purple-50 text-purple-700 border border-purple-100">
+            Premium
+          </Badge>
+        );
+      case "Basic":
+        return (
+          <Badge className="bg-blue-50 text-blue-700 border border-blue-100">
+            Basic
+          </Badge>
+        );
+      case "None":
+        return (
+          <Badge className="bg-slate-50 text-slate-600 border border-slate-100">
+            None
+          </Badge>
+        );
+      default:
+        return <Badge>{sub}</Badge>;
+    }
+  };
+
+  // Handlers
+  const handleEditUser = () => {
+    setEditForm({
+      name: selectedUser.name,
+      email: selectedUser.email,
+      role: selectedUser.role,
+      subscription,
+    });
+    setEditModalOpen(true);
+  };
+
+  const handleSaveUser = () => {
+    console.log("Saving user:", editForm);
+    setEditModalOpen(false);
+  };
+
+  const handleResetPassword = () => {
+    console.log("Resetting password for:", selectedUser.email);
+    setResetPasswordOpen(false);
+  };
+
+  const handleSendMessage = () => {
+    console.log("Sending message:", messageForm);
+    setSendMessageOpen(false);
+  };
+
+  const handleSuspendUser = () => {
+    console.log("Suspending user:", selectedUser.name, "Reason:", suspendReason);
+    setSuspendDialogOpen(false);
+    setSuspendReason("");
+  };
+
+  const handleDeleteUser = () => {
+    console.log("Deleting user:", selectedUser.name);
+    setDeleteDialogOpen(false);
+  };
+
+  const handleUpgradeDowngrade = () => {
+    console.log(`${upgradeAction} user:`, selectedUser.name);
+    setUpgradeDowngradeOpen(false);
+  };
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50">
+      {/* Top breadcrumb / title like screenshot */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-8 py-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleBack}
+              className="hover:bg-slate-100"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-xl text-[#0f172a]">User Profile</h1>
+              <p className="text-sm text-[#64748b]">View and manage user details</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - User Info & Stats */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* User Card */}
+            <Card className="border-slate-200  overflow-hidden">
+              <div className="relative bg-linear-to-br from-slate-50 via-white to-blue-50/30 px-6 pt-8 pb-6">
+                <div className="flex flex-col items-center text-center">
+                  {/* Avatar */}
+                  <div className="relative mb-4">
+                    <div className="w-32 h-32 rounded-2xl bg-linear-to-br from-slate-200 via-slate-100 to-white flex items-center justify-center text-slate-700 text-5xl border-2 border-white shadow-lg ring-1 ring-slate-200/50">
+                      {selectedUser.name.charAt(0)}
+                    </div>
+                    <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center border-2 border-white shadow-md">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                  </div>
+
+                  {/* Name & Email */}
+                  <h2 className="text-2xl text-[#0f172a] mb-2 tracking-tight">
+                    {selectedUser.name}
+                  </h2>
+                  <div className="flex items-center gap-2 text-[#64748b] text-sm mb-3">
+                    <Mail className="w-4 h-4" />
+                    {selectedUser.email}
+                  </div>
+                  <div className="text-xs text-[#64748b] mb-4">
+                    ID: #{selectedUser.id.toString().padStart(4, '0')}
+                  </div>
+
+                  {/* Badges */}
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {getRoleBadge(selectedUser.role)}
+                    {getStatusBadge(selectedUser.status)}
+                    {getSubscriptionBadge(selectedUser.subscription)}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Account Details Card */}
+            <Card className="border-slate-200  overflow-hidden">
+              <div className="px-5 py-4 bg-linear-to-br from-slate-50 to-white border-b border-slate-100">
+                <h3 className="text-sm font-medium text-[#0f172a] flex items-center gap-2">
+                  <User className="w-4 h-4 text-slate-600" />
+                  Account Details
+                </h3>
+              </div>
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#64748b] flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Account Type
+                  </span>
+                  <span className="text-sm font-medium text-[#0f172a]">{selectedUser.role}</span>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                  <span className="text-sm text-[#64748b] flex items-center gap-2">
+                    <Star className="w-4 h-4" />
+                    Subscription
+                  </span>
+                  <span className="text-sm font-medium text-[#0f172a]">{selectedUser.subscription}</span>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                  <span className="text-sm text-[#64748b] flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Member Since
+                  </span>
+                  <span className="text-sm font-medium text-[#0f172a]">{selectedUser.joined}</span>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                  <span className="text-sm text-[#64748b] flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Last Active
+                  </span>
+                  <span className="text-sm font-medium text-[#0f172a]">{selectedUser.lastActive}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Club Information Card */}
+            <Card className="border-slate-200  overflow-hidden">
+              <div className="px-5 py-4 bg-linear-to-br from-blue-50 to-white border-b border-blue-100">
+                <h3 className="text-sm font-medium text-[#0f172a] flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-600" />
+                  Club Information
+                </h3>
+              </div>
+              <CardContent className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-[#64748b] flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Linked Club
+                  </span>
+                  <span className="text-sm font-medium text-[#0f172a]">{selectedUser.club}</span>
+                </div>
+                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                  <span className="text-sm text-[#64748b]">Status</span>
+                  {getStatusBadge(selectedUser.status)}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Column - Engagement & Activity */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Engagement Analytics */}
+            <Card className="border-slate-200  overflow-hidden">
+              <div className="px-6 py-5 bg-linear-to-br from-emerald-50 to-white border-b border-emerald-100">
+                <h3 className="text-base font-medium text-[#0f172a] flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-emerald-600" />
+                  Engagement Analytics
+                </h3>
+                <p className="text-sm text-[#64748b] mt-1">Performance metrics and user activity overview</p>
+              </div>
+              <CardContent className="p-6 space-y-6">
+                {/* Posts */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#0f172a]">Posts Created</p>
+                        <p className="text-xs text-[#64748b]">Total content published</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-semibold text-[#0f172a]">142</span>
+                  </div>
+                </div>
+
+                {/* Comments */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                        <MessageSquare className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#0f172a]">Comments Made</p>
+                        <p className="text-xs text-[#64748b]">Engagement with community</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-semibold text-[#0f172a]">89</span>
+                  </div>
+                </div>
+
+                {/* Reviews */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center">
+                        <Star className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#0f172a]">Reviews Written</p>
+                        <p className="text-xs text-[#64748b]">Feedback provided</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-semibold text-[#0f172a]">23</span>
+                  </div>
+                </div>
+
+                {/* Reports */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                        <Flag className="w-5 h-5 text-red-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#0f172a]">Reports Submitted</p>
+                        <p className="text-xs text-[#64748b]">Content moderation flags</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-semibold text-[#0f172a]">2</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Activity Timeline */}
+            <Card className="border-slate-200  overflow-hidden">
+              <div className="px-6 py-5 bg-linear-to-br from-amber-50 to-white border-b border-amber-100">
+                <h3 className="text-base font-medium text-[#0f172a] flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-amber-600" />
+                  Recent Activity
+                </h3>
+                <p className="text-sm text-[#64748b] mt-1">Latest user actions and interactions</p>
+              </div>
+              <CardContent className="p-6">
+                <div className="space-y-5">
+                  {[
+                    { action: 'Logged in from Mumbai, India', time: '2 hours ago', icon: Activity, color: 'bg-blue-50 text-blue-600' },
+                    { action: 'Updated profile picture', time: '1 day ago', icon: User, color: 'bg-green-50 text-green-600' },
+                    { action: 'Joined Mumbai Cricket Club', time: '3 days ago', icon: Shield, color: 'bg-purple-50 text-purple-600' },
+                    { action: 'Posted match score update', time: '5 days ago', icon: TrendingUp, color: 'bg-orange-50 text-orange-600' },
+                    { action: 'Left a review for Delhi Academy', time: '1 week ago', icon: Star, color: 'bg-amber-50 text-amber-600' },
+                    { action: 'Commented on team discussion', time: '1 week ago', icon: MessageSquare, color: 'bg-indigo-50 text-indigo-600' },
+                  ].map((activity, i) => (
+                    <div key={i} className="flex items-start gap-4 pb-5 border-b border-slate-100 last:border-0 last:pb-0">
+                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${activity.color}`}>
+                        <activity.icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 pt-1">
+                        <p className="text-sm font-medium text-[#0f172a]">{activity.action}</p>
+                        <p className="text-xs text-[#64748b] mt-1">{activity.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions Card */}
+            <Card className="border-slate-200  overflow-hidden">
+              <div className="px-6 py-5 bg-white border-b border-slate-100">
+                <h3 className="text-base font-medium text-[#0f172a]">Quick Actions</h3>
+                <p className="text-sm text-[#64748b] mt-1">Manage user account and permissions</p>
+              </div>
+              <CardContent className="p-6">
+                <div className="space-y-3">
+                  {/* Primary Actions */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <Button 
+                      onClick={handleEditUser}
+                      className="h-12 bg-slate-900 hover:bg-slate-800 text-white"
+                    >
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Profile
+                    </Button>
+                    <Button 
+                      onClick={() => setSendMessageOpen(true)}
+                      className="h-12 bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Send Message
+                    </Button>
+                  </div>
+
+                  {/* Secondary Actions */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <Button 
+                      onClick={() => setResetPasswordOpen(true)}
+                      variant="outline"
+                      className="h-11 border-slate-200 hover:bg-slate-50"
+                    >
+                      <KeyRound className="w-4 h-4 mr-2" />
+                      Reset
+                    </Button>
+                    <Button 
+                      onClick={() => setViewActivityOpen(true)}
+                      variant="outline"
+                      className="h-11 border-slate-200 hover:bg-slate-50"
+                    >
+                      <Activity className="w-4 h-4 mr-2" />
+                      Activity
+                    </Button>
+                    <Button 
+                      onClick={() => {
+                        setUpgradeAction('upgrade');
+                        setUpgradeDowngradeOpen(true);
+                      }}
+                      variant="outline"
+                      className="h-11 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                    >
+                      <Zap className="w-4 h-4 mr-2" />
+                      Upgrade
+                    </Button>
+                  </div>
+
+                  {/* Danger Zone */}
+                  <div className="pt-3 border-t border-slate-100">
+                    <p className="text-xs text-[#64748b] mb-3 uppercase tracking-wider">Danger Zone</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button 
+                        onClick={() => setSuspendDialogOpen(true)}
+                        variant="outline"
+                        className="h-11 border-orange-200 text-orange-700 hover:bg-orange-50"
+                      >
+                        <Ban className="w-4 h-4 mr-2" />
+                        Suspend Account
+                      </Button>
+                      <Button 
+                        onClick={() => setDeleteDialogOpen(true)}
+                        variant="outline"
+                        className="h-11 border-red-200 text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Account
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      <EditUserModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        editForm={editForm}
+        onEditFormChange={setEditForm}
+        onSave={handleSaveUser}
+        selectedUser={selectedUser}
+      />
+
+      <ResetPasswordModal
+        open={resetPasswordOpen}
+        onOpenChange={setResetPasswordOpen}
+        selectedUser={selectedUser}
+        onReset={handleResetPassword}
+      />
+
+      <SendMessageModal
+        open={sendMessageOpen}
+        onOpenChange={setSendMessageOpen}
+        messageForm={messageForm}
+        onMessageFormChange={setMessageForm}
+        onSend={handleSendMessage}
+        selectedUser={selectedUser}
+      />
+
+      <SuspendDialog
+        open={suspendDialogOpen}
+        onOpenChange={setSuspendDialogOpen}
+        selectedUser={selectedUser}
+        suspendReason={suspendReason}
+        onSuspendReasonChange={setSuspendReason}
+        onSuspend={handleSuspendUser}
+      />
+
+      <DeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        selectedUser={selectedUser}
+        onDelete={handleDeleteUser}
+      />
+
+      <UpgradeDowngradeModal
+        open={upgradeDowngradeOpen}
+        onOpenChange={setUpgradeDowngradeOpen}
+        selectedUser={selectedUser}
+        upgradeAction={upgradeAction}
+        onConfirm={handleUpgradeDowngrade}
+      />
+
+      <ViewActivityModal
+        open={viewActivityOpen}
+        onOpenChange={setViewActivityOpen}
+        selectedUser={selectedUser}
+      />
+    </div>
+  );
+}

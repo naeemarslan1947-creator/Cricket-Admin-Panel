@@ -1,4 +1,3 @@
-
 // app/login/page.tsx
 "use client";
 
@@ -7,12 +6,50 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Users, TrendingUp, BarChart3, Shield } from "lucide-react";
 import { LoginScreen } from "../components/login/LoginScreen";
-import { AuthUser } from "../types/auth";
+
+import { AuthUser, LoginResponse } from "../types/auth";
 import makeRequest from "../../Api's/apiHelper";
 import { LoginClientApiCall } from "../../Api's/repo";
 import { handleApiError } from "../../Api's/errorHandler";
 import store from "../../redux/store";
 import { setUser } from "../../redux/actions";
+import { tokenManager } from "../../Api's/tokenManager";
+
+
+interface ExtendedLoginResponse {
+  result?: {
+    data?: {
+      item?: {
+        status_code?: number;
+        is_admin?: boolean;
+        message?: string;
+        token?: string;
+        user?: UserInfo;
+      };
+    };
+  };
+  data?: {
+    status_code?: number;
+    result?: {
+      is_admin?: boolean;
+      user?: UserInfo;
+      token?: string;
+    };
+    token?: string;
+    user?: UserInfo;
+  };
+  token?: string;
+  message?: string;
+}
+
+interface UserInfo {
+  email?: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  user_name?: string;
+  profile_media?: string;
+}
 
 const statsData = [
   { icon: Users, label: "Active Users", value: "12.5K+", color: "from-blue-500 to-blue-600" },
@@ -31,27 +68,59 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const response = await makeRequest({
+      const response = await makeRequest<LoginResponse>({
         url: LoginClientApiCall,
         method: "POST",
         data: { email, password },
       });
 
-      const loginData = response.data;
+      const loginData = response.data as ExtendedLoginResponse;
+
+      // Extract user data from different possible response structures
+      const userData = loginData?.result?.data?.item;
+      const resultData = loginData?.data?.result;
       
-      if (loginData?.result?.data?.item?.status_code === 200 && loginData?.result?.data?.item?.is_admin !== false) {
+      // Determine if user is admin
+      const isAdmin = userData?.is_admin ?? resultData?.is_admin ?? false;
+      
+      // Check for valid token
+      const hasValidToken = !!(
+        loginData?.token || 
+        userData?.token || 
+        resultData?.token || 
+        tokenManager.extractTokenFromResponse(loginData)
+      );
 
-        console.log("📢[page.tsx:41]: response.data.result.data.item.is_admin: ", response);
-        if (!loginData?.result?.data?.item?.is_admin) {
-          setError("You do not have admin access.");
-          setIsLoading(false);
-          return;
-        }
-
+      if (hasValidToken && isAdmin) {
+        // Extract user info
+        const userInfo = userData?.user || resultData?.user || loginData?.data?.user;
+        
+        // Create auth user object
         const authUser: AuthUser = {
-          ...loginData.result.data.item.user,
-          token: loginData.result.data.item.token,
+          email: userInfo?.email || email,
+          name: userInfo?.name || 
+               `${userInfo?.first_name || ""} ${userInfo?.last_name || ""}`.trim() || 
+               userInfo?.user_name || 
+               "Unknown User",
+          role: {
+            id: "",
+            name: "Moderator",
+            permissions: [],
+            color: "blue"
+          },
+          avatar: userInfo?.profile_media,
+          token: tokenManager.extractTokenFromResponse(loginData) || 
+                userData?.token || 
+                resultData?.token || 
+                loginData?.token || 
+                "",
+          is_admin: isAdmin
         };
+
+        // Store token in tokenManager
+        if (authUser.token) {
+          tokenManager.setToken(authUser.token, true);
+        }
 
         // Save to Redux store
         store.dispatch(setUser(authUser));
@@ -59,9 +128,6 @@ export default function LoginPage() {
         // Save session to localStorage
         localStorage.setItem("auth", "true");
         localStorage.setItem("user", JSON.stringify(authUser));
-        if (authUser.token) {
-          localStorage.setItem("authToken", authUser.token);
-        }
 
         // Remember me
         if (remember) {
@@ -74,10 +140,13 @@ export default function LoginPage() {
           );
         }
 
-
         router.push("/dashboard");
       } else {
-        setError(loginData?.result?.data?.item?.message || "Invalid email or password.");
+        if (!isAdmin) {
+          setError("You do not have admin access.");
+        } else {
+          setError(loginData?.message || "Invalid email or password.");
+        }
       }
     } catch (err) {
       const parsedError = handleApiError(err);
@@ -89,7 +158,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex bg-linear-to-br from-gray-50 via-blue-50/30 to-green-50/30 relative overflow-hidden">
-      {/* Left Section */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 relative">
         <div className="max-w-xl relative z-10">
           <motion.div
@@ -151,26 +219,31 @@ export default function LoginPage() {
             ))}
           </motion.div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.6 }}
-                className="bg-linear-to-br from-blue-50 to-green-50 rounded-2xl p-6 border border-blue-100"
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Shield className="w-5 h-5 text-[#007BFF]" />
-                  <h3 className="text-gray-900">Secure Admin Access</h3>
-                </div>
-                <p className="text-sm text-gray-600">
-                  Welcome to the Cricket Admin Panel. Please use your admin credentials to access the dashboard.
-                </p>
-                </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="bg-linear-to-br from-blue-50 to-green-50 rounded-2xl p-6 border border-blue-100"
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Shield className="w-5 h-5 text-[#007BFF]" />
+              <h3 className="text-gray-900">Secure Admin Access</h3>
+            </div>
+            <p className="text-sm text-gray-600">
+              Welcome to the Cricket Admin Panel. Please use your admin credentials to access the dashboard.
+            </p>
+          </motion.div>
         </div>
       </div>
 
       {/* Right - Login Form */}
       <div className="flex-1 flex items-center justify-center p-6 relative z-10">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }} className="w-full max-w-md">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }} 
+          animate={{ opacity: 1, scale: 1 }} 
+          transition={{ duration: 0.5 }} 
+          className="w-full max-w-md"
+        >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

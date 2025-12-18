@@ -20,18 +20,29 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  data: {
-    status_code: number;
-    result: {
-      is_admin: boolean;
-      user: AuthUser;
+  result?: {
+    data?: {
+      item?: {
+        status_code?: number;
+        is_admin?: boolean;
+        message?: string;
+        token?: string;
+        user?: AuthUser;
+      };
     };
-    token: string;
-    user: AuthUser;
   };
+  data?: {
+    status_code?: number;
+    result?: {
+      is_admin?: boolean;
+      user?: AuthUser;
+    };
+    token?: string;
+    user?: AuthUser;
+  };
+  token?: string;
   message?: string;
 }
-
 
 export interface ApiError {
   message: string;

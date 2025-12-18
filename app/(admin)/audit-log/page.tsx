@@ -76,18 +76,15 @@ const MOCK_CURRENT_USER = {
 };
 
 export default function AuditLogs({ activityLogs = [], currentUser = MOCK_CURRENT_USER }: AuditLogsProps) {
-  // Combine real-time logs with sample logs
   const allLogs = [...activityLogs, ...SAMPLE_LOGS].sort((a, b) => b.id - a.id);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h1 className="text-2xl text-[#1e293b] mb-1">Audit Logs</h1>
         <p className="text-[#64748b]">Track all administrative actions and system changes in real-time</p>
       </div>
 
-      {/* Current User Info */}
       {currentUser && (
         <CurrentUserCard 
           currentUser={currentUser} 

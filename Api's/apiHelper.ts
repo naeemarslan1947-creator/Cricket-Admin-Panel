@@ -1,7 +1,9 @@
+
 import axios, { AxiosRequestConfig, AxiosError } from "axios";
 import store from "../redux/store";
 import { setLoader, showToast } from "../redux/actions";
 import { ApiResponse, RequestConfig } from "./types";
+import { tokenManager } from "./tokenManager";
 
 /**
  * Configures the request headers based on auth token and content type
@@ -27,7 +29,7 @@ const configureHeaders = (
  * Makes an HTTP request with the provided configuration
  * @template T - The expected response data type
  */
-const makeRequest = async <T = any,>({
+const makeRequest = async <T = unknown>({
   url,
   method = "GET",
   data = null,
@@ -36,19 +38,34 @@ const makeRequest = async <T = any,>({
 }: Omit<RequestConfig, "dispatch">): Promise<ApiResponse<T>> => {
   store.dispatch(setLoader(true));
 
+
+
   try {
     const isFormData = data instanceof FormData;
+
+    const token = authToken || tokenManager.getToken();
+    
+    console.log('API Request Debug:', {
+      url,
+      method,
+      hasAuthToken: !!authToken,
+      hasStoredToken: !!tokenManager.getToken(),
+      finalToken: token,
+      headers: configureHeaders(token, isFormData)
+    });
 
     const config: AxiosRequestConfig = {
       url,
       method,
-      headers: configureHeaders(authToken, isFormData),
+      headers: configureHeaders(token, isFormData),
       params,
       data: data || undefined,
     };
 
     const response = await axios(config);
     store.dispatch(setLoader(false));
+
+    tokenManager.updateTokenFromResponse(response.data);
 
     return {
       data: response.data,

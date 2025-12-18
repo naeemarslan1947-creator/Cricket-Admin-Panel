@@ -414,7 +414,7 @@ export default function SecuritySettings() {
                 
                 <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg mb-4">
                   <div className="flex gap-3">
-                    <AlertTriangle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
                     <p className="text-xs text-blue-900">
                       {twoFactorEnabled 
                         ? 'Your account is protected with 2FA. Keep your backup codes in a safe place.'
@@ -696,7 +696,7 @@ export default function SecuritySettings() {
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex gap-4 flex-1">
-                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
                           session.isCurrent ? 'bg-green-100' : 'bg-white'
                         }`}>
                           <Monitor className={`w-6 h-6 ${session.isCurrent ? 'text-green-600' : 'text-[#64748b]'}`} />

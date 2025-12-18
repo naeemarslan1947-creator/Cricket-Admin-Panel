@@ -1,11 +1,11 @@
 "use client";
 import { useState } from 'react';
-import { Download, FileSpreadsheet, Calendar, Filter, Clock, Database, Users, Building2, CreditCard, Star, AlertTriangle, Shield } from 'lucide-react';
+import { Download, Calendar, Clock, Database, Users, Building2, CreditCard, Star, AlertTriangle, Shield } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
-import { Badge } from '@/app/components/ui/badge';
-import { Button } from '@/app/components/ui/button';
+import { Card, CardContent } from '@/app/components/ui/card';
 import QuickExport from '@/app/components/admin/data-export/QuickExport';
+import ExportHistory, { ExportHistoryItem } from '@/app/components/admin/data-export/ExportHistory';
+import ScheduledExports from '@/app/components/admin/data-export/ScheduledExports';
 
 export default function DataExportTools() {
 
@@ -72,7 +72,7 @@ export default function DataExportTools() {
   ];
 
   // Export history
-  const exportHistory = [
+  const exportHistory: ExportHistoryItem[] = [
     {
       id: '1',
       dataType: 'User List',
@@ -80,9 +80,8 @@ export default function DataExportTools() {
       records: 15234,
       requestedBy: 'John Smith',
       requestedDate: '2024-12-04 10:30 AM',
-      status: 'Completed',
-      fileSize: '2.3 MB',
-      downloadUrl: '#'
+      status: 'Completed' as const,
+      fileSize: '2.3 MB'
     },
     {
       id: '2',
@@ -91,9 +90,8 @@ export default function DataExportTools() {
       records: 3421,
       requestedBy: 'Sarah Wilson',
       requestedDate: '2024-12-03 03:15 PM',
-      status: 'Completed',
-      fileSize: '1.1 MB',
-      downloadUrl: '#'
+      status: 'Completed' as const,
+      fileSize: '1.1 MB'
     },
     {
       id: '3',
@@ -102,9 +100,8 @@ export default function DataExportTools() {
       records: 542,
       requestedBy: 'Mike Johnson',
       requestedDate: '2024-12-03 11:20 AM',
-      status: 'Processing',
-      fileSize: '-',
-      downloadUrl: null
+      status: 'Processing' as const,
+      fileSize: '-'
     },
     {
       id: '4',
@@ -113,9 +110,8 @@ export default function DataExportTools() {
       records: 1234,
       requestedBy: 'John Smith',
       requestedDate: '2024-12-02 02:45 PM',
-      status: 'Completed',
-      fileSize: '456 KB',
-      downloadUrl: '#'
+      status: 'Completed' as const,
+      fileSize: '456 KB'
     }
   ];
 
@@ -231,139 +227,12 @@ export default function DataExportTools() {
 
         {/* Export History */}
         <TabsContent value="history" className="space-y-4">
-          <Card className="border-[#e2e8f0] ">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-[#1e293b]">Export History</CardTitle>
-                  <p className="text-sm text-[#64748b]">View and download previous exports</p>
-                </div>
-                <Button variant="outline" className="border-[#e2e8f0]">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filter
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {exportHistory.map((export_item) => (
-                <Card key={export_item.id} className="border-[#e2e8f0]">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="w-12 h-12 bg-linear-to-br from-[#00C853] to-[#007BFF] rounded-lg flex items-center justify-center shadow-lg">
-                          <FileSpreadsheet className="w-6 h-6 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-[#1e293b]">{export_item.dataType}</h4>
-                            <Badge variant="outline">{export_item.format}</Badge>
-                            <Badge className={
-                              export_item.status === 'Completed' 
-                                ? 'bg-green-100 text-green-700' 
-                                : export_item.status === 'Processing'
-                                ? 'bg-blue-100 text-blue-700'
-                                : 'bg-red-100 text-red-700'
-                            }>
-                              {export_item.status}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-[#64748b] mb-1">
-                            <span>{export_item.records.toLocaleString()} records</span>
-                            <span>•</span>
-                            <span>{export_item.fileSize}</span>
-                            <span>•</span>
-                            <span>Requested by {export_item.requestedBy}</span>
-                          </div>
-                          <p className="text-xs text-[#94a3b8]">{export_item.requestedDate}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        {export_item.status === 'Completed' ? (
-                          <Button className="bg-[#007BFF] hover:bg-[#0056b3] text-white">
-                            <Download className="w-4 h-4 mr-2" />
-                            Download
-                          </Button>
-                        ) : (
-                          <Button variant="outline" disabled>
-                            <Clock className="w-4 h-4 mr-2" />
-                            Processing...
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </CardContent>
-          </Card>
+          <ExportHistory exportHistory={exportHistory}/>
         </TabsContent>
 
         {/* Scheduled Exports */}
         <TabsContent value="scheduled" className="space-y-4">
-          <Card className="border-[#e2e8f0] ">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-[#1e293b]">Scheduled Exports</CardTitle>
-                  <p className="text-sm text-[#64748b]">Automate regular data exports</p>
-                </div>
-                <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-                  <Clock className="w-4 h-4 mr-2" />
-                  New Schedule
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {scheduledExports.map((scheduled) => (
-                <Card key={scheduled.id} className="border-[#e2e8f0]">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h4 className="text-[#1e293b]">{scheduled.name}</h4>
-                          <Badge className="bg-green-100 text-green-700">{scheduled.status}</Badge>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                          <div>
-                            <span className="text-[#64748b]">Data Type:</span>
-                            <span className="ml-2 text-[#1e293b]">{scheduled.dataType}</span>
-                          </div>
-                          <div>
-                            <span className="text-[#64748b]">Format:</span>
-                            <span className="ml-2 text-[#1e293b]">{scheduled.format}</span>
-                          </div>
-                          <div>
-                            <span className="text-[#64748b]">Schedule:</span>
-                            <span className="ml-2 text-[#1e293b]">{scheduled.schedule}</span>
-                          </div>
-                          <div>
-                            <span className="text-[#64748b]">Send to:</span>
-                            <span className="ml-2 text-[#1e293b]">{scheduled.recipient}</span>
-                          </div>
-                          <div>
-                            <span className="text-[#64748b]">Last Run:</span>
-                            <span className="ml-2 text-[#1e293b]">{scheduled.lastRun}</span>
-                          </div>
-                          <div>
-                            <span className="text-[#64748b]">Next Run:</span>
-                            <span className="ml-2 text-[#1e293b]">{scheduled.nextRun}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="sm" className="border-[#e2e8f0]">
-                          Edit
-                        </Button>
-                        <Button variant="outline" size="sm" className="border-orange-200 text-orange-600">
-                          Pause
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </CardContent>
-          </Card>
+          <ScheduledExports scheduledExports={scheduledExports} />
         </TabsContent>
       </Tabs>
     </div>

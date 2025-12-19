@@ -14,48 +14,40 @@ import { handleApiError } from "../../Api's/errorHandler";
 import store from "../../redux/store";
 import { setUser } from "../../redux/actions";
 import { tokenManager } from "../../Api's/tokenManager";
-
-
-interface ExtendedLoginResponse {
-  result?: {
-    data?: {
-      item?: {
-        status_code?: number;
-        is_admin?: boolean;
-        message?: string;
-        token?: string;
-        user?: UserInfo;
-      };
-    };
-  };
-  data?: {
-    status_code?: number;
-    result?: {
-      is_admin?: boolean;
-      user?: UserInfo;
-      token?: string;
-    };
-    token?: string;
-    user?: UserInfo;
-  };
-  token?: string;
-  message?: string;
-}
-
-interface UserInfo {
-  email?: string;
-  name?: string;
-  first_name?: string;
-  last_name?: string;
-  user_name?: string;
-  profile_media?: string;
-}
-
 const statsData = [
   { icon: Users, label: "Active Users", value: "12.5K+", color: "from-blue-500 to-blue-600" },
   { icon: TrendingUp, label: "Growth Rate", value: "+45%", color: "from-green-500 to-green-600" },
   { icon: BarChart3, label: "Analytics", value: "Real-time", color: "from-purple-500 to-purple-600" },
 ];
+
+
+interface ExtendedLoginResponse {
+  response_code?: number;
+  success?: boolean;
+  message?: string;
+  token?: string;
+  result?: {
+    data?: {
+      _id?: string;
+      user_name?: string;
+      email?: string;
+      full_name?: string;
+      is_user_verified?: boolean;
+      is_club?: boolean;
+      is_club_verified?: boolean;
+      action_type?: number;
+      is_admin?: boolean;
+      is_teenager?: boolean;
+      updated_at?: string;
+      created_at?: string;
+      __v?: number;
+      last_active?: string;
+      profile_media?: string;
+    };
+    token?: string;
+  };
+  misc_data?: string;
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -76,61 +68,71 @@ export default function LoginPage() {
 
       const loginData = response.data as ExtendedLoginResponse;
 
-      // Extract user data from different possible response structures
-      const userData = loginData?.result?.data?.item;
-      const resultData = loginData?.data?.result;
+      // Extract user data from actual API response structure
+      const userData = loginData?.result?.data;
+      const resultToken = loginData?.result?.token;
+      const rootToken = loginData?.token;
       
-      // Determine if user is admin
-      const isAdmin = userData?.is_admin ?? resultData?.is_admin ?? false;
-      
-      // Check for valid token
-      const hasValidToken = !!(
-        loginData?.token || 
-        userData?.token || 
-        resultData?.token || 
-        tokenManager.extractTokenFromResponse(loginData)
-      );
+      console.log("📢[page.tsx:65]: userData: ", userData);
+      console.log("📢[page.tsx:66]: resultToken: ", resultToken);
+      console.log("📢[page.tsx:67]: rootToken: ", rootToken);
+
+      // Determine if user is admin from actual response
+      const isAdmin = userData?.is_admin ?? false;
+
+      // Check for valid token from multiple possible locations
+      const hasValidToken = !!(rootToken || resultToken || tokenManager.extractTokenFromResponse(loginData));
+
+
+      console.log("📢[page.tsx:74]: isAdmin: ", isAdmin);
+      console.log("📢[page.tsx:75]: hasValidToken: ", hasValidToken);
 
       if (hasValidToken && isAdmin) {
-        // Extract user info
-        const userInfo = userData?.user || resultData?.user || loginData?.data?.user;
+        // Extract user info from actual response structure
+        const userInfo = userData;
         
-        // Create auth user object
+        // Create auth user object with proper typing
         const authUser: AuthUser = {
           email: userInfo?.email || email,
-          name: userInfo?.name || 
-               `${userInfo?.first_name || ""} ${userInfo?.last_name || ""}`.trim() || 
-               userInfo?.user_name || 
-               "Unknown User",
+          name: userInfo?.full_name || userInfo?.user_name || "Unknown User",
           role: {
             id: "",
             name: "Moderator",
             permissions: [],
             color: "blue"
           },
-          avatar: userInfo?.profile_media,
-          token: tokenManager.extractTokenFromResponse(loginData) || 
-                userData?.token || 
-                resultData?.token || 
-                loginData?.token || 
-                "",
+          avatar: userInfo?.profile_media || undefined,
+          token: rootToken || resultToken || tokenManager.extractTokenFromResponse(loginData) || "",
           is_admin: isAdmin
         };
+
+        console.log("📢[page.tsx:89]: authUser created: ", authUser);
 
         // Store token in tokenManager
         if (authUser.token) {
           tokenManager.setToken(authUser.token, true);
+          console.log("📢[page.tsx:93]: Token stored in tokenManager");
         }
 
         // Save to Redux store
         store.dispatch(setUser(authUser));
+        console.log("📢[page.tsx:97]: User saved to Redux store");
+
 
         // Save session to localStorage
         localStorage.setItem("auth", "true");
         localStorage.setItem("user", JSON.stringify(authUser));
+        console.log("📢[page.tsx:101]: Session saved to localStorage");
 
-        // Remember me
+        // Always set authentication cookies for middleware protection
+        document.cookie = "auth=true; path=/; max-age=86400"; // 1 day (session)
+        document.cookie = `auth_token=${authUser.token}; path=/; max-age=86400; secure; samesite=strict`;
+        console.log("📢[page.tsx:105]: Authentication cookies set");
+
         if (remember) {
+          // Extended cookies for remember me functionality
+          document.cookie = "auth=true; path=/; max-age=604800"; // 7 days
+          document.cookie = `auth_token=${authUser.token}; path=/; max-age=604800; secure; samesite=strict`;
           localStorage.setItem(
             "rememberedUser",
             JSON.stringify({
@@ -138,9 +140,17 @@ export default function LoginPage() {
               name: authUser.name,
             })
           );
+          console.log("📢[page.tsx:115]: Remember me cookies set");
         }
 
-        router.push("/dashboard");
+
+        console.log("📢[page.tsx:117]: About to redirect to dashboard");
+        
+        // Use setTimeout to ensure all state updates are processed first
+        setTimeout(() => {
+          console.log("📢[page.tsx:120]: Executing router.push to dashboard");
+          router.push("/dashboard");
+        }, 100);
       } else {
         if (!isAdmin) {
           setError("You do not have admin access.");
@@ -257,3 +267,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

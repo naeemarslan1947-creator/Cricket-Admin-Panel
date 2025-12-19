@@ -10,8 +10,10 @@ export default function Header() {
     const [showUserMenu, setShowUserMenu] = useState(false)
 
 const handleLogout = () => {
-  localStorage.removeItem("auth");    
+  localStorage.removeItem("auth");
   localStorage.removeItem("user");
+  document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
   router.push("/login");
 };
 

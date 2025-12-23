@@ -1,5 +1,6 @@
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from "../../ui/card";
+import { DashboardData } from "@/app/types/dashboard";
 
 const alerts = [
   {
@@ -22,13 +23,13 @@ const alerts = [
   },
 ];
 
-const clubData = [
-  { name: 'Verified', value: 856, color: '#00C853' },
-  { name: 'Pending', value: 124, color: '#f59e0b' },
-  { name: 'Hidden', value: 43, color: '#ef4444' },
-];
 
-export default function AlertsSection() {
+export default function AlertsSection({dashboardData}: { dashboardData: DashboardData | null }) {
+  console.log("📢[AlertsSection.tsx:32]: dashboardData: ", dashboardData?.graphs_data?.total_clubs_not_verified);
+  const clubData = [
+    { name: 'Verified', value: dashboardData?.graphs_data?.total_clubs_verified, color: '#00C853' },
+    { name: 'Pending', value: dashboardData?.graphs_data?.total_clubs_not_verified, color: '#f59e0b' },
+  ];
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <Card className="lg:col-span-2 border-[#e2e8f0]">
@@ -105,15 +106,22 @@ export default function AlertsSection() {
             </PieChart>
           </ResponsiveContainer>
           <div className="mt-4 space-y-2">
-            {clubData.map((item, index) => (
-              <div key={index} className="flex items-center justify-between">
+              <div  className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-sm text-[#64748b]">{item.name}</span>
+                  <div className="w-3 h-3 rounded-full bg-[#00C853] " />
+                  <span className="text-sm text-[#64748b]">Verified</span>
                 </div>
-                <span className="text-[#1e293b]">{item.value}</span>
+                <span className="text-[#1e293b]">{dashboardData?.graphs_data?.total_clubs_verified}</span>
               </div>
-            ))}
+          </div>
+          <div className="mt-4 space-y-2">
+              <div  className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-[#f59e0b]" />
+                  <span className="text-sm text-[#64748b]">Pending</span>
+                </div>
+                <span className="text-[#1e293b]">{dashboardData?.graphs_data?.total_clubs_not_verified}</span>
+              </div>
           </div>
         </CardContent>
       </Card>

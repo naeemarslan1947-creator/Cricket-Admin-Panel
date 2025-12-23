@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import UsersManagementHeader from '../../components/admin/users-management/UsersManagementHeader';
 import UsersManagementFilters from '../../components/admin/users-management/UsersManagementFilters';
 import UsersManagementTable from '../../components/admin/users-management/UsersManagementTable';
+import Loader from '../../components/common/Loader';
 import { User } from '@/app/types/users';
+import makeRequest from "@/Api's/apiHelper";
+import { GetAllUser } from "@/Api's/repo";
 
-export default function UsersManagement() {
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-
-const users : User[] = [
+const usersData : User[] = [
     {
       id: 1,
       name: 'Rajesh Kumar',
@@ -66,11 +66,47 @@ const users : User[] = [
       lastActive: '2 weeks ago'
     },
   ];
+export default function UsersManagement() {
+
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [users, setUsers] = useState<User[]>(usersData);
+
+
+  console.log("API_BASE_URL:", process.env.NEXT_PUBLIC_API_BASE_URL);
+
+  const fetchSyncingLogs = async () => {
+    console.log("fetchSyncingLogs called");
+    setIsLoading(true);
+    try {
+      const response = await makeRequest({
+        url: `${GetAllUser}?page_number=${1}&limit=${10}`,
+        method: "GET",
+      });
+
+
+      if (response?.success) {
+        setUsers(response?.result as User[] || []);
+
+      } else {
+      }
+    } catch (error) {
+      console.error("Error fetching syncing logs:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("useEffect running");
+    fetchSyncingLogs();
+  }, []);
+
   return (
     <div className="space-y-6">
       <UsersManagementHeader />
       <UsersManagementFilters roleFilter={roleFilter} setRoleFilter={setRoleFilter} />
-      <UsersManagementTable users={users}  />
+      {isLoading ? <Loader /> : <UsersManagementTable users={usersData} />}
     </div>
   );
 }

@@ -14,9 +14,11 @@ export interface RequestConfig {
 }
 
 export interface ApiResponse<T = unknown> {
-  data: T;
-  status: number;
+  data?: T;
+  status?: number;
   message?: string;
+  success?: boolean;
+  result?: T;
 }
 
 
@@ -50,3 +52,5 @@ export interface ApiResponseWithToken<T = unknown> {
   token?: string;
   message?: string;
 }
+
+

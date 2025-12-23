@@ -14,6 +14,8 @@ import { handleApiError } from "../../Api's/errorHandler";
 import store from "../../redux/store";
 import { setUser } from "../../redux/actions";
 import { tokenManager } from "../../Api's/tokenManager";
+import { toastError, toastSuccess } from "../helper/toast";
+
 const statsData = [
   { icon: Users, label: "Active Users", value: "12.5K+", color: "from-blue-500 to-blue-600" },
   { icon: TrendingUp, label: "Growth Rate", value: "+45%", color: "from-green-500 to-green-600" },
@@ -68,30 +70,16 @@ export default function LoginPage() {
 
       const loginData = response.data as ExtendedLoginResponse;
 
-      // Extract user data from actual API response structure
       const userData = loginData?.result?.data;
       const resultToken = loginData?.result?.token;
       const rootToken = loginData?.token;
       
-      console.log("📢[page.tsx:65]: userData: ", userData);
-      console.log("📢[page.tsx:66]: resultToken: ", resultToken);
-      console.log("📢[page.tsx:67]: rootToken: ", rootToken);
-
-      // Determine if user is admin from actual response
       const isAdmin = userData?.is_admin ?? false;
 
-      // Check for valid token from multiple possible locations
       const hasValidToken = !!(rootToken || resultToken || tokenManager.extractTokenFromResponse(loginData));
 
-
-      console.log("📢[page.tsx:74]: isAdmin: ", isAdmin);
-      console.log("📢[page.tsx:75]: hasValidToken: ", hasValidToken);
-
       if (hasValidToken && isAdmin) {
-        // Extract user info from actual response structure
         const userInfo = userData;
-        
-        // Create auth user object with proper typing
         const authUser: AuthUser = {
           email: userInfo?.email || email,
           name: userInfo?.full_name || userInfo?.user_name || "Unknown User",
@@ -106,31 +94,16 @@ export default function LoginPage() {
           is_admin: isAdmin
         };
 
-        console.log("📢[page.tsx:89]: authUser created: ", authUser);
-
-        // Store token in tokenManager
         if (authUser.token) {
           tokenManager.setToken(authUser.token, true);
-          console.log("📢[page.tsx:93]: Token stored in tokenManager");
         }
-
-        // Save to Redux store
         store.dispatch(setUser(authUser));
-        console.log("📢[page.tsx:97]: User saved to Redux store");
-
-
-        // Save session to localStorage
         localStorage.setItem("auth", "true");
         localStorage.setItem("user", JSON.stringify(authUser));
-        console.log("📢[page.tsx:101]: Session saved to localStorage");
-
-        // Always set authentication cookies for middleware protection
         document.cookie = "auth=true; path=/; max-age=86400"; // 1 day (session)
         document.cookie = `auth_token=${authUser.token}; path=/; max-age=86400; secure; samesite=strict`;
-        console.log("📢[page.tsx:105]: Authentication cookies set");
 
         if (remember) {
-          // Extended cookies for remember me functionality
           document.cookie = "auth=true; path=/; max-age=604800"; // 7 days
           document.cookie = `auth_token=${authUser.token}; path=/; max-age=604800; secure; samesite=strict`;
           localStorage.setItem(
@@ -140,27 +113,30 @@ export default function LoginPage() {
               name: authUser.name,
             })
           );
-          console.log("📢[page.tsx:115]: Remember me cookies set");
         }
 
+        // Show success toast
+        toastSuccess("Login successful! Redirecting to dashboard...");
 
-        console.log("📢[page.tsx:117]: About to redirect to dashboard");
-        
-        // Use setTimeout to ensure all state updates are processed first
         setTimeout(() => {
-          console.log("📢[page.tsx:120]: Executing router.push to dashboard");
           router.push("/dashboard");
         }, 100);
       } else {
         if (!isAdmin) {
-          setError("You do not have admin access.");
+          const errorMsg = "You do not have admin access.";
+          setError(errorMsg);
+          toastError(errorMsg);
         } else {
-          setError(loginData?.message || "Invalid email or password.");
+          const errorMsg = loginData?.message || "Invalid email or password.";
+          setError(errorMsg);
+          toastError(errorMsg);
         }
       }
     } catch (err) {
       const parsedError = handleApiError(err);
-      setError(parsedError.message);
+      const errorMsg = parsedError.message;
+      setError(errorMsg);
+      toastError(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -267,4 +243,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

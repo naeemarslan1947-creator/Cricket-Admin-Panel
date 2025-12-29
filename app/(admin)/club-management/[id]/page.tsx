@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import makeRequest from '@/Api\'s/apiHelper';
+import { GetClubById } from '@/Api\'s/repo';
+import { ClubDetail, mapGetClubByIdResponseToDetail, GetClubByIdResponse } from '@/app/types/clubs';
 import ClubInfoSection from '@/app/components/admin/club-management/id/ClubInfoSection';
 import ClubAchievementsSection from '@/app/components/admin/club-management/id/ClubAchievementsSection';
 import ClubPlayersSection from '@/app/components/admin/club-management/id/ClubPlayersSection';
@@ -15,83 +18,6 @@ import OverrideStatusModal from '@/app/components/admin/club-management/id/Overr
 import DeleteClubModal from '@/app/components/admin/club-management/id/DeleteClubModal';
 import { Button } from '@/app/components/ui/button';
 
-export interface Achievement {
-  title: string;
-  year: string;
-  description?: string;
-}
-
-export interface Club {
-  id: number;
-  name: string;
-  location: string;
-  status: 'Verified' | 'Pending' | 'Hidden';
-  rating: number;
-  members: number;
-  teams: number;
-  verified: boolean;
-  description: string;
-  achievements?: Achievement[];
-}
-
-export const clubs: Club[] = [
-  {
-    id: 1,
-    name: 'Mumbai Cricket Club',
-    location: 'Mumbai, Maharashtra',
-    status: 'Verified',
-    rating: 4.8,
-    members: 245,
-    teams: 8,
-    verified: true,
-    description: 'Premier cricket club in Mumbai'
-  },
-  {
-    id: 2,
-    name: 'Delhi Sports Academy',
-    location: 'New Delhi, Delhi',
-    status: 'Verified',
-    rating: 4.6,
-    members: 189,
-    teams: 6,
-    verified: true,
-    description: 'Professional sports training academy'
-  },
-  {
-    id: 3,
-    name: 'Bangalore Youth Cricket',
-    location: 'Bangalore, Karnataka',
-    status: 'Pending',
-    rating: 4.2,
-    members: 87,
-    teams: 3,
-    verified: false,
-    description: 'Youth development cricket club'
-  },
-  {
-    id: 4,
-    name: 'Chennai Cricket Academy',
-    location: 'Chennai, Tamil Nadu',
-    status: 'Verified',
-    rating: 4.9,
-    members: 312,
-    teams: 12,
-    verified: true,
-    description: 'Elite cricket training center'
-  },
-  {
-    id: 5,
-    name: 'Kolkata Cricket Club',
-    location: 'Kolkata, West Bengal',
-    status: 'Hidden',
-    rating: 3.5,
-    members: 45,
-    teams: 2,
-    verified: false,
-    description: 'Local community cricket club'
-  },
-];
-
 interface EditForm {
   name: string;
   location: string;
@@ -99,11 +25,13 @@ interface EditForm {
   rating: string;
 }
 
-export default function ClubProfilePage({ onBack }: { onBack: () => void }) {
+export default function ClubProfilePage() {
   const params = useParams();
-  const clubId = parseInt(params.id as string);
-  const [club, setClub] = useState<Club | null>(null);
+  const router = useRouter();
+  const clubId = params.id as string;
+  const [club, setClub] = useState<ClubDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Modal states
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -122,22 +50,42 @@ export default function ClubProfilePage({ onBack }: { onBack: () => void }) {
   });
 
   useEffect(() => {
-    // Simulate API fetch
-    const fetchClub = () => {
-      const foundClub = clubs.find(c => c.id === clubId);
-      if (foundClub) {
-        setClub(foundClub);
-        setEditForm({
-          name: foundClub.name,
-          location: foundClub.location,
-          description: foundClub.description,
-          rating: foundClub.rating.toString()
+    const fetchClubDetails = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await makeRequest<GetClubByIdResponse>({
+          url: GetClubById,
+          method: 'GET',
+          params: { user_id: clubId }
         });
+
+        if (response.data && response.data.success && response.data.result) {
+          // Map API response to ClubDetail
+          const clubDetail = mapGetClubByIdResponseToDetail(response.data);
+          setClub(clubDetail);
+
+          setEditForm({
+            name: clubDetail.clubName,
+            location: clubDetail.location,
+            description: clubDetail.bio,
+            rating: clubDetail.rating.toString()
+          });
+        } else {
+          setError('Failed to load club details');
+        }
+      } catch (err) {
+        console.error('Error fetching club details:', err);
+        setError('Failed to load club details. Please try again.');
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
-    fetchClub();
+    if (clubId) {
+      fetchClubDetails();
+    }
   }, [clubId]);
 
   if (loading) {
@@ -151,12 +99,12 @@ export default function ClubProfilePage({ onBack }: { onBack: () => void }) {
     );
   }
 
-  if (!club) {
+  if (!club || error) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-lg text-slate-700">Club not found</p>
-          <Button onClick={onBack} className="mt-4">
+          <p className="text-lg text-slate-700">{error || 'Club not found'}</p>
+          <Button onClick={() => router.back()} className="mt-4">
             Go Back
           </Button>
         </div>
@@ -173,7 +121,7 @@ export default function ClubProfilePage({ onBack }: { onBack: () => void }) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={onBack}
+              onClick={() => router.back()}
               className="hover:bg-slate-100"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -197,7 +145,7 @@ export default function ClubProfilePage({ onBack }: { onBack: () => void }) {
           {/* Right Column */}
           <div className="lg:col-span-2 space-y-6">
             <ClubAchievementsSection 
-              club={club} 
+              club={club}
               onAddAchievement={() => setAchievementsOpen(true)}
             />
             <ClubPlayersSection onViewAll={() => setViewPlayersOpen(true)} />
@@ -230,7 +178,7 @@ export default function ClubProfilePage({ onBack }: { onBack: () => void }) {
       <InviteModal
         open={inviteLinkOpen}
         onOpenChange={setInviteLinkOpen}
-        clubId={clubId}
+        clubId={clubId as unknown as number}
       />
 
       <ViewPlayersModal
@@ -241,16 +189,16 @@ export default function ClubProfilePage({ onBack }: { onBack: () => void }) {
       <OverrideStatusModal
         open={overrideStatusOpen}
         onOpenChange={setOverrideStatusOpen}
-        clubName={club.name}
+        clubName={club.clubName}
       />
 
       <DeleteClubModal
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
-        clubName={club.name}
+        clubName={club.clubName}
         onDelete={() => {
           setDeleteDialogOpen(false);
-          onBack();
+          router.back();
         }}
       />
     </div>

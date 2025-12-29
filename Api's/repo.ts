@@ -9,7 +9,9 @@ export const GetAllUser = API_BASE_URL + "api/admin-user/get-all-users";
 
 export const GetUserById = API_BASE_URL + "api/admin-user/user-details";
 
-export const GetUserClub = API_BASE_URL + "api/admin-user/clubs-joined";
+export const GetClubById = API_BASE_URL + "api/admin-user/user-details";
+
+export const GetAllClubs = API_BASE_URL + "api/admin-user/get-all-clubs";
 
 export const UpdateUserApiCall = API_BASE_URL + "api/user/update-user";
 

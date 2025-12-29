@@ -6,9 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 interface ClubsManagementFiltersProps {
   statusFilter: string;
   setStatusFilter: (value: string) => void;
+  searchQuery: string;
+  setSearchQuery: (value: string) => void;
+  isLoading?: boolean;
 }
 
-export default function ClubsManagementFilters({ statusFilter, setStatusFilter }: ClubsManagementFiltersProps) {
+export default function ClubsManagementFilters({
+  statusFilter,
+  setStatusFilter,
+  searchQuery,
+  setSearchQuery,
+  isLoading = false,
+}: ClubsManagementFiltersProps) {
   return (
     <Card className="border-[#e2e8f0]">
       <CardContent className="p-4">
@@ -19,10 +28,13 @@ export default function ClubsManagementFilters({ statusFilter, setStatusFilter }
               <Input
                 placeholder="Search clubs by name or location..."
                 className="pl-10 bg-white border-[#e2e8f0]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                disabled={isLoading}
               />
             </div>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={setStatusFilter} disabled={isLoading}>
             <SelectTrigger className="w-full md:w-[200px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>

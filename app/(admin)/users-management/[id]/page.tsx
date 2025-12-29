@@ -104,23 +104,22 @@ const fetchUserData = useCallback(async () => {
 
     if (userApiData?.success && userApiData?.result) {
       const resultData = userApiData.result as Record<string, unknown>;
-      const dataObj = resultData?.data as Record<string, unknown> | undefined;
-      const userInfo = dataObj?.user as Record<string, unknown> | undefined;
-      const relatedData = dataObj?.relatedData as Record<string, unknown> | undefined;
+      const userInfo = resultData?.user as Record<string, unknown> | undefined;
+      const relatedData = resultData?.relatedData as Record<string, unknown> | undefined;
 
       console.log("✅ User data fetched:", userInfo);
       console.log("✅ Related data fetched:", relatedData);
 
       // Extract player role from players array
       const playerRole = (relatedData?.players as Array<Record<string, unknown>>)?.[0]?.player_role || 'Player';
-
-      const mappedUser: User = {
+      
+            const mappedUser: User = {
         id: String(userInfo?._id || ''),
         name: String(userInfo?.full_name || userInfo?.user_name || ''),
         email: String(userInfo?.email || ''),
         role: String(playerRole),
-        club: '',
-        status: 'Active',
+        club: String(userInfo?.is_club ? 'Club' : 'Individual') || '',
+        status:  'Active',
         lastActive: userInfo?.last_active
           ? new Date(userInfo.last_active as string).toLocaleDateString()
           : '-',
@@ -136,7 +135,9 @@ const fetchUserData = useCallback(async () => {
         followers: (relatedData?.followers as Array<unknown>)?.length || 0,
         following: (relatedData?.following as Array<unknown>)?.length || 0,
         posts: (relatedData?.posts as Array<unknown>)?.length || 0,
-        comments: 89, // Will calculate from actual data when available
+        comments: (relatedData?.posts as Array<Record<string, unknown>>)?.reduce((acc, post) => {
+          return acc + ((post?.comments as Array<unknown>)?.length || 0);
+        }, 0) || 0,
         reviews: (relatedData?.player_ratings as Array<unknown>)?.length || 0,
         reports: 2, // Will calculate from actual data when available
       };
@@ -192,22 +193,7 @@ useEffect(() => {
     );
   }
 
-  // Prevent access to deleted or suspended users
-  if (selectedUser.status === "Deleted" || selectedUser.status === "Suspended") {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-slate-900">Access Denied</h1>
-          <p className="text-slate-600 mt-2">
-            This user account has been {selectedUser.status.toLowerCase()}. You cannot view or manage this account.
-          </p>
-          <Button onClick={() => router.back()} className="mt-4">
-            Go Back
-          </Button>
-        </div>
-      </div>
-    );
-  }
+
 
   const subscription = selectedUser.subscription ?? "Premium";
 
@@ -344,7 +330,6 @@ useEffect(() => {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Top breadcrumb / title like screenshot */}

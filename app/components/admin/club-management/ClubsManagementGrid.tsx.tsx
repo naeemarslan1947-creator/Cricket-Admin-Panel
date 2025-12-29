@@ -5,24 +5,15 @@ import { CheckCircle, Star, Users, MapPin, Shield } from 'lucide-react';
 import { Card, CardContent } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
-
-interface Club {
-  id: number;
-  name: string;
-  location: string;
-  status: 'Verified' | 'Pending' | 'Hidden';
-  rating: number;
-  members: number;
-  teams: number;
-  verified: boolean;
-  description: string;
-}
+import { Skeleton } from '../../ui/skeleton';
+import type { Club } from '@/app/types/clubs';
 
 interface ClubsManagementGridProps {
   clubs: Club[];
+  isLoading?: boolean;
 }
 
-export default function ClubsManagementGrid({ clubs }: ClubsManagementGridProps) {
+export default function ClubsManagementGrid({ clubs, isLoading = false }: ClubsManagementGridProps) {
   const router = useRouter();
 
   const getStatusBadge = (status: string) => {
@@ -51,17 +42,58 @@ export default function ClubsManagementGrid({ clubs }: ClubsManagementGridProps)
     }
   };
 
-  const handleRedirect = (clubId: number) => {
-    router.push(`/club-management/${clubId}`);
+  const handleRedirect = (clubId: number | string | undefined) => {
+    if (clubId) {
+      router.push(`/club-management/${clubId}`);
+    }
   };
+
+  // Loading skeleton
+  if (isLoading && clubs.length === 0) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {[...Array(6)].map((_, i) => (
+          <Card key={i} className="border-[#e2e8f0]">
+            <CardContent className="p-6">
+              <div className="flex items-start gap-4 mb-6">
+                <Skeleton className="w-20 h-20 rounded-2xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-5 w-16" />
+                </div>
+              </div>
+              <Skeleton className="h-20 mb-4" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!isLoading && clubs.length === 0) {
+    return (
+      <Card className="border-[#e2e8f0]">
+        <CardContent className="p-12 text-center">
+          <div className="flex justify-center mb-4">
+            <Shield className="w-12 h-12 text-[#cbd5e1]" />
+          </div>
+          <h3 className="text-lg font-semibold text-[#0f172a] mb-2">No clubs found</h3>
+          <p className="text-[#64748b]">Try adjusting your search or filters to find what you&apos;re looking for.</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {clubs.map((club) => (
         <Card
-          key={club.id}
+          key={club._id}
           className="border-[#e2e8f0]  hover:shadow-md transition-all cursor-pointer overflow-hidden"
-          onClick={() => handleRedirect(club.id)}
+          onClick={() => handleRedirect(club._id)}
         >
           <CardContent className="p-6">
             {/* Header - Logo, Name, Location, Status */}
@@ -109,7 +141,7 @@ export default function ClubsManagementGrid({ clubs }: ClubsManagementGridProps)
               className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white"
               onClick={(e) => {
                 e.stopPropagation(); // prevent card click
-                handleRedirect(club.id);
+                handleRedirect(club._id);
               }}
             >
               <CheckCircle className="w-4 h-4 mr-2" />

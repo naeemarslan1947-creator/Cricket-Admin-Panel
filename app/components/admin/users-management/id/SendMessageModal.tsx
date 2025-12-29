@@ -11,17 +11,20 @@ import { toastError, toastSuccess } from "@/app/helper/toast";
 import { SendUserMessages } from "@/Api's/repo";
 import makeRequest from "@/Api's/apiHelper";
 
+interface MessageForm {
+  subject: string;
+  message: string;
+}
+
 interface SendMessageModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  messageForm: {
-    subject: string;
-    message: string;
-  };
-  onMessageFormChange: (form: any) => void;
+  messageForm: MessageForm;
+  onMessageFormChange: (form: MessageForm) => void;
   onSend: () => void;
   selectedUser: {
     id: string | number;
+    name?: string;
     [key: string]: unknown;
   };
 }
@@ -90,7 +93,7 @@ export default function SendMessageModal({
             Send Message
           </DialogTitle>
           <DialogDescription>
-            Send a direct message to {selectedUser?.name}
+            Send a direct message to {String(selectedUser?.name) || "User"}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">

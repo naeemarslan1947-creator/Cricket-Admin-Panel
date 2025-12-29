@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, MoreVertical, Star, Trash2 } from 'lucide-react';
+import { Edit, MoreVertical, Star, Trash2, Ban } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import { Button } from '../../ui/button';
@@ -8,13 +8,34 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Badge } from '../../ui/badge';
 import { User } from '../../../types/users'; 
 import { useRouter } from "next/navigation";
+import { useState } from 'react';
+import SuspendDialog from '../users-management/id/SuspendDialog';
+import DeleteDialog from '../users-management/id/DeleteDialog';
+import Pagination from '../../common/Pagination';
 
 interface UsersManagementTableProps {
   users: User[];
+  currentPage: number;
+  totalPages: number;
+  totalRecords: number;
+  limit: number;
+  onPageChange: (page: number) => void;
+  onUserUpdated?: () => void;
 }
 
-export default function UsersManagementTable({ users }: UsersManagementTableProps) {
+export default function UsersManagementTable({ 
+  users, 
+  currentPage, 
+  totalPages, 
+  totalRecords, 
+  limit, 
+  onPageChange,
+  onUserUpdated,
+}: UsersManagementTableProps) {
   const router = useRouter();
+  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -22,8 +43,10 @@ export default function UsersManagementTable({ users }: UsersManagementTableProp
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Active</Badge>;
       case 'Suspended':
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Suspended</Badge>;
+      case 'Deleted':
+        return <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">Deleted</Badge>;
       case 'Pending':
-        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Pending</Badge>;
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Deleted</Badge>;
       default:
         return <Badge>{status}</Badge>;
     }
@@ -54,8 +77,23 @@ export default function UsersManagementTable({ users }: UsersManagementTableProp
     return <Badge className={`${colorClass} hover:${colorClass.split(' ')[0]}`}>{role}</Badge>;
   };
 
+  const isUserAccessible = (user: User) => {
+    return user.status !== 'Deleted' && user.status !== 'Suspended';
+  };
+
+  const handleSuspend = (user: User) => {
+    setSelectedUser(user);
+    setSuspendDialogOpen(true);
+  };
+
+  const handleDelete = (user: User) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
+  };
+
   return (
-    <Card className="border-[#e2e8f0] shadow-sm">
+    <>
+      <Card className="border-[#e2e8f0] shadow-sm">
         <CardHeader>
           <CardTitle className="text-[#1e293b]">All Users</CardTitle>
         </CardHeader>
@@ -76,12 +114,11 @@ export default function UsersManagementTable({ users }: UsersManagementTableProp
               {users.map((user) => (
                 <TableRow 
                   key={user.id} 
-                  className="cursor-pointer hover:bg-slate-50"
-                  onClick={() => router.push(`/users-management/${user.id}`)}
+                  className={isUserAccessible(user) ? "cursor-pointer hover:bg-slate-50" : "cursor-not-allowed opacity-60 hover:bg-slate-50"}
                 >
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 via-slate-100 to-white flex items-center justify-center text-slate-700 border border-slate-200">
+                      <div className="w-10 h-10 rounded-full bg-linear-to-br from-slate-200 via-slate-100 to-white flex items-center justify-center text-slate-700 border border-slate-200">
                         {user.name.charAt(0)}
                       </div>
                       <div>
@@ -105,15 +142,50 @@ export default function UsersManagementTable({ users }: UsersManagementTableProp
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                         <DropdownMenuItem onClick={() => router.push(`/users-management/${user.id}`)}>        
-                          <Edit className="w-4 h-4 mr-2" />
-                           View Detail
+                        {isUserAccessible(user) ? (
+                          <DropdownMenuItem onClick={() => router.push(`/users-management/${user.id}`)}>        
+                            <Edit className="w-4 h-4 mr-2" />
+                            View Detail
                           </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem disabled>        
+                            <Edit className="w-4 h-4 mr-2" />
+                            View Detail (Unavailable)
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-red-600">
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete Account
-                        </DropdownMenuItem>
+                        {user.status === "Suspended" ? (
+                          <DropdownMenuItem 
+                            className="text-green-600"
+                            onClick={() => handleSuspend(user)}
+                          >
+                            <Ban className="w-4 h-4 mr-2" />
+                            Activate Account
+                          </DropdownMenuItem>
+                        ) : user.status === "Deleted" ? (
+                          <DropdownMenuItem disabled>
+                            <Ban className="w-4 h-4 mr-2" />
+                            Cannot Modify (Deleted)
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem 
+                            className="text-orange-600"
+                            onClick={() => handleSuspend(user)}
+                          >
+                            <Ban className="w-4 h-4 mr-2" />
+                            Suspend Account
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuSeparator />
+                        {user.status !== "Deleted" && (
+                          <DropdownMenuItem 
+                            className="text-red-600"
+                            onClick={() => handleDelete(user)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete Account
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -121,83 +193,35 @@ export default function UsersManagementTable({ users }: UsersManagementTableProp
               ))}
             </TableBody>
           </Table>
+          {totalRecords > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalRecords={totalRecords}
+              limit={limit}
+              onPageChange={onPageChange}
+            />
+          )}
         </CardContent>
       </Card>
-    // <Card className="border-[#e2e8f0]">
-    //   <CardHeader>
-    //     <CardTitle className="text-[#1e293b]">All Users</CardTitle>
-    //     <p className="text-sm text-[#64748b]">Showing 5 of 24,583 users</p>
-    //   </CardHeader>
-
-    //   <CardContent>
-    //     <Table>
-    //       <TableHeader>
-    //         <TableRow>
-    //           <TableHead>Name</TableHead>
-    //           <TableHead>Email</TableHead>
-    //           <TableHead>Account Type</TableHead>
-    //           <TableHead>Linked Club</TableHead>
-    //           <TableHead>Status</TableHead>
-    //           <TableHead>Last Active</TableHead>
-    //           <TableHead className="text-right">Actions</TableHead>
-    //         </TableRow>
-    //       </TableHeader>
-
-    //       <TableBody>
-    //         {users.map((user) => (
-    //           <TableRow key={user.id} className="hover:bg-[#F8FAFC]">
-    //             <TableCell>
-    //               <div className="flex items-center gap-3">
-    //                 <div className="w-8 h-8 rounded-full from-[#00C853] to-[#007BFF] flex items-center justify-center text-white text-sm">
-    //                   {user.name.charAt(0)}
-    //                 </div>
-    //                 <span className="text-[#1e293b]">{user.name}</span>
-    //               </div>
-    //             </TableCell>
-
-    //             <TableCell className="text-[#64748b]">{user.email}</TableCell>
-
-    //             <TableCell>{getRoleBadge(user.role)}</TableCell>
-
-    //             <TableCell className="text-[#64748b]">{user.club}</TableCell>
-
-    //             <TableCell>{getStatusBadge(user.status)}</TableCell>
-
-    //             <TableCell className="text-[#64748b]">{user.lastActive}</TableCell>
-
-    //             <TableCell className="text-right">
-    //               <DropdownMenu>
-    //                 <DropdownMenuTrigger asChild>
-    //                   <Button variant="ghost" size="icon">
-    //                     <MoreVertical className="w-4 h-4" />
-    //                   </Button>
-    //                 </DropdownMenuTrigger>
-
-    //                 <DropdownMenuContent align="end">
-    //                   <DropdownMenuItem onClick={() => router.push(`/users-management/${user.id}`)}>
-    //                     View Profile
-    //                   </DropdownMenuItem>
-
-    //                   <DropdownMenuItem>
-    //                     Suspend User
-    //                   </DropdownMenuItem>
-
-    //                   <DropdownMenuItem>
-    //                     Reset Password
-    //                   </DropdownMenuItem>
-
-    //                   <DropdownMenuItem className="text-red-600">
-    //                     Ban User
-    //                   </DropdownMenuItem>
-    //                 </DropdownMenuContent>
-    //               </DropdownMenu>
-    //             </TableCell>
-    //           </TableRow>
-    //         ))}
-    //       </TableBody>
-
-    //     </Table>
-    //   </CardContent>
-    // </Card>
+      
+      {selectedUser && (
+        <>
+          <SuspendDialog
+            open={suspendDialogOpen}
+            onOpenChange={setSuspendDialogOpen}
+            selectedUser={selectedUser}
+            suspendReason=""
+            onSuccess={onUserUpdated}
+          />
+          <DeleteDialog
+            open={deleteDialogOpen}
+            onOpenChange={setDeleteDialogOpen}
+            selectedUser={selectedUser}
+            onSuccess={onUserUpdated}
+          />
+        </>
+      )}
+    </>
   );
 }

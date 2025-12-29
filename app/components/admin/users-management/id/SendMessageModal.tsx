@@ -1,11 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Textarea } from "@/app/components/ui/textarea";
 import { Mail } from "lucide-react";
+import { toastError, toastSuccess } from "@/app/helper/toast";
+import { SendUserMessages } from "@/Api's/repo";
+import makeRequest from "@/Api's/apiHelper";
 
 interface SendMessageModalProps {
   open: boolean;
@@ -16,7 +20,10 @@ interface SendMessageModalProps {
   };
   onMessageFormChange: (form: any) => void;
   onSend: () => void;
-  selectedUser: any;
+  selectedUser: {
+    id: string | number;
+    [key: string]: unknown;
+  };
 }
 
 export default function SendMessageModal({
@@ -27,6 +34,53 @@ export default function SendMessageModal({
   onSend,
   selectedUser
 }: SendMessageModalProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSendMessage = async () => {
+    if (!selectedUser?.id) {
+      toastError("User ID is missing");
+      return;
+    }
+
+    if (!messageForm.subject.trim()) {
+      toastError("Subject is required");
+      return;
+    }
+
+    if (!messageForm.message.trim()) {
+      toastError("Message is required");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await makeRequest({
+        url: SendUserMessages,
+        method: "POST",
+        data: {
+          user_id: selectedUser.id,
+          title: messageForm.subject,
+          body: messageForm.message,
+        },
+      });
+
+      if (response.status === 200) {
+        toastSuccess("Message sent successfully!");
+        onOpenChange(false);
+        onMessageFormChange({ subject: "", message: "" });
+        onSend?.();
+      } else {
+        toastError(response.message || "Failed to send message");
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      const errorMessage = error instanceof Error ? error.message : "An error occurred while sending the message";
+      toastError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -47,6 +101,7 @@ export default function SendMessageModal({
               value={messageForm.subject}
               onChange={(e) => onMessageFormChange({ ...messageForm, subject: e.target.value })}
               placeholder="Enter message subject"
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -57,16 +112,25 @@ export default function SendMessageModal({
               onChange={(e) => onMessageFormChange({ ...messageForm, message: e.target.value })}
               placeholder="Type your message here..."
               rows={5}
+              disabled={isLoading}
             />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
-          <Button onClick={onSend} className="bg-[#007BFF] hover:bg-[#0056b3] text-white">
+          <Button 
+            onClick={handleSendMessage} 
+            className="bg-[#007BFF] hover:bg-[#0056b3] text-white"
+            disabled={isLoading}
+          >
             <Mail className="w-4 h-4 mr-2" />
-            Send Message
+            {isLoading ? "Sending..." : "Send Message"}
           </Button>
         </DialogFooter>
       </DialogContent>

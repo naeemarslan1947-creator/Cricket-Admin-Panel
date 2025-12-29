@@ -25,7 +25,7 @@ import {
   Users,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useState, useCallback, useEffect } from "react";
 import EditUserModal from "@/app/components/admin/users-management/id/EditUserModal";
 import ResetPasswordModal from "@/app/components/admin/users-management/id/ResetPasswordModal";
 import SendMessageModal from "@/app/components/admin/users-management/id/SendMessageModal";
@@ -34,9 +34,11 @@ import DeleteDialog from "@/app/components/admin/users-management/id/DeleteDialo
 import UpgradeDowngradeModal from "@/app/components/admin/users-management/id/UpgradeDowngradeModal";
 import ViewActivityModal from "@/app/components/admin/users-management/id/ViewActivityModal";
 import { Card, CardContent } from "@/app/components/ui/card";
+import makeRequest from "@/Api's/apiHelper";
+import { GetUserById } from "@/Api's/repo";
 
 type User = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: string;
@@ -45,72 +47,22 @@ type User = {
   lastActive: string;
   joined: string;
   subscription?: string;
+  bio?: string;
+  dateOfBirth?: string;
+  profilePic?: string;
+  followers?: number;
+  following?: number;
+  posts?: number;
+  comments?: number;
+  reviews?: number;
+  reports?: number;
 };
 
-// ---- Same array reused here ----
-const users : User[] = [
-    {
-      id: 1,
-      name: 'Rajesh Kumar',
-      email: 'rajesh.kumar@example.com',
-      role: 'Player',
-      subscription: 'Premium',
-      status: 'Active',
-      club: 'Mumbai Cricket Club',
-      joined: 'Jan 2024',
-      lastActive: '2 hours ago'
-    },
-    {
-      id: 2,
-      name: 'Priya Sharma',
-      email: 'priya.sharma@example.com',
-      role: 'Coach',
-      subscription: 'Free',
-      status: 'Active',
-      club: 'Delhi Sports Academy',
-      joined: 'Feb 2024',
-      lastActive: '1 day ago'
-    },
-    {
-      id: 3,
-      name: 'Amit Patel',
-      email: 'amit.patel@example.com',
-      role: 'Player',
-      subscription: 'Premium',
-      status: 'Suspended',
-      club: 'Bangalore Youth Cricket',
-      joined: 'Mar 2024',
-      lastActive: '5 days ago'
-    },
-    {
-      id: 4,
-      name: 'Sneha Reddy',
-      email: 'sneha.reddy@example.com',
-      role: 'Admin',
-      subscription: 'Premium',
-      status: 'Active',
-      club: 'Chennai Cricket Academy',
-      joined: 'Dec 2023',
-      lastActive: '30 mins ago'
-    },
-    {
-      id: 5,
-      name: 'Vikram Singh',
-      email: 'vikram.singh@example.com',
-      role: 'Player',
-      subscription: 'Free',
-      status: 'Inactive',
-      club: 'Kolkata Cricket Club',
-      joined: 'Apr 2024',
-      lastActive: '2 weeks ago'
-    },
-  ];
 export default function UserProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const userId = Number(params.id);
+  const userId = String(params.id); // Keep as string, not number
 
-  // State management for modals
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false);
   const [sendMessageOpen, setSendMessageOpen] = useState(false);
@@ -121,7 +73,93 @@ export default function UserProfilePage() {
   const [upgradeAction, setUpgradeAction] = useState<"upgrade" | "downgrade">(
     "upgrade"
   );
+  
+  // State for fetched user data
+  const [userData, setUserData] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+const fetchUserData = useCallback(async () => {
+  if (!userId || userId === 'undefined') {
+    console.warn("⚠️ userId is not available yet");
+    return;
+  }
+
+  setIsLoading(true);
+  try {
+    console.log("🚀 Fetching user data for userId:", userId);
+    
+    const userUrl = `${GetUserById}?user_id=${userId}`;
+    
+    console.log("📢 User API URL:", userUrl);
+
+    const userResponse = await makeRequest({
+      url: userUrl,
+      method: "GET",
+    });
+
+    console.log("📢 User Response received:", userResponse);
+
+    const userApiData = userResponse?.data as Record<string, unknown> | undefined;
+
+    if (userApiData?.success && userApiData?.result) {
+      const resultData = userApiData.result as Record<string, unknown>;
+      const dataObj = resultData?.data as Record<string, unknown> | undefined;
+      const userInfo = dataObj?.user as Record<string, unknown> | undefined;
+      const relatedData = dataObj?.relatedData as Record<string, unknown> | undefined;
+
+      console.log("✅ User data fetched:", userInfo);
+      console.log("✅ Related data fetched:", relatedData);
+
+      // Extract player role from players array
+      const playerRole = (relatedData?.players as Array<Record<string, unknown>>)?.[0]?.player_role || 'Player';
+
+      const mappedUser: User = {
+        id: String(userInfo?._id || ''),
+        name: String(userInfo?.full_name || userInfo?.user_name || ''),
+        email: String(userInfo?.email || ''),
+        role: String(playerRole),
+        club: '',
+        status: 'Active',
+        lastActive: userInfo?.last_active
+          ? new Date(userInfo.last_active as string).toLocaleDateString()
+          : '-',
+        joined: userInfo?.created_at
+          ? new Date(userInfo.created_at as string).toLocaleDateString()
+          : '-',
+        subscription: 'Free',
+        bio: String(userInfo?.bio || ''),
+        dateOfBirth: userInfo?.date_of_birth
+          ? new Date(userInfo.date_of_birth as string).toLocaleDateString()
+          : '-',
+        profilePic: String(userInfo?.profile_pic || ''),
+        followers: (relatedData?.followers as Array<unknown>)?.length || 0,
+        following: (relatedData?.following as Array<unknown>)?.length || 0,
+        posts: (relatedData?.posts as Array<unknown>)?.length || 0,
+        comments: 89, // Will calculate from actual data when available
+        reviews: (relatedData?.player_ratings as Array<unknown>)?.length || 0,
+        reports: 2, // Will calculate from actual data when available
+      };
+
+      setUserData(mappedUser);
+      setError(null);
+    } else {
+      console.warn("⚠️ User fetch not successful:", userApiData);
+      setError("Failed to fetch user data");
+    }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
+  } catch (error) {
+    console.error("❌ Error fetching data:", error);
+    setError("Error fetching user data");
+  } finally {
+    setIsLoading(false);
+  }
+}, [userId]);
+
+useEffect(() => {
+  if (userId) {
+    fetchUserData();
+  }
+}, [userId, fetchUserData                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             ]);
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
@@ -136,10 +174,7 @@ export default function UserProfilePage() {
 
   const [suspendReason, setSuspendReason] = useState("");
 
-  const selectedUser = useMemo(
-    () => users.find((u) => u.id === userId),
-    [userId]
-  );
+  const selectedUser = userData;
 
   if (!selectedUser) {
     return (
@@ -148,6 +183,23 @@ export default function UserProfilePage() {
           <h1 className="text-2xl font-bold text-slate-900">User Not Found</h1>
           <p className="text-slate-600 mt-2">
             The requested user does not exist.
+          </p>
+          <Button onClick={() => router.back()} className="mt-4">
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Prevent access to deleted or suspended users
+  if (selectedUser.status === "Deleted" || selectedUser.status === "Suspended") {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-slate-900">Access Denied</h1>
+          <p className="text-slate-600 mt-2">
+            This user account has been {selectedUser.status.toLowerCase()}. You cannot view or manage this account.
           </p>
           <Button onClick={() => router.back()} className="mt-4">
             Go Back
@@ -236,30 +288,19 @@ export default function UserProfilePage() {
     setEditModalOpen(true);
   };
 
-  const handleSaveUser = () => {
-    console.log("Saving user:", editForm);
-    setEditModalOpen(false);
-  };
-
-  const handleResetPassword = () => {
-    console.log("Resetting password for:", selectedUser.email);
-    setResetPasswordOpen(false);
-  };
-
   const handleSendMessage = () => {
-    console.log("Sending message:", messageForm);
-    setSendMessageOpen(false);
+    console.log("Message sent successfully");
   };
 
   const handleSuspendUser = () => {
-    console.log("Suspending user:", selectedUser.name, "Reason:", suspendReason);
     setSuspendDialogOpen(false);
     setSuspendReason("");
+    router.push("/users-management");
   };
 
   const handleDeleteUser = () => {
-    console.log("Deleting user:", selectedUser.name);
     setDeleteDialogOpen(false);
+    router.push("/users-management");
   };
 
   const handleUpgradeDowngrade = () => {
@@ -270,6 +311,39 @@ export default function UserProfilePage() {
   const handleBack = () => {
     router.back();
   };
+
+  const handleUserUpdated = () => {
+    console.log("User updated successfully!");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-200 mb-4 animate-spin">
+            <div className="w-8 h-8 rounded-full border-2 border-slate-300 border-t-slate-900"></div>
+          </div>
+          <p className="text-slate-600">Loading user profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !selectedUser) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-slate-900">User Not Found</h1>
+          <p className="text-slate-600 mt-2">
+            {error || "The requested user does not exist."}
+          </p>
+          <Button onClick={() => router.back()} className="mt-4">
+            Go Back
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -304,9 +378,17 @@ export default function UserProfilePage() {
                 <div className="flex flex-col items-center text-center">
                   {/* Avatar */}
                   <div className="relative mb-4">
-                    <div className="w-32 h-32 rounded-2xl bg-linear-to-br from-slate-200 via-slate-100 to-white flex items-center justify-center text-slate-700 text-5xl border-2 border-white shadow-lg ring-1 ring-slate-200/50">
-                      {selectedUser.name.charAt(0)}
-                    </div>
+                    {selectedUser.profilePic ? (
+                      <img
+                        src={selectedUser.profilePic}
+                        alt={selectedUser.name}
+                        className="w-32 h-32 rounded-2xl object-cover border-2 border-white shadow-lg ring-1 ring-slate-200/50"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 rounded-2xl bg-linear-to-br from-slate-200 via-slate-100 to-white flex items-center justify-center text-slate-700 text-5xl border-2 border-white shadow-lg ring-1 ring-slate-200/50">
+                        {selectedUser.name.charAt(0)}
+                      </div>
+                    )}
                     <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center border-2 border-white shadow-md">
                       <CheckCircle className="w-5 h-5 text-white" />
                     </div>
@@ -422,7 +504,7 @@ export default function UserProfilePage() {
                         <p className="text-xs text-[#64748b]">Total content published</p>
                       </div>
                     </div>
-                    <span className="text-2xl font-semibold text-[#0f172a]">142</span>
+                    <span className="text-2xl font-semibold text-[#0f172a]">{selectedUser.posts || 0}</span>
                   </div>
                 </div>
 
@@ -438,7 +520,7 @@ export default function UserProfilePage() {
                         <p className="text-xs text-[#64748b]">Engagement with community</p>
                       </div>
                     </div>
-                    <span className="text-2xl font-semibold text-[#0f172a]">89</span>
+                    <span className="text-2xl font-semibold text-[#0f172a]">{selectedUser.comments || 0}</span>
                   </div>
                 </div>
 
@@ -454,7 +536,7 @@ export default function UserProfilePage() {
                         <p className="text-xs text-[#64748b]">Feedback provided</p>
                       </div>
                     </div>
-                    <span className="text-2xl font-semibold text-[#0f172a]">23</span>
+                    <span className="text-2xl font-semibold text-[#0f172a]">{selectedUser.reviews || 0}</span>
                   </div>
                 </div>
 
@@ -470,7 +552,7 @@ export default function UserProfilePage() {
                         <p className="text-xs text-[#64748b]">Content moderation flags</p>
                       </div>
                     </div>
-                    <span className="text-2xl font-semibold text-[#0f172a]">2</span>
+                    <span className="text-2xl font-semibold text-[#0f172a]">{selectedUser.reports || 0}</span>
                   </div>
                 </div>
               </CardContent>
@@ -573,10 +655,10 @@ export default function UserProfilePage() {
                       <Button 
                         onClick={() => setSuspendDialogOpen(true)}
                         variant="outline"
-                        className="h-11 border-orange-200 text-orange-700 hover:bg-orange-50"
+                        className={selectedUser.status === "Suspended" ? "h-11 border-green-200 text-green-700 hover:bg-green-50" : "h-11 border-orange-200 text-orange-700 hover:bg-orange-50"}
                       >
                         <Ban className="w-4 h-4 mr-2" />
-                        Suspend Account
+                        {selectedUser.status === "Suspended" ? "Activate Account" : "Suspend Account"}
                       </Button>
                       <Button 
                         onClick={() => setDeleteDialogOpen(true)}
@@ -601,15 +683,14 @@ export default function UserProfilePage() {
         onOpenChange={setEditModalOpen}
         editForm={editForm}
         onEditFormChange={setEditForm}
-        onSave={handleSaveUser}
         selectedUser={selectedUser}
+        onUserUpdated={handleUserUpdated}
       />
 
       <ResetPasswordModal
         open={resetPasswordOpen}
         onOpenChange={setResetPasswordOpen}
         selectedUser={selectedUser}
-        onReset={handleResetPassword}
       />
 
       <SendMessageModal
@@ -626,15 +707,14 @@ export default function UserProfilePage() {
         onOpenChange={setSuspendDialogOpen}
         selectedUser={selectedUser}
         suspendReason={suspendReason}
-        onSuspendReasonChange={setSuspendReason}
-        onSuspend={handleSuspendUser}
+        onSuccess={handleSuspendUser}
       />
 
       <DeleteDialog
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         selectedUser={selectedUser}
-        onDelete={handleDeleteUser}
+        onSuccess={handleDeleteUser}
       />
 
       <UpgradeDowngradeModal

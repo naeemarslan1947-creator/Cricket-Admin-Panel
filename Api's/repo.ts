@@ -6,3 +6,24 @@ export const LoginClientApiCall = API_BASE_URL + "api/user/login";
 export const DashboardStats = API_BASE_URL + "api/admin-user/dashboard-stats";
 
 export const GetAllUser = API_BASE_URL + "api/admin-user/get-all-users";
+
+export const GetUserById = API_BASE_URL + "api/admin-user/user-details";
+
+export const GetUserClub = API_BASE_URL + "api/admin-user/clubs-joined";
+
+export const UpdateUserApiCall = API_BASE_URL + "api/user/update-user";
+
+export const SendResetPasswordEmail = API_BASE_URL + "api/admin-user/reset-password";
+
+export const DeleteUserAccount = API_BASE_URL + "api/admin-user/soft-delete-account";
+
+export const SuspendUserAccount = API_BASE_URL + "api/admin-user/suspend-account";
+
+export const SendUserMessages = API_BASE_URL + "api/admin-user/send-notification";
+
+
+
+
+
+
+

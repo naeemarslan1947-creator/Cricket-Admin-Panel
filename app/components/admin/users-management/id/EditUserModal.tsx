@@ -1,11 +1,16 @@
 "use client";
 
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select";
 import { Edit } from "lucide-react";
+import { toastError, toastSuccess } from "@/app/helper/toast";
+import { UpdateUserApiCall } from "@/Api's/repo";
+import makeRequest from "@/Api's/apiHelper";
+
 
 interface EditUserModalProps {
   open: boolean;
@@ -16,9 +21,17 @@ interface EditUserModalProps {
     role: string;
     subscription: string;
   };
-  onEditFormChange: (form: any) => void;
-  onSave: () => void;
-  selectedUser: any;
+  onEditFormChange: (form: {
+    name: string;
+    email: string;
+    role: string;
+    subscription: string;
+  }) => void;
+  selectedUser: {
+    id: string | number;
+    [key: string]: unknown;
+  };
+  onUserUpdated?: () => void;
 }
 
 export default function EditUserModal({
@@ -26,9 +39,49 @@ export default function EditUserModal({
   onOpenChange,
   editForm,
   onEditFormChange,
-  onSave,
-  selectedUser
+  selectedUser,
+  onUserUpdated,
 }: EditUserModalProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSave = async () => {
+    if (!selectedUser?.id) {
+      toastError("User ID is missing");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await makeRequest({
+        url: UpdateUserApiCall,
+        method: "POST",
+        data: {
+          _id: selectedUser.id,
+          full_name: editForm.name,
+          email: editForm.email,
+        },
+      });
+
+      if (response.status === 200) {
+        toastSuccess("User updated successfully!");
+        onOpenChange(false);
+        onUserUpdated?.();
+      } else {
+        toastError(response.message || "Failed to update user");
+      }
+    } catch (error) {
+      console.error("Error updating user:", error);
+      const errorMessage = error instanceof Error ? error.message : "An error occurred while updating the user";
+      toastError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    onEditFormChange({ ...editForm, [field]: value });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -47,7 +100,7 @@ export default function EditUserModal({
             <Input
               id="name"
               value={editForm.name}
-              onChange={(e) => onEditFormChange({ ...editForm, name: e.target.value })}
+              onChange={(e) => handleInputChange('name', e.target.value)}
               placeholder="Enter full name"
             />
           </div>
@@ -57,42 +110,25 @@ export default function EditUserModal({
               id="email"
               type="email"
               value={editForm.email}
-              onChange={(e) => onEditFormChange({ ...editForm, email: e.target.value })}
+              onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="Enter email"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="role">Account Type</Label>
-            <Select value={editForm.role} onValueChange={(value) => onEditFormChange({ ...editForm, role: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Player">Player</SelectItem>
-                <SelectItem value="Coach">Coach</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="subscription">Subscription Plan</Label>
-            <Select value={editForm.subscription} onValueChange={(value) => onEditFormChange({ ...editForm, subscription: value })}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Free">Free</SelectItem>
-                <SelectItem value="Premium">Premium</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
-          <Button onClick={onSave} className="bg-[#007BFF] hover:bg-[#0056b3] text-white">
-            Save Changes
+          <Button 
+            onClick={handleSave} 
+            className="bg-[#007BFF] hover:bg-[#0056b3] text-white"
+            disabled={isLoading}
+          >
+            {isLoading ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>

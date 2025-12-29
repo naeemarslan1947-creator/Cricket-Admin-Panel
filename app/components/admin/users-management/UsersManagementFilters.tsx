@@ -7,9 +7,11 @@ import { Button } from '../../ui/button';
 interface UsersManagementFiltersProps {
   roleFilter: string;
   setRoleFilter: (value: string) => void;
+  searchQuery: string;
+  setSearchQuery: (value: string) => void;
 }
 
-export default function UsersManagementFilters({ roleFilter, setRoleFilter }: UsersManagementFiltersProps) {
+export default function UsersManagementFilters({ roleFilter, setRoleFilter, searchQuery, setSearchQuery }: UsersManagementFiltersProps) {
   return (
     <Card className="border-[#e2e8f0]">
       <CardContent className="p-4">
@@ -20,6 +22,8 @@ export default function UsersManagementFilters({ roleFilter, setRoleFilter }: Us
               <Input
                 placeholder="Search by name, email, or club..."
                 className="pl-10 bg-white border-[#e2e8f0]"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
           </div>

@@ -1,22 +1,57 @@
 "use client";
 
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/app/components/ui/dialog";
 import { Button } from "@/app/components/ui/button";
 import { KeyRound } from "lucide-react";
+import { toastError, toastSuccess } from "@/app/helper/toast";
+import { SendResetPasswordEmail } from "@/Api's/repo";
+import makeRequest from "@/Api's/apiHelper";
 
 interface ResetPasswordModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedUser: any;
-  onReset: () => void;
 }
 
 export default function ResetPasswordModal({
   open,
   onOpenChange,
   selectedUser,
-  onReset
 }: ResetPasswordModalProps) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSendResetEmail = async () => {
+    if (!selectedUser?.id) {
+      toastError("User ID is missing");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await makeRequest({
+        url: SendResetPasswordEmail,
+        method: "POST",
+        data: {
+          user_id: selectedUser.id,
+        },
+      });
+
+      if (response.status === 200) {
+        toastSuccess("Password reset email sent successfully!");
+        onOpenChange(false);
+      } else {
+        toastError(response.message || "Failed to send reset email");
+      }
+    } catch (error) {
+      console.error("Error sending reset email:", error);
+      const errorMessage = error instanceof Error ? error.message : "An error occurred while sending the reset email";
+      toastError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -35,11 +70,19 @@ export default function ResetPasswordModal({
           </p>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button 
+            variant="outline" 
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
             Cancel
           </Button>
-          <Button onClick={onReset} className="bg-[#007BFF] hover:bg-[#0056b3] text-white">
-            Send Reset Email
+          <Button 
+            onClick={handleSendResetEmail} 
+            className="bg-[#007BFF] hover:bg-[#0056b3] text-white"
+            disabled={isLoading}
+          >
+            {isLoading ? "Sending..." : "Send Reset Email"}
           </Button>
         </DialogFooter>
       </DialogContent>

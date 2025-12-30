@@ -11,19 +11,43 @@ import {
   TableCell,
 } from '@/app/components/ui/table';
 
-interface ClubPlayersSectionProps {
-  onViewAll: () => void;
+interface Player {
+  _id: string;
+  user_id?: {
+    _id: string;
+    full_name: string;
+    user_name: string;
+    email: string;
+  } | string;
+  matches_won?: number;
+  mathes_played?: number;
 }
 
-const clubPlayers = [
-  { id: 1, name: 'Joe Root', role: 'Player', joinDate: 'Jan 2024', status: 'Active' },
-  { id: 2, name: 'Ben Stokes', role: 'Captain', joinDate: 'Feb 2024', status: 'Active' },
-  { id: 3, name: 'James Anderson', role: 'Player', joinDate: 'Mar 2024', status: 'Active' },
-  { id: 4, name: 'Jonny Bairstow', role: 'Wicket Keeper', joinDate: 'Jan 2024', status: 'Active' },
-  { id: 5, name: 'Moeen Ali', role: 'Player', joinDate: 'Apr 2024', status: 'Active' },
+interface Team {
+  _id: string;
+  name: string;
+  category?: string;
+  coach_name?: string;
+  division?: string;
+  players?: Player[];
+}
+
+interface ClubPlayersSectionProps {
+  onViewAll: () => void;
+  teams?: Team[];
+}
+
+const mockTeams = [
+  { _id: '1', name: 'Elite XI', category: "Men's Team", coach_name: 'John Smith', division: 'International', players: [] },
+  { _id: '2', name: 'Youth Squad', category: "Youth Team", coach_name: 'Mike Johnson', division: 'National', players: [] },
+  { _id: '3', name: 'Women Warriors', category: "Women's Team", coach_name: 'Sarah Davis', division: 'State', players: [] },
+  { _id: '4', name: 'Reserve Team', category: "Men's Team", coach_name: 'Tom Wilson', division: 'District', players: [] },
+  { _id: '5', name: 'U-19 Squad', category: "Youth Team", coach_name: 'Chris Brown', division: 'State', players: [] },
 ];
 
-export default function ClubPlayersSection({ onViewAll }: ClubPlayersSectionProps) {
+export default function ClubPlayersSection({  teams }: ClubPlayersSectionProps) {
+  // Determine which data to display - prioritize teams, fallback to mockdata
+  const displayTeams = teams && teams.length > 0 ? teams.slice(0, 5) : mockTeams;
   return (
     <Card className="border-slate-200  overflow-hidden">
       <div className="px-6 py-5 bg-linear-to-br from-blue-50 to-white border-b border-blue-100">
@@ -31,46 +55,39 @@ export default function ClubPlayersSection({ onViewAll }: ClubPlayersSectionProp
           <div>
             <h3 className="text-base font-medium text-[#0f172a] flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-600" />
-              Club Members
+              Teams
             </h3>
-            <p className="text-sm text-[#64748b] mt-1">Active players and team members</p>
+            <p className="text-sm text-[#64748b] mt-1">Club teams and squads</p>
           </div>
-          <Button
-            onClick={onViewAll}
-            variant="outline"
-            size="sm"
-            className="border-blue-200 text-blue-700 hover:bg-blue-50"
-          >
-            View All
-          </Button>
+         
         </div>
       </div>
       <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Player</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Join Date</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>Team Name</TableHead>
+              <TableHead>Category</TableHead>
+              <TableHead>Coach</TableHead>
+              <TableHead>Division</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {clubPlayers.map((player) => (
-              <TableRow key={player.id}>
+            {displayTeams.map((team: Team) => (
+              <TableRow key={team._id}>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full bg-linear-to-br from-blue-200 via-blue-100 to-white flex items-center justify-center text-blue-700 border border-blue-200">
-                      {player.name.charAt(0)}
+                      {team.name.charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm font-medium text-[#0f172a]">{player.name}</span>
+                    <span className="text-sm font-medium text-[#0f172a]">{team.name}</span>
                   </div>
                 </TableCell>
-                <TableCell className="text-sm text-[#64748b]">{player.role}</TableCell>
-                <TableCell className="text-sm text-[#64748b]">{player.joinDate}</TableCell>
+                <TableCell className="text-sm text-[#64748b]">{team.category}</TableCell>
+                <TableCell className="text-sm text-[#64748b]">{team.coach_name}</TableCell>
                 <TableCell>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 border">
-                    {player.status}
+                  <Badge className="bg-blue-50 text-blue-700 border-blue-200 border">
+                    {team.division}
                   </Badge>
                 </TableCell>
               </TableRow>

@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import {
@@ -18,7 +20,7 @@ import {
   SelectItem 
 } from '@/app/components/ui/select';
 
-interface OverrideStatusModalProps {
+interface ClubStatusModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clubName: string;
@@ -26,16 +28,16 @@ interface OverrideStatusModalProps {
   isLoading?: boolean;
 }
 
-export default function OverrideStatusModal({ 
+export default function ClubStatusModal({ 
   open, 
   onOpenChange, 
   clubName,
   onStatusChange,
   isLoading = false,
-}: OverrideStatusModalProps) {
+}: ClubStatusModalProps) {
   const [newStatus, setNewStatus] = useState('');
 
-  const handleOverrideStatus = async () => {
+  const handleStatusChange = async () => {
     if (!newStatus) return;
 
     try {
@@ -54,15 +56,15 @@ export default function OverrideStatusModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-600" />
-            Override Club Status
+            Change Club Status
           </DialogTitle>
           <DialogDescription>
-            Manually change the club status. This action will be logged.
+            Update the status for <span className="font-medium text-slate-700">{clubName}</span>. This action will be logged.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="new-status">New Status</Label>
+            <Label htmlFor="club-status">New Status</Label>
             <Select value={newStatus} onValueChange={setNewStatus}>
               <SelectTrigger>
                 <SelectValue placeholder="Select new status" />
@@ -75,7 +77,7 @@ export default function OverrideStatusModal({
           </div>
           <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
             <p className="text-xs text-orange-700">
-              <span className="font-medium">Note:</span> Overriding status for &quot;{clubName}&quot; will 
+              <span className="font-medium">Note:</span> Changing status for &quot;{clubName}&quot; will 
               affect all club members and associated data.
             </p>
           </div>
@@ -85,7 +87,7 @@ export default function OverrideStatusModal({
             Cancel
           </Button>
           <Button 
-            onClick={handleOverrideStatus} 
+            onClick={handleStatusChange} 
             disabled={!newStatus || isLoading}
             className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >

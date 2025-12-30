@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import makeRequest from '@/Api\'s/apiHelper';
-import { GetClubById } from '@/Api\'s/repo';
+import { GetClubById, updateClubProfile } from '@/Api\'s/repo';
+import { toastSuccess, toastError } from '@/app/helper/toast';
+import type { ApiResponse } from '@/Api\'s/types';
 import { ClubDetail, mapGetClubByIdResponseToDetail, GetClubByIdResponse } from '@/app/types/clubs';
 import ClubInfoSection from '@/app/components/admin/club-management/id/ClubInfoSection';
-import ClubAchievementsSection from '@/app/components/admin/club-management/id/ClubAchievementsSection';
+import ClubMilestonesSection from '@/app/components/admin/club-management/id/ClubAchievementsSection';
 import ClubPlayersSection from '@/app/components/admin/club-management/id/ClubPlayersSection';
 import ClubActionsSection from '@/app/components/admin/club-management/id/ClubActionsSection';
 import EditProfileModal from '@/app/components/admin/club-management/id/EditProfileModal';
@@ -20,9 +22,9 @@ import { Button } from '@/app/components/ui/button';
 
 interface EditForm {
   name: string;
-  location: string;
+  address: string;
   description: string;
-  rating: string;
+  division: string;
 }
 
 export default function ClubProfilePage() {
@@ -32,6 +34,7 @@ export default function ClubProfilePage() {
   const [club, setClub] = useState<ClubDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   // Modal states
   const [editProfileOpen, setEditProfileOpen] = useState(false);
@@ -44,48 +47,149 @@ export default function ClubProfilePage() {
   // Form state
   const [editForm, setEditForm] = useState<EditForm>({ 
     name: '', 
-    location: '', 
+    address: '', 
     description: '', 
-    rating: '' 
+    division: ''
   });
+  const [deleting, setDeleting] = useState(false);
+  const [overridingStatus, setOverridingStatus] = useState(false);
+
+  const fetchClubDetails = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await makeRequest<GetClubByIdResponse>({
+        url: GetClubById,
+        method: 'GET',
+        params: { user_id: clubId }
+      });
+
+      if (response.data && response.data.success && response.data.result) {
+        // Map API response to ClubDetail
+        const clubDetail = mapGetClubByIdResponseToDetail(response.data);
+        setClub(clubDetail);
+
+        setEditForm({
+          name: clubDetail.clubName,
+          address: clubDetail.address,
+          description: clubDetail.bio,
+          division: clubDetail.division,
+        });
+      } else {
+        setError('Failed to load club details');
+      }
+    } catch (err) {
+      console.error('Error fetching club details:', err);
+      setError('Failed to load club details. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteClub = async () => {
+    if (!club) return;
+
+    try {
+      setDeleting(true);
+      
+      const response = await makeRequest<ApiResponse>({
+        url: updateClubProfile,
+        method: 'POST',
+        data: {
+          user_id: clubId,
+          action_type: 3,
+        },
+      });
+
+      if (response.data?.success) {
+        toastSuccess('Club deleted successfully');
+        setDeleteDialogOpen(false);
+        router.back();
+      } else {
+        toastError((response.data?.message as string) || 'Failed to delete club');
+      }
+    } catch (err) {
+      console.error('Error deleting club:', err);
+      toastError('Failed to delete club. Please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleOverrideStatus = async (status: 'active' | 'suspended') => {
+    if (!club) return;
+
+    try {
+      setOverridingStatus(true);
+      
+      const actionType = status === 'active' ? 1 : 4;
+      
+      const response = await makeRequest<ApiResponse>({
+        url: updateClubProfile,
+        method: 'POST',
+        data: {
+          user_id: clubId,
+          action_type: actionType,
+        },
+      });
+
+      if (response.data?.success) {
+        const statusText = status === 'active' ? 'activated' : 'suspended';
+        toastSuccess(`Club ${statusText} successfully`);
+        setOverrideStatusOpen(false);
+        // Refresh club details to show updated status
+        await fetchClubDetails();
+      } else {
+        toastError((response.data?.message as string) || `Failed to ${status} club`);
+      }
+    } catch (err) {
+      console.error('Error updating club status:', err);
+      toastError('Failed to update club status. Please try again.');
+    } finally {
+      setOverridingStatus(false);
+    }
+  };
+
+  const handleUpdateClubProfile = async () => {
+    if (!club) return;
+
+    try {
+      setUpdating(true);
+      
+      const response = await makeRequest<ApiResponse>({
+        url: updateClubProfile,
+        method: 'POST',
+        data: {
+          user_id: clubId,
+          club_name: editForm.name,
+          address: editForm.address,
+          division: editForm.division,
+          bio: editForm.description,
+        },
+      });
+
+      if (response.data?.success) {
+        toastSuccess('Club profile updated successfully');
+        setEditProfileOpen(false);
+        // Refresh club details to show updated information
+        await fetchClubDetails();
+      } else {
+        toastError((response.data?.message as string) || 'Failed to update club profile');
+      }
+    } catch (err) {
+      console.error('Error updating club profile:', err);
+      toastError('Failed to update club profile. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchClubDetails = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const response = await makeRequest<GetClubByIdResponse>({
-          url: GetClubById,
-          method: 'GET',
-          params: { user_id: clubId }
-        });
-
-        if (response.data && response.data.success && response.data.result) {
-          // Map API response to ClubDetail
-          const clubDetail = mapGetClubByIdResponseToDetail(response.data);
-          setClub(clubDetail);
-
-          setEditForm({
-            name: clubDetail.clubName,
-            location: clubDetail.location,
-            description: clubDetail.bio,
-            rating: clubDetail.rating.toString()
-          });
-        } else {
-          setError('Failed to load club details');
-        }
-      } catch (err) {
-        console.error('Error fetching club details:', err);
-        setError('Failed to load club details. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (clubId) {
       fetchClubDetails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId]);
 
   if (loading) {
@@ -144,11 +248,14 @@ export default function ClubProfilePage() {
 
           {/* Right Column */}
           <div className="lg:col-span-2 space-y-6">
-            <ClubAchievementsSection 
+            <ClubMilestonesSection 
               club={club}
-              onAddAchievement={() => setAchievementsOpen(true)}
+              onAddMilestone={() => setAchievementsOpen(true)}
             />
-            <ClubPlayersSection onViewAll={() => setViewPlayersOpen(true)} />
+            <ClubPlayersSection 
+              onViewAll={() => setViewPlayersOpen(true)}
+              teams={club?.teams}
+            />
             <ClubActionsSection 
               onEditProfile={() => setEditProfileOpen(true)}
               onSendInvite={() => setInviteLinkOpen(true)}
@@ -167,12 +274,16 @@ export default function ClubProfilePage() {
         onOpenChange={setEditProfileOpen}
         formData={editForm}
         onFormChange={setEditForm}
-        onSave={() => setEditProfileOpen(false)}
+        onSave={handleUpdateClubProfile}
+        isLoading={updating}
       />
 
       <AchievementsModal
+        milestones={club.milestones}
         open={achievementsOpen}
         onOpenChange={setAchievementsOpen}
+        clubId={clubId}
+        onMilestoneAdded={fetchClubDetails}
       />
 
       <InviteModal
@@ -184,22 +295,23 @@ export default function ClubProfilePage() {
       <ViewPlayersModal
         open={viewPlayersOpen}
         onOpenChange={setViewPlayersOpen}
+        players={club?.players}
       />
 
       <OverrideStatusModal
         open={overrideStatusOpen}
         onOpenChange={setOverrideStatusOpen}
         clubName={club.clubName}
+        onStatusChange={handleOverrideStatus}
+        isLoading={overridingStatus}
       />
 
       <DeleteClubModal
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
         clubName={club.clubName}
-        onDelete={() => {
-          setDeleteDialogOpen(false);
-          router.back();
-        }}
+        onDelete={handleDeleteClub}
+        isLoading={deleting}
       />
     </div>
   );

@@ -23,6 +23,14 @@ export const SuspendUserAccount = API_BASE_URL + "api/admin-user/suspend-account
 
 export const SendUserMessages = API_BASE_URL + "api/admin-user/send-notification";
 
+export const updateClubProfile = API_BASE_URL + "api/admin-user/update-user";
+
+export const GetInvitationLink = API_BASE_URL + "api/user/get-share-link";
+
+export const SendInvitationLink = API_BASE_URL + "api/user/send-invite-email";
+
+export const PostClubMilestone = API_BASE_URL + "api/club-milestones/create";
+
 
 
 

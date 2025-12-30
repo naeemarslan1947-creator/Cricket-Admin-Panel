@@ -5,9 +5,12 @@ import ClubsManagementFilters from '../../components/admin/club-management/Clubs
 import ClubsManagementGrid from '@/app/components/admin/club-management/ClubsManagementGrid.tsx';
 import Pagination from '@/app/components/common/Pagination';
 import makeRequest from '@/Api\'s/apiHelper';
-import { GetAllClubs } from '@/Api\'s/repo';
+import { GetAllClubs, updateClubProfile } from '@/Api\'s/repo';
+import { toastSuccess, toastError } from '@/app/helper/toast';
 import type { Club, ClubUser } from '@/app/types/clubs';
+import type { ApiResponse } from '@/Api\'s/types';
 import { mapClubUserToClub } from '@/app/types/clubs';
+import ClubStatusModal from '@/app/components/admin/club-management/ClubStatusModal';
 
 interface GetAllClubsApiResponse {
   response_code: number;
@@ -35,8 +38,53 @@ export default function ClubsManagement() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Modal states for override status
+  const [overrideStatusOpen, setOverrideStatusOpen] = useState(false);
+  const [selectedClubForStatus, setSelectedClubForStatus] = useState<Club | null>(null);
+  const [overridingStatus, setOverridingStatus] = useState(false);
+
   const limit = 10;
-  const debounceDelay = 800; // 800ms delay before API call 
+  const debounceDelay = 800; // 800ms delay before API call
+
+  const handleOverrideStatus = async (status: 'active' | 'suspended') => {
+    if (!selectedClubForStatus) return;
+
+    try {
+      setOverridingStatus(true);
+      
+      const actionType = status === 'active' ? 1 : 4;
+      
+      const response = await makeRequest<ApiResponse>({
+        url: updateClubProfile,
+        method: 'POST',
+        data: {
+          user_id: selectedClubForStatus._id,
+          action_type: actionType,
+        },
+      });
+
+      if (response.data?.success) {
+        const statusText = status === 'active' ? 'activated' : 'suspended';
+        toastSuccess(`Club ${statusText} successfully`);
+        setOverrideStatusOpen(false);
+        setSelectedClubForStatus(null);
+        // Refresh the clubs list
+        fetchClubs(currentPage, debouncedSearchQuery);
+      } else {
+        toastError((response.data?.message as string) || `Failed to ${status} club`);
+      }
+    } catch (err) {
+      console.error('Error updating club status:', err);
+      toastError('Failed to update club status. Please try again.');
+    } finally {
+      setOverridingStatus(false);
+    }
+  };
+
+  const handleOpenStatusModal = (club: Club) => {
+    setSelectedClubForStatus(club);
+    setOverrideStatusOpen(true);
+  };
 
   const fetchClubs = async (page: number = 1, search: string = '') => {
     setIsLoading(true);
@@ -141,7 +189,11 @@ export default function ClubsManagement() {
           <p className="text-sm text-amber-800">{error}</p>
         </div>
       )}
-      <ClubsManagementGrid clubs={filteredClubs} isLoading={isLoading} />
+      <ClubsManagementGrid 
+        clubs={filteredClubs} 
+        isLoading={isLoading}
+        onOverrideStatus={handleOpenStatusModal}
+      />
       {filteredClubs.length > 0 && (
         <Pagination
           currentPage={currentPage}
@@ -149,6 +201,17 @@ export default function ClubsManagement() {
           totalRecords={clubs.length}
           limit={limit}
           onPageChange={handlePageChange}
+        />
+      )}
+
+      {/* Status Override Modal */}
+      {selectedClubForStatus && (
+        <ClubStatusModal
+          open={overrideStatusOpen}
+          onOpenChange={setOverrideStatusOpen}
+          clubName={selectedClubForStatus.name}
+          onStatusChange={handleOverrideStatus}
+          isLoading={overridingStatus}
         />
       )}
     </div>

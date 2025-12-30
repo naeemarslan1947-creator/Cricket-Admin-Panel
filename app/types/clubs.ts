@@ -212,9 +212,13 @@ export interface ClubPlayer {
 export interface ClubTeam {
   _id: string;
   name: string;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
+  category?: string;
+  coach_name?: string;
+  division?: string;
+  user_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  players?: ClubPlayer[];
 }
 
 export interface PlayerRating {
@@ -225,6 +229,21 @@ export interface PlayerRating {
 export interface FollowingPriority {
   _id: string;
   [key: string]: unknown;
+}
+
+export interface ClubMilestone {
+  _id: string;
+  club_id: string;
+  profile_pic?: string;
+  cover_pic?: string;
+  title: string;
+  season: string;
+  description: string;
+  category?: string;
+  action_type: ActionType;
+  updated_at: string;
+  created_at: string;
+  __v?: number;
 }
 
 export interface ClubRelatedData {
@@ -280,6 +299,19 @@ export interface ClubRelatedData {
   user_following_priorities: FollowingPriority[];
   players: ClubPlayer[];
   teams: ClubTeam[];
+  milestones: ClubMilestone[];
+  featured_achievers: Array<{
+    _id: string;
+    [key: string]: unknown;
+  }>;
+  moments: Array<{
+    _id: string;
+    [key: string]: unknown;
+  }>;
+  trophies: Array<{
+    _id: string;
+    [key: string]: unknown;
+  }>;
 }
 
 /**
@@ -311,7 +343,7 @@ export interface ClubDetail {
   _id: string;
   id?: string;
   name: string;
-  location: string;
+  address: string;
   status: 'Verified' | 'Pending' | 'Hidden';
   rating: number;
   verified: boolean;
@@ -345,12 +377,17 @@ export interface ClubDetail {
   players: ClubRelatedData['players'];
   teams: ClubRelatedData['teams'];
   playerRatings: ClubRelatedData['player_ratings'];
+  milestones: ClubRelatedData['milestones'];
+  featuredAchievers: ClubRelatedData['featured_achievers'];
+  moments: ClubRelatedData['moments'];
+  trophies: ClubRelatedData['trophies'];
   
   // Computed
   followersCount: number;
   followingCount: number;
   postsCount: number;
   teamsCount: number;
+  milestonesCount: number;
 }
 
 /**
@@ -365,7 +402,7 @@ export function mapGetClubByIdResponseToDetail(response: GetClubByIdResponse): C
     _id: user._id,
     id: user._id,
     name: user.club_name || user.full_name,
-    location: `${user.city}, ${user.division}`,
+    address: `${user.city}, ${user.division}`,
     status: getClubStatus(user),
     rating: user.club_rating || 0,
     verified: user.is_club_verified,
@@ -399,11 +436,16 @@ export function mapGetClubByIdResponseToDetail(response: GetClubByIdResponse): C
     players: relatedData.players || [],
     teams: relatedData.teams || [],
     playerRatings: relatedData.player_ratings || [],
+    milestones: relatedData.milestones || [],
+    featuredAchievers: relatedData.featured_achievers || [],
+    moments: relatedData.moments || [],
+    trophies: relatedData.trophies || [],
     
     // Computed counts
     followersCount: relatedData.followers?.length || 0,
     followingCount: relatedData.following?.length || 0,
     postsCount: relatedData.posts?.length || 0,
     teamsCount: relatedData.teams?.length || 0,
+    milestonesCount: relatedData.milestones?.length || 0,
   };
 }

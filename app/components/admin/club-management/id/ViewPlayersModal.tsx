@@ -20,12 +20,25 @@ import {
   TableCell,
 } from '@/app/components/ui/table';
 
+interface Player {
+  _id: string;
+  user_id?: {
+    _id: string;
+    full_name: string;
+    user_name: string;
+    email: string;
+  } | string;
+  matches_won?: number;
+  mathes_played?: number;
+}
+
 interface ViewPlayersModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  players?: Player[];
 }
 
-const clubPlayers = [
+const mockPlayers = [
   { id: 1, name: 'Joe Root', role: 'Player', joinDate: 'Jan 2024', status: 'Active' },
   { id: 2, name: 'Ben Stokes', role: 'Captain', joinDate: 'Feb 2024', status: 'Active' },
   { id: 3, name: 'James Anderson', role: 'Player', joinDate: 'Mar 2024', status: 'Active' },
@@ -48,15 +61,28 @@ const clubPlayers = [
   { id: 20, name: 'Phil Salt', role: 'Player', joinDate: 'May 2024', status: 'Active' },
 ];
 
-export default function ViewPlayersModal({ open, onOpenChange }: ViewPlayersModalProps) {
+export default function ViewPlayersModal({ open, onOpenChange, players }: ViewPlayersModalProps) {
   const [playerSearch, setPlayerSearch] = useState('');
   const [playerCurrentPage, setPlayerCurrentPage] = useState(1);
   const playersPerPage = 10;
 
+  // Get player name from nested structure
+  const getPlayerName = (player: any): string => {
+    if (typeof player.name === 'string') {
+      return player.name;
+    }
+    if (typeof player.user_id === 'object' && player.user_id?.full_name) {
+      return player.user_id.full_name;
+    }
+    return 'Unknown Player';
+  };
+
+  // Determine which data to display
+  const displayPlayers = players && players.length > 0 ? players : mockPlayers;
+
   // Filter and paginate players
-  const filteredPlayers = clubPlayers.filter(player =>
-    player.name.toLowerCase().includes(playerSearch.toLowerCase()) ||
-    player.role.toLowerCase().includes(playerSearch.toLowerCase())
+  const filteredPlayers = displayPlayers.filter(player =>
+    getPlayerName(player).toLowerCase().includes(playerSearch.toLowerCase())
   );
 
   const totalPages = Math.ceil(filteredPlayers.length / playersPerPage);
@@ -103,27 +129,27 @@ export default function ViewPlayersModal({ open, onOpenChange }: ViewPlayersModa
             <TableHeader>
               <TableRow>
                 <TableHead>Player</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Join Date</TableHead>
+                <TableHead>Matches Played</TableHead>
+                <TableHead>Matches Won</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedPlayers.map((player) => (
-                <TableRow key={player.id}>
+              {paginatedPlayers.map((player: any) => (
+                <TableRow key={player.id || player._id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-200 via-blue-100 to-white flex items-center justify-center text-blue-700 border border-blue-200">
-                        {player.name.charAt(0)}
+                        {getPlayerName(player).charAt(0).toUpperCase()}
                       </div>
-                      <span className="text-sm font-medium">{player.name}</span>
+                      <span className="text-sm font-medium">{getPlayerName(player)}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm text-[#64748b]">{player.role}</TableCell>
-                  <TableCell className="text-sm text-[#64748b]">{player.joinDate}</TableCell>
+                  <TableCell className="text-sm text-[#64748b]">{player.mathes_played || 0}</TableCell>
+                  <TableCell className="text-sm text-[#64748b]">{player.matches_won || 0}</TableCell>
                   <TableCell>
                     <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 border">
-                      {player.status}
+                      Active
                     </Badge>
                   </TableCell>
                 </TableRow>

@@ -1,40 +1,63 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { CheckCircle, Star, Users, MapPin, Shield } from 'lucide-react';
+import { CheckCircle, Star, Users, MapPin, Shield, AlertCircle, Lock } from 'lucide-react';
 import { Card, CardContent } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { Skeleton } from '../../ui/skeleton';
-import type { Club } from '@/app/types/clubs';
+import type { Club, ActionType } from '@/app/types/clubs';
 
 interface ClubsManagementGridProps {
   clubs: Club[];
   isLoading?: boolean;
+  onOverrideStatus?: (club: Club) => void;
 }
 
-export default function ClubsManagementGrid({ clubs, isLoading = false }: ClubsManagementGridProps) {
+export default function ClubsManagementGrid({ clubs, isLoading = false, onOverrideStatus }: ClubsManagementGridProps) {
   const router = useRouter();
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, actionType: ActionType) => {
+    if (actionType === 4) {
+      return (
+        <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
+          <Lock className="w-3 h-3 mr-1" />
+          Suspended
+        </Badge>
+      );
+    }
+
+    // If action_type is 3 (DELETE), show as Deleted
+    if (actionType === 3) {
+      return (
+        <Badge className="bg-gray-100 text-gray-800 hover:bg-gray-100">
+          <AlertCircle className="w-3 h-3 mr-1" />
+          Deleted
+        </Badge>
+      );
+    }
+
+    // Otherwise show the verification status
     switch (status) {
       case 'Verified':
         return (
           <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
             <CheckCircle className="w-3 h-3 mr-1" />
-            Verified
+            Active
           </Badge>
         );
       case 'Pending':
         return (
           <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+            <AlertCircle className="w-3 h-3 mr-1" />
             Pending
           </Badge>
         );
       case 'Hidden':
         return (
           <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
-            Hidden
+            <Lock className="w-3 h-3 mr-1" />
+            Suspended
           </Badge>
         );
       default:
@@ -110,7 +133,7 @@ export default function ClubsManagementGrid({ clubs, isLoading = false }: ClubsM
                   <MapPin className="w-4 h-4 shrink-0" />
                   <span className="text-sm">{club.location}</span>
                 </div>
-                {getStatusBadge(club.status)}
+                {getStatusBadge(club.status, club.actionType)}
               </div>
             </div>
 
@@ -137,16 +160,30 @@ export default function ClubsManagementGrid({ clubs, isLoading = false }: ClubsM
             </div>
 
             {/* Action Button */}
-            <Button
-              className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white"
-              onClick={(e) => {
-                e.stopPropagation(); // prevent card click
-                handleRedirect(club._id);
-              }}
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Manage Club
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={(e) => {
+                  e.stopPropagation(); // prevent card click
+                  handleRedirect(club._id);
+                }}
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Manage Club
+              </Button>
+              {onOverrideStatus && (
+                <Button
+                  variant="outline"
+                  className="h-12 px-4 border-orange-300 text-orange-600 hover:bg-orange-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOverrideStatus(club);
+                  }}
+                >
+                  Status
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       ))}

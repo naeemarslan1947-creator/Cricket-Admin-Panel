@@ -16,9 +16,9 @@ import { Button } from '@/app/components/ui/button';
 
 export interface EditProfileForm {
   name: string;
-  location: string;
+  address: string;
+  division: string
   description: string;
-  rating: string;
 }
 
 interface EditProfileModalProps {
@@ -27,6 +27,7 @@ interface EditProfileModalProps {
   formData: EditProfileForm;
   onFormChange: (data: EditProfileForm) => void;
   onSave: () => void;
+  isLoading?: boolean;
 }
 
 export default function EditProfileModal({
@@ -35,6 +36,7 @@ export default function EditProfileModal({
   formData,
   onFormChange,
   onSave,
+  isLoading = false,
 }: EditProfileModalProps) {
   const handleInputChange = (field: keyof EditProfileForm, value: string) => {
     onFormChange({ ...formData, [field]: value });
@@ -67,12 +69,23 @@ export default function EditProfileModal({
 
           {/* Location */}
           <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
+            <Label htmlFor="address">Address</Label>
             <Input
-              id="location"
-              value={formData.location}
-              onChange={(e) => handleInputChange('location', e.target.value)}
-              placeholder="City, State"
+              id="address"
+              value={formData.address}
+              onChange={(e) => handleInputChange('address', e.target.value)}
+              placeholder="Enter address"
+            />
+          </div>
+
+          {/* Division */}
+          <div className="space-y-2">
+            <Label htmlFor="division">Division</Label>
+            <Input
+              id="division"
+              value={formData.division}
+              onChange={(e) => handleInputChange('division', e.target.value)}
+              placeholder="Enter division"
             />
           </div>
 
@@ -88,31 +101,18 @@ export default function EditProfileModal({
             />
           </div>
 
-          {/* Rating */}
-          <div className="space-y-2">
-            <Label htmlFor="rating">Rating</Label>
-            <Input
-              id="rating"
-              type="number"
-              step="0.1"
-              min="0"
-              max="5"
-              value={formData.rating}
-              onChange={(e) => handleInputChange('rating', e.target.value)}
-              placeholder="0.0"
-            />
-          </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancel
           </Button>
           <Button
             onClick={onSave}
-            className="bg-[#007BFF] hover:bg-[#0056b3] text-white"
+            disabled={isLoading}
+            className="bg-[#007BFF] hover:bg-[#0056b3] text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Save Changes
+            {isLoading ? 'Saving...' : 'Save Changes'}
           </Button>
         </DialogFooter>
       </DialogContent>

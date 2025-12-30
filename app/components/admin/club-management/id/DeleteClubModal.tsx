@@ -1,3 +1,5 @@
+"use client";
+
 import {
   AlertDialog,
   AlertDialogContent,
@@ -13,15 +15,21 @@ interface DeleteClubModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   clubName: string;
-  onDelete: () => void;
+  onDelete: () => Promise<void>;
+  isLoading?: boolean;
 }
 
 export default function DeleteClubModal({ 
   open, 
   onOpenChange, 
-  clubName, 
-  onDelete 
+  clubName,
+  onDelete,
+  isLoading = false,
 }: DeleteClubModalProps) {
+  const handleDeleteClick = async () => {
+    await onDelete();
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -46,12 +54,13 @@ export default function DeleteClubModal({
           </ul>
         </div>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
           <AlertDialogAction 
-            onClick={onDelete} 
-            className="bg-red-600 hover:bg-red-700 text-white"
+            onClick={handleDeleteClick}
+            disabled={isLoading}
+            className="bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Delete Club
+            {isLoading ? 'Deleting...' : 'Delete Club'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

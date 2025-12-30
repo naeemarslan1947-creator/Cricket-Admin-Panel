@@ -2,9 +2,10 @@ import { MapPin, CheckCircle, Star, Shield, BarChart3 } from 'lucide-react';
 import { Badge } from '@/app/components/ui/badge';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Progress } from '@/app/components/ui/progress';
+import type { ClubDetail } from '@/app/types/clubs';
 
 interface ClubInfoSectionProps {
-  club: any;
+  club: ClubDetail;
 }
 
 export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
@@ -58,13 +59,20 @@ export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
             <h2 className="text-2xl text-[#0f172a] mb-2 tracking-tight">
               {club.name}
             </h2>
-            <div className="flex items-center gap-2 text-[#64748b] text-sm mb-3">
+            <div className="flex items-center gap-2 text-[#64748b] text-sm mb-2">
               <MapPin className="w-4 h-4" />
-              {club.location}
+              {club.address}
             </div>
-            <div className="text-xs text-[#64748b] mb-4">
-              ID: #{club.id.toString().padStart(4, '0')}
-            </div>
+            {club.division && (
+              <div className="text-xs text-[#64748b] mb-4">
+                Division: <span className="font-medium">{club.division}</span>
+              </div>
+            )}
+            {club.id && (
+              <div className="text-xs text-[#64748b] mb-4">
+                ID: #{club.id.toString().padStart(4, '0')}
+              </div>
+            )}
 
             {/* Badges */}
             <div className="flex flex-wrap gap-2 justify-center mb-4">
@@ -89,11 +97,11 @@ export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-px bg-slate-200 border-t border-slate-200">
           <div className="bg-white px-4 py-4 text-center">
-            <div className="text-2xl font-medium text-[#0f172a] mb-1">{club.members}</div>
-            <div className="text-xs text-[#64748b]">Members</div>
+            <div className="text-2xl font-medium text-[#0f172a] mb-1">{club.followersCount || 0}</div>
+            <div className="text-xs text-[#64748b]">Followers</div>
           </div>
           <div className="bg-white px-4 py-4 text-center">
-            <div className="text-2xl font-medium text-[#0f172a] mb-1">{club.teams}</div>
+            <div className="text-2xl font-medium text-[#0f172a] mb-1">{club.teamsCount || 0}</div>
             <div className="text-xs text-[#64748b]">Teams</div>
           </div>
         </div>
@@ -107,10 +115,33 @@ export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
             About Club
           </h3>
         </div>
-        <CardContent className="p-5">
-          <p className="text-sm text-[#64748b] leading-relaxed">
-            {club.description}
-          </p>
+        <CardContent className="p-5 space-y-4">
+          <div>
+            <p className="text-xs text-[#64748b] uppercase tracking-wide mb-1">Club Owner</p>
+            <p className="text-sm font-medium text-[#0f172a]">{club.fullName || 'N/A'}</p>
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-xs text-[#64748b] uppercase tracking-wide mb-1">Address</p>
+            <p className="text-sm text-[#0f172a]">{club.address || 'N/A'}</p>
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-xs text-[#64748b] uppercase tracking-wide mb-1">Email</p>
+            <p className="text-sm text-[#0f172a] break-all">{club.email || 'N/A'}</p>
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-xs text-[#64748b] uppercase tracking-wide mb-1">Club Type</p>
+            <p className="text-sm text-[#0f172a]">{club.clubType || 'N/A'}</p>
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-xs text-[#64748b] uppercase tracking-wide mb-1">Created</p>
+            <p className="text-sm text-[#0f172a]">{club.createdAt ? new Date(club.createdAt).toLocaleDateString() : 'N/A'}</p>
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-xs text-[#64748b] uppercase tracking-wide mb-1">Description</p>
+            <p className="text-sm text-[#64748b] leading-relaxed">
+              {club.description || 'No description provided'}
+            </p>
+          </div>
         </CardContent>
       </Card>
 

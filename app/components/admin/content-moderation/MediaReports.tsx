@@ -1,11 +1,11 @@
-import { CheckCircle, Clock, Flag, User, XCircle } from 'lucide-react';
+import { CheckCircle, Clock, Flag, User, XCircle, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
 
 
 interface Report {
-  id: number;
+  id: string | number;
   reporterName: string;
   reportedContent: string;
   reasonCode: string;
@@ -14,6 +14,7 @@ interface Report {
   status: 'open' | 'closed';
   hasMedia?: boolean;
   mediaType?: 'image' | 'video' | null;
+  mediaUrls?: string[];
 }
 
 interface MediaReportsProps {
@@ -82,12 +83,43 @@ export default function MediaReports({ reports, formatTimestamp, getReasonBadgeC
                     Reported Content
                   </h4>
 
-                  {/* Media Preview Placeholder */}
-                  <div className="p-4 bg-[#F8FAFC] rounded-lg border border-[#e2e8f0]">
-                    <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-[#64748b]">
-                      Media Preview
+                  {/* Media Preview */}
+                  {report.hasMedia && report.mediaUrls && report.mediaUrls.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 p-4 bg-[#F8FAFC] rounded-lg border border-[#e2e8f0]">
+                      {report.mediaUrls.map((mediaUrl, index) => (
+                        <div key={index} className="relative aspect-square rounded-lg overflow-hidden bg-gray-200">
+                          {report.mediaType === 'video' ? (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <VideoIcon className="w-8 h-8 text-gray-500" />
+                            </div>
+                          ) : (
+                            <img
+                              src={mediaUrl}
+                              alt={`Reported media ${index + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                      ))}
                     </div>
-                  </div>
+                  ) : (
+                    <div className="p-4 bg-[#F8FAFC] rounded-lg border border-[#e2e8f0]">
+                      <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center text-[#64748b]">
+                        <div className="flex flex-col items-center gap-2">
+                          <ImageIcon className="w-8 h-8" />
+                          <span>No Media Available</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {report.reportedContent && (
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-sm text-[#64748b]">
+                        <span className="font-medium text-[#1e293b]">Caption:</span> {report.reportedContent}
+                      </p>
+                    </div>
+                  )}
 
                   <div className="mt-2 text-sm text-[#64748b]">
                     Posted by:{" "}

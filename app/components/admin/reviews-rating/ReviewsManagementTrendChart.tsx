@@ -1,6 +1,5 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/app/components/ui/select';
 
 interface TrendData {
   date: string;
@@ -14,8 +13,7 @@ interface ReviewsManagementTrendChartProps {
 }
 
 export default function ReviewsManagementTrendChart({ 
-  timeRange, 
-  setTimeRange, 
+
   trendData 
 }: ReviewsManagementTrendChartProps) {
   return (
@@ -26,15 +24,7 @@ export default function ReviewsManagementTrendChart({
             <CardTitle className="text-[#1e293b]">Review Trends</CardTitle>
             <p className="text-sm text-[#64748b]">Review submissions over time</p>
           </div>
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 Days</SelectItem>
-              <SelectItem value="30d">Last 30 Days</SelectItem>
-            </SelectContent>
-          </Select>
+         
         </div>
       </CardHeader>
       <CardContent>

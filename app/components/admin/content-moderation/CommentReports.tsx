@@ -5,7 +5,7 @@ import { Button } from '@/app/components/ui/button';
 
 
 interface Report {
-  id: number;
+  id: string | number;
   reporterName: string;
   reportedContent: string;
   reasonCode: string;
@@ -14,6 +14,7 @@ interface Report {
   status: 'open' | 'closed';
   hasMedia?: boolean;
   mediaType?: 'image' | 'video' | null;
+  mediaUrls?: string[];
 }
 
 interface CommentReportsProps {

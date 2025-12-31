@@ -1,12 +1,24 @@
 import { CheckCircle, XCircle, AlertTriangle, User } from 'lucide-react';
 import { Card, CardContent } from '@/app/components/ui/card';
 
-export default function ContentModerationSummary() {
+interface SummaryData {
+  openReports: number;
+  actioned: number;
+  removedContent: number;
+  warnedUsers: number;
+}
+
+interface ContentModerationSummaryProps {
+  data: SummaryData;
+  isLoading: boolean;
+}
+
+export default function ContentModerationSummary({ data, isLoading }: ContentModerationSummaryProps) {
   const summaryItems = [
-    { title: 'Open Reports', value: '23', icon: AlertTriangle, color: 'red' },
-    { title: 'Actioned Today', value: '15', icon: CheckCircle, color: 'green' },
-    { title: 'Removed Content', value: '8', icon: XCircle, color: 'amber' },
-    { title: 'Warned Users', value: '4', icon: User, color: 'blue' },
+    { title: 'Open Reports', value: data.openReports.toString(), icon: AlertTriangle, color: 'red' },
+    { title: 'Actioned', value: data.actioned.toString(), icon: CheckCircle, color: 'green' },
+    { title: 'Removed Content', value: data.removedContent.toString(), icon: XCircle, color: 'amber' },
+    { title: 'Warned Users', value: data.warnedUsers.toString(), icon: User, color: 'blue' },
   ];
 
   return (
@@ -26,7 +38,9 @@ export default function ContentModerationSummary() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-[#64748b]">{item.title}</p>
-                  <p className="text-2xl text-[#1e293b] mt-1">{item.value}</p>
+                  <p className="text-2xl text-[#1e293b] mt-1">
+                    {isLoading ? '-' : item.value}
+                  </p>
                 </div>
                 <div className={`w-10 h-10 rounded-lg ${colorClasses[item.color as keyof typeof colorClasses].split(' ')[0]} flex items-center justify-center`}>
                   <Icon className="w-5 h-5" />

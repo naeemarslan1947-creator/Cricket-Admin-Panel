@@ -2,12 +2,68 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import PostReports from './PostReports';
 import CommentReports from './CommentReports';
 import MediaReports from './MediaReports';
+import makeRequest from "@/Api's/apiHelper";
+import { GetReportedMedia } from "@/Api's/repo";
+import { useState, useEffect, useCallback } from 'react';
+import { Loader2, FileWarning } from 'lucide-react';
 
+interface ReporterInfo {
+  _id: string;
+  user_name: string;
+  email: string;
+}
 
+// Post type reported_media_id structure
+interface PostReportedMediaInfo {
+  _id: string;
+  media?: string[];
+  caption?: string;
+  user_id: string;
+  is_private: boolean;
+  action_type: number;
+  updated_at: string;
+  created_at: string;
+}
 
-// FINAL FIXED TYPE (matches all child components)
+// Comment type reported_media_id structure
+interface CommentReportedMediaInfo {
+  _id: string;
+  commented_media_id: string;
+  comment: string;
+  comment_by: string;
+  media_type: string;
+  action_type: number;
+  updated_at: string;
+  created_at: string;
+}
+
+interface ApiReportItem {
+  _id: string;
+  reported_media_id: PostReportedMediaInfo | CommentReportedMediaInfo;
+  reported_media_type: string;
+  reason: string;
+  detail: string;
+  created_by: ReporterInfo;
+  action_type: number;
+  updated_at: string;
+  created_at: string;
+}
+
+interface ApiResponse {
+  response_code: number;
+  success: boolean;
+  status_code: number;
+  total_records: number;
+  page_number: number;
+  total_pages: number;
+  message: string;
+  error_message: null;
+  token: null;
+  result: ApiReportItem[];
+}
+
 interface Report {
-  id: number;
+  id: string | number;
   reporterName: string;
   reportedContent: string;
   reasonCode: string;
@@ -16,6 +72,7 @@ interface Report {
   status: 'open' | 'closed';
   hasMedia?: boolean;
   mediaType?: 'image' | 'video' | null;
+  mediaUrls?: string[];
 }
 
 interface ReportsData {
@@ -27,14 +84,102 @@ interface ReportsData {
 interface ContentModerationTabsProps {
   activeTab: string;
   setActiveTab: (value: string) => void;
-  reports: ReportsData;
+}
+
+// Loading state tracker per tab
+interface LoadingState {
+  posts: boolean;
+  comments: boolean;
+  media: boolean;
 }
 
 export default function ContentModerationTabs({
   activeTab,
   setActiveTab,
-  reports,
 }: ContentModerationTabsProps) {
+  const [reports, setReports] = useState<ReportsData>({
+    posts: [],
+    comments: [],
+    media: [],
+  });
+  const [cachedTabs, setCachedTabs] = useState<Set<string>>(new Set());
+  const [loadingState, setLoadingState] = useState<LoadingState>({
+    posts: false,
+    comments: false,
+    media: false,
+  });
+
+  const mapApiReportToReport = useCallback((apiReport: ApiReportItem, tab: string): Report => {
+    const createdDate = new Date(apiReport.created_at);
+    const formattedDate = createdDate.toISOString().split('T')[0];
+
+    const reportedMedia = apiReport.reported_media_id;
+    
+    let reportedContent = '';
+    let reportedUser = '';
+    let mediaUrls: string[] = [];
+
+    if ('caption' in reportedMedia) {
+      // Post type structure
+      reportedContent = reportedMedia.caption || apiReport.detail || '';
+      reportedUser = reportedMedia.user_id || '';
+      mediaUrls = (reportedMedia.media || []).map(
+        (url) => `http://192.168.100.30:3000${url}`
+      );
+    } else if ('comment' in reportedMedia) {
+      // Comment type structure
+      reportedContent = reportedMedia.comment || apiReport.detail || '';
+      reportedUser = reportedMedia.comment_by || '';
+    }
+
+    return {
+      id: apiReport._id,
+      reporterName: apiReport.created_by.user_name || apiReport.created_by.email,
+      reportedContent,
+      reasonCode: apiReport.reason,
+      timestamp: formattedDate,
+      reportedUser,
+      status: apiReport.action_type === 3 ? 'closed' as const : 'open' as const,
+      hasMedia: mediaUrls.length > 0,
+      mediaType: mediaUrls.length > 0 ? (mediaUrls[0]?.endsWith('.mp4') ? 'video' as const : 'image' as const) : null,
+      mediaUrls,
+    };
+  }, []);
+
+  const fetchReportedMedia = useCallback(async (tab: string) => {
+    if (cachedTabs.has(tab)) return;
+
+    setLoadingState(prev => ({ ...prev, [tab]: true }));
+    try {
+      const query = tab === 'posts' ? 'Post' : tab === 'comments' ? 'Comment' : 'media';
+      const response = await makeRequest<ApiResponse>({
+        url: `${GetReportedMedia}?reported_media_type=${encodeURIComponent(query)}`,
+        method: 'GET',
+      });
+
+      if (response?.data?.result) {
+        const mappedReports = response.data.result.map((apiReport) => mapApiReportToReport(apiReport, tab));
+        
+        setReports(prev => ({
+          ...prev,
+          [tab]: mappedReports,
+        }));
+
+        setCachedTabs(prev => new Set([...prev, tab]));
+        console.log(`Reported ${tab} response:`, response.data);
+      }
+    } catch (error) {
+      console.error(`Error fetching reported ${tab}:`, error);
+    } finally {
+      setLoadingState(prev => ({ ...prev, [tab]: false }));
+    }
+  }, [cachedTabs, mapApiReportToReport]);
+
+  // Fetch reported media only once when tab changes and not cached
+  useEffect(() => {
+    fetchReportedMedia(activeTab);
+  }, [activeTab, fetchReportedMedia]);
+
   const getReasonBadgeColor = (code: string) => {
     switch (code) {
       case 'SPAM':
@@ -74,6 +219,21 @@ export default function ContentModerationTabs({
     }
   };
 
+  const renderLoadingState = () => (
+    <div className="flex flex-col items-center justify-center h-64 text-center">
+      <Loader2 className="w-10 h-10 animate-spin text-[#007BFF] mb-4" />
+      <p className="text-[#64748b] text-lg">Loading reports...</p>
+    </div>
+  );
+
+  const renderEmptyState = (title: string, description: string) => (
+    <div className="flex flex-col items-center justify-center h-64 text-center">
+      <FileWarning className="w-16 h-16 text-[#94a3b8] mb-4" />
+      <p className="text-[#1e293b] text-lg font-medium mb-2">{title}</p>
+      <p className="text-[#64748b]">{description}</p>
+    </div>
+  );
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
      <TabsList >
@@ -90,38 +250,51 @@ export default function ContentModerationTabs({
   >
     Comments ({reports.comments.length})
   </TabsTrigger>
-
-  <TabsTrigger
-    value="media"
-   >
-    Media ({reports.media.length})
-  </TabsTrigger>
 </TabsList>
 
 
       <TabsContent value="posts" className="space-y-4">
-        <PostReports
-          formatTimestamp={formatTimestamp}
-          getReasonBadgeColor={getReasonBadgeColor}
-          reports={reports.posts}
-        />
+        {loadingState.posts ? (
+          renderLoadingState()
+        ) : reports.posts.length > 0 ? (
+          <PostReports
+            formatTimestamp={formatTimestamp}
+            getReasonBadgeColor={getReasonBadgeColor}
+            reports={reports.posts}
+          />
+        ) : (
+          renderEmptyState('No Post Reports', 'There are no post reports to display.')
+        )}
       </TabsContent>
 
       <TabsContent value="comments" className="space-y-4">
-        <CommentReports
-          formatTimestamp={formatTimestamp}
-          getReasonBadgeColor={getReasonBadgeColor}
-          reports={reports.comments}
-        />
+        {loadingState.comments ? (
+          renderLoadingState()
+        ) : reports.comments.length > 0 ? (
+          <CommentReports
+            formatTimestamp={formatTimestamp}
+            getReasonBadgeColor={getReasonBadgeColor}
+            reports={reports.comments}
+          />
+        ) : (
+          renderEmptyState('No Comment Reports', 'There are no comment reports to display.')
+        )}
       </TabsContent>
 
       <TabsContent value="media" className="space-y-4">
-        <MediaReports
-          formatTimestamp={formatTimestamp}
-          getReasonBadgeColor={getReasonBadgeColor}
-          reports={reports.media}
-        />
+        {loadingState.media ? (
+          renderLoadingState()
+        ) : reports.media.length > 0 ? (
+          <MediaReports
+            formatTimestamp={formatTimestamp}
+            getReasonBadgeColor={getReasonBadgeColor}
+            reports={reports.media}
+          />
+        ) : (
+          renderEmptyState('No Media Reports', 'There are no media reports to display.')
+        )}
       </TabsContent>
     </Tabs>
   );
 }
+

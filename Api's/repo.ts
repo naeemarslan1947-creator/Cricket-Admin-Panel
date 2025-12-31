@@ -31,6 +31,19 @@ export const SendInvitationLink = API_BASE_URL + "api/user/send-invite-email";
 
 export const PostClubMilestone = API_BASE_URL + "api/club-milestones/create";
 
+export const GetReviewMetrics = API_BASE_URL + "api/review/dashboard";
+
+export const UpdateReviewStatus = API_BASE_URL + "api/review/update";
+
+export const GetViewHtmlFile = API_BASE_URL + "api/admin-user/view-html";
+
+export const UpdateViewHtmlFile = API_BASE_URL + "api/admin-user/update-html";
+
+export const GetReportedMedia = API_BASE_URL + "api/reports/getAll";
+
+export const GetReportHeader = API_BASE_URL + "api/admin-user/reports-header";
+
+
 
 
 

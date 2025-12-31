@@ -1,6 +1,5 @@
 import { Users } from 'lucide-react';
 import { Card, CardContent } from '@/app/components/ui/card';
-import { Button } from '@/app/components/ui/button';
 import { Badge } from '@/app/components/ui/badge';
 import {
   Table,
@@ -46,7 +45,6 @@ const mockTeams = [
 ];
 
 export default function ClubPlayersSection({  teams }: ClubPlayersSectionProps) {
-  // Determine which data to display - prioritize teams, fallback to mockdata
   const displayTeams = teams && teams.length > 0 ? teams.slice(0, 5) : mockTeams;
   return (
     <Card className="border-slate-200  overflow-hidden">
@@ -73,26 +71,37 @@ export default function ClubPlayersSection({  teams }: ClubPlayersSectionProps) 
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayTeams.map((team: Team) => (
-              <TableRow key={team._id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-linear-to-br from-blue-200 via-blue-100 to-white flex items-center justify-center text-blue-700 border border-blue-200">
-                      {team.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="text-sm font-medium text-[#0f172a]">{team.name}</span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-sm text-[#64748b]">{team.category}</TableCell>
-                <TableCell className="text-sm text-[#64748b]">{team.coach_name}</TableCell>
-                <TableCell>
-                  <Badge className="bg-blue-50 text-blue-700 border-blue-200 border">
-                    {team.division}
-                  </Badge>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
+  {teams && teams.length === 0 ? (
+    <TableRow>
+      <TableCell colSpan={4}>
+        <div className="py-10 text-center text-sm text-slate-500">
+          No teams are currently available.
+        </div>
+      </TableCell>
+    </TableRow>
+  ) : (
+    displayTeams.map((team: Team) => (
+      <TableRow key={team._id}>
+        <TableCell>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-linear-to-br from-blue-200 via-blue-100 to-white flex items-center justify-center text-blue-700 border border-blue-200">
+              {team.name.charAt(0).toUpperCase()}
+            </div>
+            <span className="text-sm font-medium text-[#0f172a]">{team.name}</span>
+          </div>
+        </TableCell>
+        <TableCell className="text-sm text-[#64748b]">{team.category}</TableCell>
+        <TableCell className="text-sm text-[#64748b]">{team.coach_name}</TableCell>
+        <TableCell>
+          <Badge className="bg-blue-50 text-blue-700 border-blue-200 border">
+            {team.division}
+          </Badge>
+        </TableCell>
+      </TableRow>
+    ))
+  )}
+</TableBody>
+
         </Table>
       </CardContent>
     </Card>

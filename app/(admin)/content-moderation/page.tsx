@@ -1,94 +1,102 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ContentModerationHeader from '@/app/components/admin/content-moderation/ContentModerationHeader';
 import ContentModerationSummary from '@/app/components/admin/content-moderation/ContentModerationSummary';
 import ContentModerationTabs from '@/app/components/admin/content-moderation/ContentModerationTabs';
+import Loader from '@/app/components/common/Loader'; // Make sure Loader is imported
+import makeRequest from "@/Api's/apiHelper";
+import { GetReportHeader } from "@/Api's/repo";
 
-
-
-interface Report {
-  id: number;
-  reporterName: string;
-  reportedContent: string;
-  reasonCode: string;
-  timestamp: string;
-  reportedUser: string;
-  status: 'open' | 'closed';
-  hasMedia?: boolean;
-  mediaType?: 'image' | 'video' | null;
+interface HeaderItem {
+  action_type: number;
+  count: number;
 }
 
-interface ReportsData {
-  posts: Report[];
-  comments: Report[];
-  media: Report[];
+interface HeaderResponse {
+  response_code: number;
+  success: boolean;
+  status_code: number;
+  message: string;
+  result: {
+    header: HeaderItem[];
+  };
+  misc_data: null;
+}
+
+interface SummaryData {
+  openReports: number;
+  actioned: number;
+  removedContent: number;
+  warnedUsers: number;
 }
 
 export default function ContentModeration() {
   const [activeTab, setActiveTab] = useState<string>('posts');
+  const [summaryData, setSummaryData] = useState<SummaryData>({
+    openReports: 0,
+    actioned: 0,
+    removedContent: 0,
+    warnedUsers: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchReportHeader = async () => {
+      try {
+        const response = await makeRequest<HeaderResponse>({
+          url: GetReportHeader,
+          method: 'GET',
+        });
 
-  const reports: ReportsData = {
-    posts: [
-      {
-        id: 1,
-        reporterName: 'James Anderson',
-        reportedContent: 'Check out this amazing cricket shot! Best innings of the season. #Cricket #Sports',
-        reasonCode: 'SPAM',
-        timestamp: '2024-12-05 14:30:00',
-        reportedUser: 'Ben Stokes',
-        status: 'open' as const,
-        hasMedia: true,
-        mediaType: 'image' as const
-      },
-      {
-        id: 2,
-        reporterName: 'Joe Root',
-        reportedContent: 'Great match today at the stadium. What an incredible finish!',
-        reasonCode: 'INAPPROPRIATE_CONTENT',
-        timestamp: '2024-12-05 11:15:00',
-        reportedUser: 'Jonny Bairstow',
-        status: 'open' as const,
-        hasMedia: true,
-        mediaType: 'video' as const
-      },
-    ],
-    comments: [
-      {
-        id: 3,
-        reporterName: 'Stuart Broad',
-        reportedContent: 'This is completely wrong information about the player stats',
-        reasonCode: 'MISINFORMATION',
-        timestamp: '2024-12-04 16:45:00',
-        reportedUser: 'Moeen Ali',
-        status: 'open' as const,
-        hasMedia: false,
-        mediaType: null
-      },
-    ],
-    media: [
-      {
-        id: 4,
-        reporterName: 'Chris Woakes',
-        reportedContent: 'Profile photo upload',
-        reasonCode: 'INAPPROPRIATE_IMAGE',
-        timestamp: '2024-12-05 13:20:00',
-        reportedUser: 'Jofra Archer',
-        status: 'open' as const,
-        hasMedia: true,
-        mediaType: 'image' as const
-      },
-    ]
-  };
+        if (response?.data?.result?.header) {
+          const headerData = response.data.result.header;
 
-  return (
+          const summary: SummaryData = {
+            openReports: 0,
+            actioned: 0,
+            removedContent: 0,
+            warnedUsers: 0,
+          };
+
+          headerData.forEach((item) => {
+            switch (item.action_type) {
+              case 1:
+                summary.openReports = item.count;
+                break;
+              case 2:
+                summary.actioned = item.count;
+                break;
+              case 3:
+                summary.removedContent = item.count;
+                break;
+              case 4:
+                summary.warnedUsers = item.count;
+                break;
+            }
+          });
+
+          setSummaryData(summary);
+          console.log('Report header data:', summary);
+        }
+      } catch (error) {
+        console.error('Error fetching report header:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchReportHeader();
+  }, []);
+
+  return isLoading ? (
+    <Loader />
+  ) : (
     <div className="space-y-6">
       <ContentModerationHeader />
-      <ContentModerationSummary />
+      <ContentModerationSummary data={summaryData} isLoading={isLoading} />
       <ContentModerationTabs 
         activeTab={activeTab} 
         setActiveTab={setActiveTab}
-        reports={reports}
       />
     </div>
   );

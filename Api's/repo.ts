@@ -43,6 +43,15 @@ export const GetReportedMedia = API_BASE_URL + "api/reports/getAll";
 
 export const GetReportHeader = API_BASE_URL + "api/admin-user/reports-header";
 
+export const SuspendReport = API_BASE_URL + "api/admin-user/report-suspend";
+
+export const SuspendMedia = API_BASE_URL + "api/admin-user/report-action";
+
+export const DeleteReport = API_BASE_URL + "api/admin-user/report-delete";
+
+
+
+
 
 
 

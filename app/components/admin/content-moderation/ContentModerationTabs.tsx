@@ -99,6 +99,8 @@ export default function ContentModerationTabs({
   activeTab,
   setActiveTab,
 }: ContentModerationTabsProps) {
+  const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
   const [reports, setReports] = useState<ReportsData>({
     posts: [],
     comments: [],
@@ -126,7 +128,7 @@ export default function ContentModerationTabs({
       reportedContent = reportedMedia.caption || apiReport.detail || '';
       reportedUser = reportedMedia.user_id || '';
       mediaUrls = (reportedMedia.media || []).map(
-        (url) => `http://192.168.100.30:3000${url}`
+        (url) => `${BASE_URL}${url}`
       );
     } else if ('comment' in reportedMedia) {
       // Comment type structure

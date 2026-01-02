@@ -1,0 +1,29 @@
+// Report Header API Response Types
+export interface ReportHeaderItem {
+  reason: string;
+  count: number;
+}
+
+export interface ReportHeaderResponse {
+  response_code: number;
+  success: boolean;
+  status_code: number;
+  total_records: number | null;
+  page_number: number | null;
+  total_pages: number | null;
+  message: string;
+  error_message: string | null;
+  token: string | null;
+  result: {
+    header: ReportHeaderItem[];
+  };
+  misc_data: unknown;
+}
+
+export interface ReportsSummaryData {
+  openReports: number;
+  bullying: number;
+  impersonation: number;
+  spam: number;
+}
+

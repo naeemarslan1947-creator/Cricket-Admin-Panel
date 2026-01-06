@@ -9,6 +9,61 @@ import {
   Bell
 } from 'lucide-react';
 import Image from 'next/image';
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/reducer';
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
+
+interface ReduxUser {
+  name?: string;
+  full_name?: string;
+  user_name?: string;
+  email?: string;
+  avatar?: string;
+  profile_pic?: string;
+  profile_media?: string;
+  role?: {
+    id?: string;
+    name?: string;
+    permissions?: string[];
+    color?: string;
+  };
+  role_id?: string | string[];
+  is_admin?: boolean;
+  _id?: string;
+}
+
+const getUserName = (user: ReduxUser | null | undefined) => {
+    if (user?.name) return user.name
+    if (user?.full_name) return user.full_name
+    if (user?.user_name) return user.user_name
+    return 'John Smith'
+}
+
+const getUserRole = (user: ReduxUser | null | undefined) => {
+    if (user?.role?.name && typeof user.role.name === 'string' && user.role.name.trim() !== '') {
+        return user.role.name
+    }
+    if (Array.isArray(user?.role_id) && user.role_id.length > 0) {
+        const firstRole = user.role_id[0]
+        if (typeof firstRole === 'string' && firstRole.trim() !== '') return firstRole
+    }
+    if (typeof user?.role_id === 'string' && user.role_id.trim() !== '') return user.role_id
+    return 'Super Admin'
+}
+
+// Helper to get user avatar
+const getUserAvatar = (user: ReduxUser | null | undefined) => {
+    if (user?.avatar) return BASE_URL + user.avatar
+    if (user?.profile_pic) return BASE_URL + user.profile_pic
+    if (user?.profile_media) return BASE_URL + user.profile_media
+    return null
+}
+
+const getAvatarInitial = (user: ReduxUser | null | undefined) => {
+    const name = getUserName(user)
+    return name.charAt(0).toUpperCase()
+}
 
 interface SidebarProps {
   collapsed: boolean;
@@ -18,6 +73,8 @@ interface SidebarProps {
 export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  
+  const user = useSelector((state: RootState) => state.user) as ReduxUser | null | undefined;
 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
@@ -99,15 +156,23 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
           );
         })}
       </nav>
-       {!collapsed  && (
+      {!collapsed  && (
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#e2e8f0] bg-gradient-to-r from-blue-50 to-green-50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00C853] to-[#007BFF] flex items-center justify-center shadow-lg">
-              <span className="text-white text-sm">J</span>
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00C853] to-[#007BFF] flex items-center justify-center shadow-lg overflow-hidden">
+              {getUserAvatar(user) ? (
+                <img 
+                  src={getUserAvatar(user) || ''} 
+                  alt={getUserName(user)} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-white text-sm">{getAvatarInitial(user)}</span>
+              )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm text-[#1e293b] truncate">John Smith</p>
-              <p className="text-xs text-[#64748b] truncate">Super Admin</p>
+              <p className="text-sm text-[#1e293b] truncate">{getUserName(user)}</p>
+              <p className="text-xs text-[#64748b] truncate">{getUserRole(user)}</p>
             </div>
           </div>
         </div>

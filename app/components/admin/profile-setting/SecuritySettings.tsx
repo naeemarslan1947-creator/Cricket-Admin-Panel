@@ -45,7 +45,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({security}) => {
                 </Button>
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+              {/* <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
                 <div>
                   <p className="text-sm text-[#1e293b]">Session Timeout</p>
                   <p className="text-xs text-[#64748b]">Auto logout after: {security.sessionTimeout}</p>
@@ -63,7 +63,7 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({security}) => {
                 <Button variant="outline" size="sm" className="border-[#e2e8f0]">
                   View Sessions
                 </Button>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
   )

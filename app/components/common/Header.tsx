@@ -3,12 +3,62 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Bell, User, LogOut, ChevronDown } from 'lucide-react'
+import { useSelector } from 'react-redux'
+import { RootState } from '@/redux/reducer'
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
+
+interface ReduxUser {
+  name?: string;
+  full_name?: string;
+  user_name?: string;
+  email?: string;
+  avatar?: string;
+  profile_pic?: string;
+  profile_media?: string;
+  role?: {
+    id?: string;
+    name?: string;
+    permissions?: string[];
+    color?: string;
+  };
+  role_id?: string | string[];
+  is_admin?: boolean;
+  _id?: string;
+}
 
 export default function Header() {
     const router = useRouter()
     const [showNotifications, setShowNotifications] = useState(false)
     const [showUserMenu, setShowUserMenu] = useState(false)
-
+    
+    const user = useSelector((state: RootState) => state.user) as ReduxUser | null | undefined
+    const getUserName = () => {
+        if (user?.user_name) return user.user_name
+        if (user?.name) return user.name
+        if (user?.full_name) return user.full_name
+        return 'Admin User'
+    }
+    
+    const getUserRole = () => {
+        if (user?.role?.name && typeof user.role.name === 'string' && user.role.name.trim() !== '') {
+            return user.role.name
+        }
+        if (Array.isArray(user?.role_id) && user.role_id.length > 0) {
+            const firstRole = user.role_id[0]
+            if (typeof firstRole === 'string' && firstRole.trim() !== '') return firstRole
+        }
+        if (typeof user?.role_id === 'string' && user.role_id.trim() !== '') return user.role_id
+        return 'Super Admin'
+    }
+    
+    // Helper to get user avatar
+    const getUserAvatar = () => {
+        if (user?.avatar) return BASE_URL + user.avatar
+        if (user?.profile_pic) return BASE_URL + user.profile_pic
+        if (user?.profile_media) return BASE_URL + user.profile_media
+        return null
+    }
+    
 const handleLogout = () => {
   localStorage.removeItem("auth");
   localStorage.removeItem("user");
@@ -103,12 +153,20 @@ const handleLogout = () => {
                         }}
                         className="flex items-center gap-2 px-2 py-1 hover:bg-[#F8FAFC] rounded-lg transition-colors"
                     >
-                        <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#00C853] to-[#007BFF] flex items-center justify-center">
-                            <User className="w-4 h-4 text-white" />
+                        <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#00C853] to-[#007BFF] flex items-center justify-center overflow-hidden">
+                            {getUserAvatar() ? (
+                                <img 
+                                    src={getUserAvatar() || ''} 
+                                    alt={getUserName()} 
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <User className="w-4 h-4 text-white" />
+                            )}
                         </div>
                         <div className="text-left hidden md:block">
-                            <p className="text-sm text-[#1e293b]">Admin User</p>
-                            <p className="text-xs text-[#64748b]">Super Admin</p>
+                            <p className="text-sm text-[#1e293b]">{getUserName()}</p>
+                            <p className="text-xs text-[#64748b]">{getUserRole()}</p>
                         </div>
                         <ChevronDown className="w-4 h-4 text-[#64748b]" />
                     </button>

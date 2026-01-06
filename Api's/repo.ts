@@ -53,6 +53,11 @@ export const EscalateReport = API_BASE_URL + "api/admin-user/report-escalate";
 
 export const ReportHeader = API_BASE_URL + "api/admin-user/reports-header";
 
+export const UpdateAdminProfile = API_BASE_URL + "api/admin-user/update-admin-user"
+
+export const UserGetById = API_BASE_URL + "api/admin-user/get-info-by-id"
+
+
 
 
 

@@ -1,15 +1,16 @@
 import React from 'react'
 import { Button } from '../../ui/button'
-import { Save, X } from 'lucide-react'
+import { Save, X, Loader2 } from 'lucide-react'
 
 interface ProfileHeaderProps {
   isEditing: boolean;
   handleCancel: () => void;
   handleSave: () => void;
   setIsEditing: (value: boolean) => void;
+  isSaving?: boolean;
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({isEditing, handleCancel, handleSave, setIsEditing}) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({isEditing, handleCancel, handleSave, setIsEditing, isSaving}) => {
   return (
     <div className="flex items-center justify-between">
         <div>
@@ -23,6 +24,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({isEditing, handleCancel, h
                 variant="outline" 
                 className="border-[#e2e8f0]"
                 onClick={handleCancel}
+                disabled={isSaving}
               >
                 <X className="w-4 h-4 mr-2" />
                 Cancel
@@ -30,9 +32,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({isEditing, handleCancel, h
               <Button 
                 className="bg-[#00C853] hover:bg-[#00A843] text-white"
                 onClick={handleSave}
+                disabled={isSaving}
               >
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
+                {isSaving ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </>
           ) : (

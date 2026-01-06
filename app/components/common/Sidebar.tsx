@@ -68,7 +68,7 @@ const getAvatarInitial = (user: ReduxUser | null | undefined) => {
 // Helper to check if user has a specific permission
 const hasPermission = (user: ReduxUser | null | undefined, requiredPermission: string): boolean => {
     // Super Admin users see everything
-    if (user?.role?.name === 'Super Admin') return true;
+    if (user?.role?.name === 'Super-Admin') return true;
     
     // Check permissions array in role
     const userPermissions = user?.role?.permissions;

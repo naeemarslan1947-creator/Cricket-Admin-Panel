@@ -65,6 +65,29 @@ const getAvatarInitial = (user: ReduxUser | null | undefined) => {
     return name.charAt(0).toUpperCase()
 }
 
+// Helper to check if user has a specific permission
+const hasPermission = (user: ReduxUser | null | undefined, requiredPermission: string): boolean => {
+    // Super Admin users see everything
+    if (user?.role?.name === 'Super Admin') return true;
+    
+    // Check permissions array in role
+    const userPermissions = user?.role?.permissions;
+    if (Array.isArray(userPermissions) && userPermissions.includes(requiredPermission)) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Menu item type with permission requirement
+interface MenuItem {
+    id: string;
+    label: string;
+    icon: React.ElementType;
+    path: string;
+    requiredPermission?: string;
+}
+
 interface SidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -75,23 +98,32 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   
   const user = useSelector((state: RootState) => state.user) as ReduxUser | null | undefined;
+  console.log("📢[Sidebar.tsx:78]: user: ", user);
 
-  const menuItems = [
+  const menuItems: MenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },
-    { id: 'users-management', label: 'Users Management', icon: Users, path: '/users-management' },
-    { id: 'club-management', label: 'Clubs Management', icon: Building2, path: '/club-management' },
-    { id: 'moderation', label: 'Content Moderation', icon: Shield, path: '/content-moderation' },
-    { id: 'reviews-rating', label: 'Reviews & Ratings', icon: Star, path: '/reviews-rating' },
-    { id: 'billing-subscription', label: 'Billing & Subscriptions', icon: CreditCard, path: '/billing-subscription' },
-    { id: 'reports-abuse', label: 'Reports & Abuse', icon: AlertTriangle, path: '/reports-abuse' },
-    { id: 'analytics-insights', label: 'Analytics & Insights', icon: BarChart3, path: '/analytics-insights' },
-    { id: 'communication-tool', label: 'Communication Tool', icon: Bell, path: '/communication-tool' },
-    { id: 'data-export', label: 'Data Export', icon: Download, path: '/data-export' },
-    { id: 'audit-log', label: 'Audit Logs', icon: FileText, path: '/audit-log' },
-    { id: 'settings', label: 'System Settings', icon: Settings, path: '/settings' },
+    { id: 'users-management', label: 'Users Management', icon: Users, path: '/users-management', requiredPermission: 'users_management' },
+    { id: 'club-management', label: 'Clubs Management', icon: Building2, path: '/club-management', requiredPermission: 'club_management' },
+    { id: 'moderation', label: 'Content Moderation', icon: Shield, path: '/content-moderation', requiredPermission: 'content_moderation' },
+    { id: 'reviews-rating', label: 'Reviews & Ratings', icon: Star, path: '/reviews-rating', requiredPermission: 'reviews_ratings' },
+    { id: 'billing-subscription', label: 'Billing & Subscriptions', icon: CreditCard, path: '/billing-subscription', requiredPermission: 'billing_subscriptions' },
+    { id: 'reports-abuse', label: 'Reports & Abuse', icon: AlertTriangle, path: '/reports-abuse', requiredPermission: 'reports_abuse' },
+    { id: 'analytics-insights', label: 'Analytics & Insights', icon: BarChart3, path: '/analytics-insights', requiredPermission: 'analytics_and_insights' },
+    { id: 'communication-tool', label: 'Communication Tool', icon: Bell, path: '/communication-tool', requiredPermission: 'communication_tool' },
+    { id: 'data-export', label: 'Data Export', icon: Download, path: '/data-export', requiredPermission: 'data_export' },
+    { id: 'audit-log', label: 'Audit Logs', icon: FileText, path: '/audit-log', requiredPermission: 'audit_logs' },
+    { id: 'settings', label: 'System Settings', icon: Settings, path: '/settings', requiredPermission: 'system_settings' },
   ];
 
-  const handleClick = (item: typeof menuItems[0]) => {
+  // Filter menu items based on user permissions
+  const filteredMenuItems = menuItems.filter((item) => {
+    // If no permission required, always show the item
+    if (!item.requiredPermission) return true;
+    // Check if user has the required permission
+    return hasPermission(user, item.requiredPermission);
+  });
+
+  const handleClick = (item: MenuItem) => {
     router.push(item.path);
   };
 
@@ -134,7 +166,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="p-3 space-y-1">
-        {menuItems.map((item) => {
+        {filteredMenuItems.map((item) => {
           const Icon = item.icon;
 
           // ✅ Determine active tab based on pathname

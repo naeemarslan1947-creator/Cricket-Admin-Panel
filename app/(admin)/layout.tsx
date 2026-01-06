@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import {  useState } from 'react';
 import { Sidebar } from '../components/common/Sidebar';
 import CrickitHeader from '../components/common/Header';
 import { useAuthInitialization } from '../hooks/useAuthInitialization';
@@ -13,8 +12,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
+
   
   // Initialize authentication - restores user from localStorage and fetches fresh data
   const { isInitialized, isLoading } = useAuthInitialization();

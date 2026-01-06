@@ -48,6 +48,24 @@ interface ExtendedLoginResponse {
       profile_media?: string;
       role_id?: string | string[];
     };
+    role?: Array<{
+      _id?: string;
+      user_id?: string;
+      permission?: {
+        _id?: string;
+        name?: string;
+        action?: string[];
+        permission_type?: string;
+        action_type?: number;
+        updated_at?: string;
+        created_at?: string;
+        __v?: number;
+      };
+      action_type?: number;
+      updated_at?: string;
+      created_at?: string;
+      __v?: number;
+    }>;
     token?: string;
   };
   misc_data?: string;
@@ -99,6 +117,7 @@ export default function LoginPage() {
       const userData = loginData?.result?.data;
       const resultToken = loginData?.result?.token;
       const rootToken = loginData?.token;
+      const roleData = loginData?.result?.role;
       
       const isAdmin = userData?.is_admin ?? false;
 
@@ -108,9 +127,16 @@ export default function LoginPage() {
         const userInfo = userData;
         const userId = userInfo?._id;
         
-        // Determine role based on role_id
-        const roleId = userInfo?.role_id;
-        const roleName = "Super Admin";
+        // Extract role from the role array in response
+        const roleArray = roleData || [];
+        const firstRole = Array.isArray(roleArray) && roleArray.length > 0 ? roleArray[0] : null;
+        
+        // Get role name from permission object or default to Super Admin
+        const roleName = firstRole?.permission?.name || "Super Admin";
+        const roleId = firstRole?._id || userInfo?.role_id || "";
+        
+        // Get permissions from permission object
+        const permissions = firstRole?.permission?.action || [];
         
         // Map role name to color
         const roleColors: Record<string, string> = {
@@ -126,9 +152,14 @@ export default function LoginPage() {
           name: userInfo?.full_name || userInfo?.user_name || "Unknown User",
           role: {
             id: typeof roleId === 'string' ? roleId : '',
-            name: roleName as "Super Admin" ,
-            permissions: [],
-            color: roleColors[roleName] || 'blue'
+            name: roleName as "Super Admin" | "Moderator" | "Support" | "Developer",
+            permissions: permissions,
+            color: roleColors[roleName] || 'blue',
+            _id: firstRole?._id,
+            permission: firstRole?.permission,
+            action_type: firstRole?.action_type,
+            updated_at: firstRole?.updated_at,
+            created_at: firstRole?.created_at,
           },
           avatar: userInfo?.profile_media || undefined,
           token: rootToken || resultToken || tokenManager.extractTokenFromResponse(loginData) || "",

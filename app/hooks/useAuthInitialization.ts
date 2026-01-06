@@ -14,19 +14,44 @@ interface UserGetByIdResponse {
   status_code?: number;
   message?: string;
   result?: {
-    _id?: string;
-    user_name?: string;
-    full_name?: string;
-    name?: string;
-    email?: string;
-    phone_number?: string;
-    profile_pic?: string;
-    profile_media?: string;
-    role?: { name?: string } | string | unknown[];
+    data?: {
+      _id?: string;
+      user_name?: string;
+      full_name?: string;
+      name?: string;
+      email?: string;
+      phone_number?: string;
+      profile_pic?: string;
+      profile_media?: string;
+      address?: string;
+      is_admin?: boolean;
+      is_user_verified?: boolean;
+      is_club?: boolean;
+      is_club_verified?: boolean;
+      last_active?: string;
+      action_type?: number;
+      updated_at?: string;
+      created_at?: string;
+    };
+    role?: Array<{
+      _id?: string;
+      user_id?: string;
+      permission?: {
+        _id?: string;
+        name?: string;
+        action?: string[];
+        permission_type?: string;
+        action_type?: number;
+        updated_at?: string;
+        created_at?: string;
+        __v?: number;
+      };
+      action_type?: number;
+      updated_at?: string;
+      created_at?: string;
+      __v?: number;
+    }>;
     role_id?: string | string[];
-    address?: string;
-    is_admin?: boolean;
-    action_type?: number;
   };
 }
 
@@ -86,14 +111,24 @@ export function useAuthInitialization() {
           });
 
           if (userResponse.status === 200 && userResponse.data?.result) {
-            const fetchedUserData = userResponse.data.result;
+            const result = userResponse.data.result;
+            const fetchedUserData = result.data;
 
-            // Determine role based on fetched data
-            const fetchedRoleId = fetchedUserData.role_id;
-            const fetchedRoleName = Array.isArray(fetchedRoleId) && fetchedRoleId.length === 0
-              ? 'Super Admin'
-              : (typeof fetchedRoleId === 'string' ? fetchedRoleId : 'Moderator');
+            if (!fetchedUserData) {
+              return false;
+            }
 
+            // Extract role from the role array in response (role is at result level, not inside result.data)
+            const roleArray = result.role || [];
+            const firstRole = Array.isArray(roleArray) && roleArray.length > 0 ? roleArray[0] : null;
+            
+            // Get role name from permission object or default to Super Admin
+            const fetchedRoleName = firstRole?.permission?.name || "Super Admin";
+            const fetchedRoleId = firstRole?._id || (Array.isArray(result.role_id) ? result.role_id[0] : result.role_id);
+            
+            // Get permissions from permission object
+            const fetchedPermissions = firstRole?.permission?.action || [];
+            
             const roleColors: Record<string, string> = {
               'Super Admin': 'red',
               'Moderator': 'blue',
@@ -105,12 +140,17 @@ export function useAuthInitialization() {
             const updatedAuthUser: AuthUser = {
               _id: storedUserData._id,
               email: fetchedUserData.email || storedUserData.email,
-              name: fetchedUserData.user_name || storedUserData.name,
+              name: fetchedUserData.user_name || fetchedUserData.name || storedUserData.name,
               role: {
                 id: typeof fetchedRoleId === 'string' ? fetchedRoleId : '',
                 name: fetchedRoleName as 'Super Admin' | 'Moderator' | 'Support' | 'Developer',
-                permissions: [],
+                permissions: fetchedPermissions,
                 color: roleColors[fetchedRoleName] || 'blue',
+                _id: firstRole?._id,
+                permission: firstRole?.permission,
+                action_type: firstRole?.action_type,
+                updated_at: firstRole?.updated_at,
+                created_at: firstRole?.created_at,
               },
               avatar: fetchedUserData.profile_pic || fetchedUserData.profile_media || storedUserData.avatar,
               token: token,

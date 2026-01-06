@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
 import { AlertTriangle, Trash2, Loader2 } from 'lucide-react'
@@ -23,6 +24,7 @@ interface DangerZoneProps {
 type ActionType = 'deactivate' | 'delete' | null;
 
 const DangerZone: React.FC<DangerZoneProps> = ({ userId }) => {
+  const router = useRouter();
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [pendingAction, setPendingAction] = useState<ActionType>(null);
@@ -56,6 +58,10 @@ const DangerZone: React.FC<DangerZoneProps> = ({ userId }) => {
 
       if (response.status === 200 || response.status === 201) {
         toastSuccess(pendingAction === 'deactivate' ? 'Account deactivated successfully!' : 'Account deleted successfully!');
+        // Clear local storage and redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.push('/login');
       } else {
         const errorData = response.data as { message?: string };
         toastError(errorData?.message || `Failed to ${pendingAction} account`);

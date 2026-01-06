@@ -12,6 +12,27 @@ import { UserGetById, UpdateAdminProfile } from "@/Api's/repo";
 import { toastSuccess, toastError } from "@/app/helper/toast";
 import { setUser } from "@/redux/actions";
 
+interface RolePermission {
+  _id?: string;
+  name?: string;
+  action?: string[];
+  permission_type?: string;
+  action_type?: number;
+  updated_at?: string;
+  created_at?: string;
+  __v?: number;
+}
+
+interface UserRoleData {
+  _id?: string;
+  user_id?: string;
+  permission?: RolePermission;
+  action_type?: number;
+  updated_at?: string;
+  created_at?: string;
+  __v?: number;
+}
+
 interface UserResponseData {
   _id?: string;
   user_name?: string;
@@ -19,11 +40,15 @@ interface UserResponseData {
   name?: string;
   email?: string;
   phone_number?: string;
-  role?: { name?: string } | string | unknown[];
   profile_pic?: string;
   address?: string;
   is_admin?: boolean;
   action_type?: number;
+  last_active?: string;
+  __v?: number;
+  is_user_verified?: boolean;
+  is_club?: boolean;
+  is_club_verified?: boolean;
 }
 
 interface UserApiResponse {
@@ -31,7 +56,10 @@ interface UserApiResponse {
   success: boolean;
   status_code: number;
   message: string;
-  result?: UserResponseData;
+  result?: {
+    data?: UserResponseData;
+    role?: UserRoleData[];
+  };
 }
 
 interface ProfileFormData {
@@ -41,13 +69,6 @@ interface ProfileFormData {
   role: string;
   location: string;
 }
-
-interface Security {
-  twoFactorEnabled: boolean;
-  sessionTimeout: string;
-  lastPasswordChange: string;
-}
-
 interface UserData {
   _id?: string;
   full_name?: string;
@@ -55,10 +76,10 @@ interface UserData {
   user_name?: string;
   email?: string;
   phone_number?: string;
-  role?: { name?: string } | string | unknown[];
   profile_pic?: string;
   address?: string;
   is_admin?: boolean;
+  role?: UserRoleData[];
 }
 
 export default function ProfileSettings() {
@@ -76,11 +97,6 @@ export default function ProfileSettings() {
     location: '',
   });
 
-  const [security, setSecurity] = useState<Security>({
-    twoFactorEnabled: true,
-    sessionTimeout: '30 minutes',
-    lastPasswordChange: 'Nov 5, 2024',
-  });
 
   const [profilePicFile, setProfilePicFile] = useState<File | null>(null);
   const [profilePicPreview, setProfilePicPreview] = useState<string | null>(null);
@@ -110,15 +126,23 @@ export default function ProfileSettings() {
           });
 
           if (response.status === 200 && response.data?.result) {
-            const user = response.data.result;
-            setUserData(user);
-            setFormData({
-              name:  user.user_name || '',
-              email: user.email || '',
-              phone: user.phone_number || '',
-              role: typeof user.role === 'string' ? user.role : 'Super Admin',
-              location: user.address || '',
-            });
+            const user = response.data.result.data;
+            const userRole = response.data.result.role;
+            
+            if (user) {
+              setUserData({ ...user, role: userRole });
+              
+              // Extract role name from role array
+              const roleName = userRole?.[0]?.permission?.name || 'Super Admin';
+              
+              setFormData({
+                name: user.user_name || '',
+                email: user.email || '',
+                phone: user.phone_number || '',
+                role: roleName,
+                location: user.address || '',
+              });
+            }
           }
         } catch (error) {
           console.error('Failed to fetch user data:', error);
@@ -208,30 +232,57 @@ export default function ProfileSettings() {
         });
 
         if (userResponse.status === 200 && userResponse.data?.result) {
-          const updatedUser = userResponse.data.result;
-          setUserData(updatedUser);
+          const updatedUser = userResponse.data.result.data;
+          const updatedUserRole = userResponse.data.result.role;
           
-          // Update Redux store with new user data
-          const reduxUserData = {
-            _id: updatedUser._id,
-            name:  updatedUser.user_name,
-            email: updatedUser.email,
-            avatar: updatedUser.profile_pic,
-            phone: updatedUser.phone_number,
-            address: updatedUser.address,
-            role: updatedUser.role,
-            is_admin: updatedUser.is_admin,
-          };
-          dispatch(setUser(reduxUserData));
-          
-          // Update localStorage with new user data
-          const storedUser = localStorage.getItem('user');
-          if (storedUser) {
-            const user = JSON.parse(storedUser);
-            user.name = updatedUser.full_name || updatedUser.name || updatedUser.user_name;
-            user.email = updatedUser.email;
-            user.avatar = updatedUser.profile_pic;
-            localStorage.setItem('user', JSON.stringify(user));
+          if (updatedUser) {
+            setUserData({ ...updatedUser, role: updatedUserRole });
+            
+            // Extract role details from role array
+            const firstRole = updatedUserRole?.[0];
+            const roleName = firstRole?.permission?.name || "Super Admin";
+            const roleId = firstRole?._id || "";
+            
+            const roleColors: Record<string, string> = {
+              'Super Admin': 'red',
+              'Moderator': 'blue',
+              'Support': 'green',
+              'Developer': 'purple',
+            };
+
+            // Update Redux store with new user data including role
+            const reduxUserData = {
+              _id: updatedUser._id,
+              name: updatedUser.user_name,
+              email: updatedUser.email,
+              avatar: updatedUser.profile_pic,
+              phone: updatedUser.phone_number,
+              address: updatedUser.address,
+              is_admin: updatedUser.is_admin,
+              role: {
+                id: roleId,
+                name: roleName as 'Super Admin' | 'Moderator' | 'Support' | 'Developer',
+                permissions: firstRole?.permission?.action || [],
+                color: roleColors[roleName] || 'blue',
+                _id: firstRole?._id,
+                permission: firstRole?.permission,
+                action_type: firstRole?.action_type,
+                updated_at: firstRole?.updated_at,
+                created_at: firstRole?.created_at,
+              },
+            };
+            dispatch(setUser(reduxUserData));
+            
+            // Update localStorage with new user data including role
+            const storedUser = localStorage.getItem('user');
+            if (storedUser) {
+              const user = JSON.parse(storedUser);
+              user.name = updatedUser.full_name || updatedUser.name || updatedUser.user_name;
+              user.email = updatedUser.email;
+              user.avatar = updatedUser.profile_pic;
+              user.role = reduxUserData.role;
+              localStorage.setItem('user', JSON.stringify(user));
+            }
           }
         }
       } else {
@@ -297,11 +348,11 @@ export default function ProfileSettings() {
         <div className="lg:col-span-2 space-y-6">
           <PersonalInformation isEditing={isEditing} formData={formData} handleInputChange={handleInputChange} getRoleColor={getRoleColor} />
 
-          <SecuritySettings security={security} />
+          <SecuritySettings />
 
           {/* <NotificationPreferences notifications={notifications} handleNotificationToggle={handleNotificationToggle} /> */}
 
-          {userData?.role !== 'Super Admin' &&<DangerZone userId={userData?._id} />}
+          {userData?.role?.[0]?.permission?.name !== 'Super Admin' &&<DangerZone userId={userData?._id} />}
         </div>
       </div>
 

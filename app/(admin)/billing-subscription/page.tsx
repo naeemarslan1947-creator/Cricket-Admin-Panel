@@ -216,11 +216,11 @@ export default function BillingSubscription() {
       <SummaryCard />
 
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-4">
+        <TabsList className="grid grid-cols-3">
           <TabsTrigger value="subscriptions">Subscriptions</TabsTrigger>
           <TabsTrigger value="payments">Payment History</TabsTrigger>
           <TabsTrigger value="failed">Failed Payments</TabsTrigger>
-          <TabsTrigger value="stripe">Stripe Status</TabsTrigger>
+          {/* <TabsTrigger value="stripe">Stripe Status</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="subscriptions">
@@ -241,9 +241,9 @@ export default function BillingSubscription() {
           <FailedPayments failedPayments={failedPayments} getPlanBadge={getPlanBadge} />
         </TabsContent>
 
-        <TabsContent value="stripe">
+        {/* <TabsContent value="stripe">
           <StripeIntegrationStatus stripeStatus={stripeStatus} />
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
 
       <ManageSubscriptionDialog

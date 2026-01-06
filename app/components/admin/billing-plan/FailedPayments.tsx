@@ -74,9 +74,9 @@ const FailedPayments: React.FC<FailedPaymentsProps> = ({ failedPayments, getPlan
                     <Button size="sm" variant="outline" className="border-[#e2e8f0]">
                       Notify User
                     </Button>
-                    <Button size="sm" className="bg-[#007BFF] hover:bg-[#0056b3] text-white">
+                    {/* <Button size="sm" className="bg-[#007BFF] hover:bg-[#0056b3] text-white">
                       Retry Now
-                    </Button>
+                    </Button> */}
                   </div>
                 </TableCell>
               </TableRow>

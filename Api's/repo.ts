@@ -57,6 +57,18 @@ export const UpdateAdminProfile = API_BASE_URL + "api/admin-user/update-admin-us
 
 export const UserGetById = API_BASE_URL + "api/admin-user/get-info-by-id"
 
+export const ExportUserList = API_BASE_URL + "api/admin-user/export-data-users";
+
+export const ExportClubList = API_BASE_URL + "api/admin-user/export-data-clubs";
+
+export const ExportDataReviews = API_BASE_URL + "api/admin-user/export-data-reviews";
+
+export const ExportDataReports = API_BASE_URL + "api/admin-user/export-data-reports";
+
+export const ExportDataAdminLogs = API_BASE_URL + "api/admin-user/export-data-admin-logs";
+
+export const UpdatePassword = API_BASE_URL + "api/admin-user/update-password";
+
 
 
 

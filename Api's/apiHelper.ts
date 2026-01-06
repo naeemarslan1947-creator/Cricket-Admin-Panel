@@ -13,7 +13,7 @@ const configureHeaders = (
   isFormData: boolean = false
 ): Record<string, string> => {
   const headers: Record<string, string> = {};
-
+  
   if (authToken) {
     headers.Authorization = `Bearer ${authToken}`;
   }

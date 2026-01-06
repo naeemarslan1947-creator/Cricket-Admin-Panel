@@ -85,7 +85,7 @@ const isSuperAdmin =
           <TabsTrigger value="roles">Admin Roles</TabsTrigger>
           <TabsTrigger value="email">Email Templates</TabsTrigger>
           <TabsTrigger value="privacy">Privacy & Data</TabsTrigger>
-          <TabsTrigger value="security">Security & 2FA</TabsTrigger>
+          {/* <TabsTrigger value="security">Security & 2FA</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="admins" className="space-y-4">
@@ -93,7 +93,7 @@ const isSuperAdmin =
         </TabsContent>
 
         <TabsContent value="roles" className="space-y-4">
-         <AdminRoles isSuperAdmin={isSuperAdmin} />
+         <AdminRoles isSuperAdmin={isSuperAdmin} allPermissions={allPermissions} />
         </TabsContent>
 
         <TabsContent value="email" className="space-y-4">

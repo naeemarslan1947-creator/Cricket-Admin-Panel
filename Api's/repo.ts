@@ -53,12 +53,11 @@ export const EscalateReport = API_BASE_URL + "api/admin-user/report-escalate";
 
 export const ReportHeader = API_BASE_URL + "api/admin-user/reports-header";
 
+export const PermissionList = API_BASE_URL + "api/role/get-permission-list";
 
+export const CreateOrUpdatePermission = API_BASE_URL + "api/role/create-or-update-permission";
 
+export const SignUp = API_BASE_URL + "api/user/signup";   
 
-
-
-
-
-
+export const GetRolesList = API_BASE_URL + "api/role/get-roles-list";
 

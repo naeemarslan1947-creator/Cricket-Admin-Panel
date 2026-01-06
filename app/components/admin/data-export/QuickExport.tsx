@@ -1,26 +1,29 @@
 "use client";
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
-import { Badge } from '../../ui/badge';
-import { Button } from '../../ui/button';
-import { Label } from '../../ui/label';
-import { Input } from '../../ui/input';
-import { Clock, Download } from 'lucide-react';
+import React, { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
+import { Button } from "../../ui/button";
+import { Label } from "../../ui/label";
+import { Input } from "../../ui/input";
+import { Download, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import {
+  ExportUserList,
+  ExportClubList,
+  ExportDataReviews,
+  ExportDataReports,
+  ExportDataAdminLogs,
+} from "@/Api's/repo";
+import makeRequest from "@/Api's/apiHelper";
 
-// Define the shape of each data type
 interface DataType {
   id: string;
   name: string;
   description: string;
-  recordCount: number;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   fields: string[];
 }
 
-
-// Props for the component
 interface QuickExportProps {
   dataTypes: DataType[];
   selectedDataType: string;
@@ -36,6 +39,174 @@ const QuickExport: React.FC<QuickExportProps> = ({
   showQuickExport,
   setShowQuickExport,
 }) => {
+  const [exportFormat, setExportFormat] = useState("csv");
+  const [dateRange, setDateRange] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [additionalFilter, setAdditionalFilter] = useState("none");
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportStatus, setExportStatus] = useState<"idle" | "success" | "empty" | "error">("idle");
+
+  const getFileBaseName = () => {
+    const type =
+      dataTypes.find((t) => t.id === selectedDataType)?.name || "export";
+    const date = new Date().toISOString().split("T")[0];
+    return `${type.toLowerCase().replace(/\s+/g, "_")}_${date}`;
+  };
+
+  const getEndpoint = (type: string) => {
+    const map: Record<string, string> = {
+      users: ExportUserList,
+      clubs: ExportClubList,
+      reviews: ExportDataReviews,
+      reports: ExportDataReports,
+      admin_logs: ExportDataAdminLogs,
+    };
+
+    return map[type] || ExportUserList;
+  };
+
+  const convertToCSV = (data: Record<string, unknown>[]) => {
+    if (!data?.length) return "";
+
+    const headers = Array.from(
+      new Set(data.flatMap((row) => Object.keys(row)))
+    );
+
+    const escape = (value: unknown) => {
+      if (value === null || value === undefined) return "";
+      let str = String(value);
+      if (/[,"\n]/.test(str)) str = `"${str.replace(/"/g, '""')}"`;
+      return str;
+    };
+
+    const rows = data.map((row) =>
+      headers.map((h) => escape(row[h])).join(",")
+    );
+
+    return [headers.join(","), ...rows].join("\n");
+  };
+
+  const convertToHTML = (data: Record<string, unknown>[]) => {
+    if (!data?.length) return "";
+
+    const headers = Array.from(
+      new Set(data.flatMap((row) => Object.keys(row)))
+    );
+
+    return `
+      <html>
+        <head>
+          <style>
+            body { font-family: Arial; padding: 20px; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { padding: 8px; border: 1px solid #ddd; }
+            th { background: #2563eb; color:#fff; }
+            tr:nth-child(even) { background:#f9fafb }
+          </style>
+        </head>
+        <body>
+          <h2>Export Report</h2>
+          <table>
+            <thead>
+              <tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr>
+            </thead>
+            <tbody>
+              ${data
+                .map(
+                  (row) =>
+                    `<tr>${headers
+                      .map(
+                        (h) =>
+                          `<td>${row[h] === undefined ? "" : row[h]}</td>`
+                      )
+                      .join("")}</tr>`
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+  };
+
+  const triggerDownload = (blob: Blob, filename: string) => {
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      setExportStatus("idle");
+
+      const response = await makeRequest({
+        url: getEndpoint(selectedDataType),
+        method: "GET",
+        params: {
+          format: exportFormat,
+          dateRange,
+          startDate,
+          endDate,
+          status: statusFilter,
+          filter: additionalFilter,
+        },
+      });
+
+      const data = response?.data;
+
+      if (!Array.isArray(data)) {
+        console.warn("Unexpected export data format");
+        setExportStatus("error");
+        return;
+      }
+
+      // Check if data is empty
+      if (!data || data.length === 0) {
+        setExportStatus("empty");
+        return;
+      }
+
+      setExportStatus("success");
+      const baseName = getFileBaseName();
+
+      if (exportFormat === "json") {
+        triggerDownload(
+          new Blob([JSON.stringify(data, null, 2)], {
+            type: "application/json",
+          }),
+          `${baseName}.json`
+        );
+      } else if (exportFormat === "pdf") {
+        triggerDownload(
+          new Blob([convertToHTML(data)], { type: "text/html" }),
+          `${baseName}.html`
+        );
+      } else {
+        triggerDownload(
+          new Blob([convertToCSV(data)], {
+            type: "text/csv;charset=utf-8;",
+          }),
+          `${baseName}.csv`
+        );
+      }
+    } catch (e) {
+      console.error("Export failed", e);
+      setExportStatus("error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <Card className="border-[#e2e8f0]">
       <CardHeader>
@@ -74,9 +245,6 @@ const QuickExport: React.FC<QuickExportProps> = ({
                     <div className="flex-1 min-w-0">
                       <h4 className="text-[#1e293b] mb-1">{type.name}</h4>
                       <p className="text-xs text-[#64748b] mb-2">{type.description}</p>
-                      <Badge variant="outline" className="text-xs">
-                        {type.recordCount.toLocaleString()} records
-                      </Badge>
                     </div>
                   </div>
                 </CardContent>
@@ -112,10 +280,11 @@ const QuickExport: React.FC<QuickExportProps> = ({
                   <Label htmlFor="export-format">Export Format</Label>
                   <select
                     id="export-format"
+                    value={exportFormat}
+                    onChange={(e) => setExportFormat(e.target.value)}
                     className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
                   >
-                    <option value="csv">CSV (Comma Separated)</option>
-                    <option value="excel">Excel (.xlsx)</option>
+                    <option value="csv">CSV</option>
                     <option value="json">JSON</option>
                     <option value="pdf">PDF Report</option>
                   </select>
@@ -126,6 +295,8 @@ const QuickExport: React.FC<QuickExportProps> = ({
                   <Label htmlFor="date-range">Date Range</Label>
                   <select
                     id="date-range"
+                    value={dateRange}
+                    onChange={(e) => setDateRange(e.target.value)}
                     className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="all">All Time</option>
@@ -141,13 +312,25 @@ const QuickExport: React.FC<QuickExportProps> = ({
                 {/* Start Date */}
                 <div>
                   <Label htmlFor="start-date">Start Date</Label>
-                  <Input id="start-date" type="date" className="mt-1" />
+                  <Input 
+                    id="start-date" 
+                    type="date" 
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="mt-1" 
+                  />
                 </div>
 
                 {/* End Date */}
                 <div>
                   <Label htmlFor="end-date">End Date</Label>
-                  <Input id="end-date" type="date" className="mt-1" />
+                  <Input 
+                    id="end-date" 
+                    type="date" 
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="mt-1" 
+                  />
                 </div>
 
                 {/* Status Filter */}
@@ -155,6 +338,8 @@ const QuickExport: React.FC<QuickExportProps> = ({
                   <Label htmlFor="status-filter">Status Filter</Label>
                   <select
                     id="status-filter"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
                     className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="all">All Statuses</option>
@@ -170,6 +355,8 @@ const QuickExport: React.FC<QuickExportProps> = ({
                   <Label htmlFor="additional-filter">Additional Filter</Label>
                   <select
                     id="additional-filter"
+                    value={additionalFilter}
+                    onChange={(e) => setAdditionalFilter(e.target.value)}
                     className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="none">No Filter</option>
@@ -180,42 +367,43 @@ const QuickExport: React.FC<QuickExportProps> = ({
                 </div>
               </div>
 
-              {/* Fields Selection */}
-              <div>
-                <Label className="mb-2 block">Select Fields to Export</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 bg-white rounded-lg border border-[#e2e8f0]">
-                  {dataTypes
-                    .find((t) => t.id === selectedDataType)
-                    ?.fields.map((field, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <input type="checkbox" id={`field-${idx}`} defaultChecked className="rounded" />
-                        <label htmlFor={`field-${idx}`} className="text-sm text-[#1e293b]">
-                          {field}
-                        </label>
-                      </div>
-                    ))}
-                </div>
-              </div>
-
-              <div className="space-y-2 p-3 bg-white rounded-lg border border-[#e2e8f0]">
-                <div className="flex items-center gap-2">
-                  <input type="checkbox" id="email-export" className="rounded" />
-                  <Label htmlFor="email-export">Email export file to me</Label>
-                </div>
-                <Input placeholder="admin@crickit.com" className="text-sm" disabled />
-              </div>
-
               <div className="flex gap-2 pt-4 border-t border-[#e2e8f0]">
-                <Button className="bg-[#00C853] hover:bg-[#00a844] text-white">
-                  <Download className="w-4 h-4 mr-2" />
-                  Export Now
-                </Button>
-                <Button variant="outline" className="border-[#007BFF] text-[#007BFF]">
-                  <Clock className="w-4 h-4 mr-2" />
-                  Schedule Export
+                <Button 
+                  className="bg-[#00C853] hover:bg-[#00a844] text-white"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                >
+                  {isExporting ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="w-4 h-4 mr-2" />
+                  )}
+                  {isExporting ? 'Exporting...' : 'Export Now'}
                 </Button>
                 <Button variant="outline">Preview Data</Button>
               </div>
+
+              {/* Export Status Indicator */}
+              {exportStatus === "success" && (
+                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <span className="text-sm text-green-700 font-medium">Data exported successfully!</span>
+                </div>
+              )}
+
+              {exportStatus === "empty" && (
+                <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <span className="text-sm text-yellow-700 font-medium">No data available to export.</span>
+                </div>
+              )}
+
+              {exportStatus === "error" && (
+                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <span className="text-sm text-red-700 font-medium">Export failed. Please try again.</span>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}

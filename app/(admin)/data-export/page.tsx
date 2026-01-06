@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { Card, CardContent } from '@/app/components/ui/card';
 import QuickExport from '@/app/components/admin/data-export/QuickExport';
 import ExportHistory, { ExportHistoryItem } from '@/app/components/admin/data-export/ExportHistory';
-import ScheduledExports from '@/app/components/admin/data-export/ScheduledExports';
 
 export default function DataExportTools() {
 
@@ -21,7 +20,6 @@ export default function DataExportTools() {
       icon: Users,
       description: 'Export all user accounts with details',
       fields: ['Name', 'Email', 'Phone', 'Registration Date', 'Status', 'Role', 'Subscription Type'],
-      recordCount: 15234,
       color: 'bg-blue-100 text-blue-700'
     },
     {
@@ -30,7 +28,6 @@ export default function DataExportTools() {
       icon: Building2,
       description: 'Export all registered clubs',
       fields: ['Club Name', 'Owner', 'Location', 'Created Date', 'Members Count', 'Status', 'Verification'],
-      recordCount: 1234,
       color: 'bg-green-100 text-green-700'
     },
     {
@@ -48,7 +45,6 @@ export default function DataExportTools() {
       icon: Star,
       description: 'Export all reviews and ratings',
       fields: ['Reviewer', 'Club', 'Rating', 'Review Text', 'Date', 'Status', 'Helpful Votes'],
-      recordCount: 8567,
       color: 'bg-yellow-100 text-yellow-700'
     },
     {
@@ -57,16 +53,14 @@ export default function DataExportTools() {
       icon: AlertTriangle,
       description: 'Export abuse reports and flags',
       fields: ['Reporter', 'Content Type', 'Reason', 'Date', 'Status', 'Assigned To', 'Resolution'],
-      recordCount: 542,
       color: 'bg-red-100 text-red-700'
     },
     {
-      id: 'moderation',
-      name: 'Moderation History',
+      id: 'admin_logs',
+      name: 'Admin Logs',
       icon: Shield,
-      description: 'Export content moderation actions',
-      fields: ['Moderator', 'Action', 'Content Type', 'Reason', 'Date', 'Status', 'Notes'],
-      recordCount: 2341,
+      description: 'Export all admin activity logs',
+      fields: ['Admin User', 'Action', 'IP Address', 'Date', 'Status', 'Details', 'Module'],
       color: 'bg-orange-100 text-orange-700'
     }
   ];
@@ -112,32 +106,6 @@ export default function DataExportTools() {
       requestedDate: '2024-12-02 02:45 PM',
       status: 'Completed' as const,
       fileSize: '456 KB'
-    }
-  ];
-
-  // Scheduled exports
-  const scheduledExports = [
-    {
-      id: '1',
-      name: 'Weekly User Report',
-      dataType: 'User List',
-      format: 'CSV',
-      schedule: 'Every Monday at 9:00 AM',
-      recipient: 'admin@crickit.com',
-      status: 'Active',
-      lastRun: '2024-12-02 09:00 AM',
-      nextRun: '2024-12-09 09:00 AM'
-    },
-    {
-      id: '2',
-      name: 'Monthly Subscription Export',
-      dataType: 'Subscriptions',
-      format: 'Excel',
-      schedule: '1st of every month at 8:00 AM',
-      recipient: 'finance@crickit.com',
-      status: 'Active',
-      lastRun: '2024-12-01 08:00 AM',
-      nextRun: '2025-01-01 08:00 AM'
     }
   ];
 
@@ -210,7 +178,7 @@ export default function DataExportTools() {
         <TabsList >
           <TabsTrigger value="export">Quick Export</TabsTrigger>
           <TabsTrigger value="history">Export History</TabsTrigger>
-          <TabsTrigger value="scheduled">Scheduled Exports</TabsTrigger>
+          {/* <TabsTrigger value="scheduled">Scheduled Exports</TabsTrigger> */}
         </TabsList>
 
 
@@ -231,10 +199,11 @@ export default function DataExportTools() {
         </TabsContent>
 
         {/* Scheduled Exports */}
-        <TabsContent value="scheduled" className="space-y-4">
+        {/* <TabsContent value="scheduled" className="space-y-4">
           <ScheduledExports scheduledExports={scheduledExports} />
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </div>
   );
 }
+ 

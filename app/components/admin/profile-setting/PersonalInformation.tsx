@@ -10,9 +10,7 @@ interface FormData {
   email: string;
   phone: string;
   role: string;
-  department: string;
   location: string;
-  timezone: string;
 }
 
 interface PersonalInformationProps {
@@ -84,17 +82,6 @@ const PersonalInformation: React.FC<PersonalInformationProps> = ({formData, hand
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="department" className="text-[#1e293b]">Department</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => handleInputChange('department', e.target.value)}
-                    disabled={!isEditing}
-                    className="border-[#e2e8f0]"
-                  />
-                </div>
-
-                <div className="space-y-2">
                   <Label htmlFor="location" className="text-[#1e293b]">Location</Label>
                   <Input
                     id="location"
@@ -105,16 +92,6 @@ const PersonalInformation: React.FC<PersonalInformationProps> = ({formData, hand
                   />
                 </div>
 
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="timezone" className="text-[#1e293b]">Timezone</Label>
-                  <Input
-                    id="timezone"
-                    value={formData.timezone}
-                    onChange={(e) => handleInputChange('timezone', e.target.value)}
-                    disabled={!isEditing}
-                    className="border-[#e2e8f0]"
-                  />
-                </div>
               </div>
             </CardContent>
           </Card>

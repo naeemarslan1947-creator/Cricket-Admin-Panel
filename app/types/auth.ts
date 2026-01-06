@@ -1,11 +1,28 @@
+export interface RolePermission {
+  _id?: string;
+  name?: string;
+  action?: string[];
+  permission_type?: string;
+  action_type?: number;
+  updated_at?: string;
+  created_at?: string;
+  __v?: number;
+}
+
 export interface UserRole {
   id: string;
   name: "Super Admin" | "Moderator" | "Support" | "Developer";
   permissions: string[];
   color: string;
+  _id?: string;
+  permission?: RolePermission;
+  action_type?: number;
+  updated_at?: string;
+  created_at?: string;
 }
 
 export interface AuthUser {
+  _id?: string;
   email: string;
   name: string;
   role: UserRole;

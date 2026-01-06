@@ -1,7 +1,7 @@
 // app/login/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Users, TrendingUp, BarChart3, Shield } from "lucide-react";
@@ -15,6 +15,7 @@ import store from "../../redux/store";
 import { setUser } from "../../redux/actions";
 import { tokenManager } from "../../Api's/tokenManager";
 import { toastError, toastSuccess } from "../helper/toast";
+import Loader from "../components/common/Loader";
 
 const statsData = [
   { icon: Users, label: "Active Users", value: "12.5K+", color: "from-blue-500 to-blue-600" },
@@ -45,7 +46,26 @@ interface ExtendedLoginResponse {
       __v?: number;
       last_active?: string;
       profile_media?: string;
+      role_id?: string | string[];
     };
+    role?: Array<{
+      _id?: string;
+      user_id?: string;
+      permission?: {
+        _id?: string;
+        name?: string;
+        action?: string[];
+        permission_type?: string;
+        action_type?: number;
+        updated_at?: string;
+        created_at?: string;
+        __v?: number;
+      };
+      action_type?: number;
+      updated_at?: string;
+      created_at?: string;
+      __v?: number;
+    }>;
     token?: string;
   };
   misc_data?: string;
@@ -56,6 +76,30 @@ export default function LoginPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Check if user is already authenticated on mount
+  useEffect(() => {
+    const checkAuth = () => {
+      const isAuth = localStorage.getItem('auth') === 'true';
+      const storedUser = localStorage.getItem('user');
+      const token = tokenManager.getToken();
+      
+      if (isAuth && storedUser && token) {
+        // User is already authenticated, redirect to dashboard
+        setIsAuthenticated(true);
+        setIsCheckingAuth(false);
+        router.push("/dashboard");
+      } else {
+        setIsCheckingAuth(false);
+      }
+    };
+    
+    // Small delay to ensure hydration
+    const timer = setTimeout(checkAuth, 100);
+    return () => clearTimeout(timer);
+  }, [router]);
 
   const handleLogin = async (email: string, password: string, remember: boolean): Promise<void> => {
     setIsLoading(true);
@@ -73,21 +117,49 @@ export default function LoginPage() {
       const userData = loginData?.result?.data;
       const resultToken = loginData?.result?.token;
       const rootToken = loginData?.token;
+      const roleData = loginData?.result?.role;
       
       const isAdmin = userData?.is_admin ?? false;
 
       const hasValidToken = !!(rootToken || resultToken || tokenManager.extractTokenFromResponse(loginData));
 
-      if (hasValidToken && isAdmin) {
+        if (hasValidToken && isAdmin) {
         const userInfo = userData;
+        const userId = userInfo?._id;
+        
+        // Extract role from the role array in response
+        const roleArray = roleData || [];
+        const firstRole = Array.isArray(roleArray) && roleArray.length > 0 ? roleArray[0] : null;
+        
+        // Get role name from permission object or default to Super Admin
+        const roleName = firstRole?.permission?.name || "Super Admin";
+        const roleId = firstRole?._id || userInfo?.role_id || "";
+        
+        // Get permissions from permission object
+        const permissions = firstRole?.permission?.action || [];
+        
+        // Map role name to color
+        const roleColors: Record<string, string> = {
+          'Super Admin': 'red',
+          'Moderator': 'blue',
+          'Support': 'green',
+          'Developer': 'purple',
+        };
+        
         const authUser: AuthUser = {
+          _id: userId,
           email: userInfo?.email || email,
           name: userInfo?.full_name || userInfo?.user_name || "Unknown User",
           role: {
-            id: "",
-            name: "Moderator",
-            permissions: [],
-            color: "blue"
+            id: typeof roleId === 'string' ? roleId : '',
+            name: roleName as "Super Admin" | "Moderator" | "Support" | "Developer",
+            permissions: permissions,
+            color: roleColors[roleName] || 'blue',
+            _id: firstRole?._id,
+            permission: firstRole?.permission,
+            action_type: firstRole?.action_type,
+            updated_at: firstRole?.updated_at,
+            created_at: firstRole?.created_at,
           },
           avatar: userInfo?.profile_media || undefined,
           token: rootToken || resultToken || tokenManager.extractTokenFromResponse(loginData) || "",
@@ -115,7 +187,6 @@ export default function LoginPage() {
           );
         }
 
-        // Show success toast
         toastSuccess("Login successful! Redirecting to dashboard...");
 
         setTimeout(() => {
@@ -141,6 +212,14 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-gray-50 via-blue-50/30 to-green-50/30">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex bg-linear-to-br from-gray-50 via-blue-50/30 to-green-50/30 relative overflow-hidden">

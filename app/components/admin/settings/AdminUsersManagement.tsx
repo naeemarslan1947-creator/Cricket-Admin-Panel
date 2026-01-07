@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { AlertCircle, Edit2, Lock, Trash2, UserPlus } from "lucide-react";
 import { Button } from "../../ui/button";
@@ -60,34 +60,32 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
 
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRoleId, setSelectedRoleId] = useState("");
+  const permissionsFetchedRef = useRef<boolean>(false);
+  const rolesFetchedRef = useRef<boolean>(false);
 
-  /* -------------------- Fetch Roles -------------------- */
+  /* -------------------- Fetch Permissions -------------------- */
   useEffect(() => {
-    const fetchRoles = async () => {
+    const fetchPermissions = async () => {
       try {
         const res = await makeRequest({ url: PermissionList, method: "GET" });
 
-        // Extract payload safely from different backend shapes
         const payload =
           (res as any).data?.result ??
           (res as any).result ??
           (res as any).data ??
           res;
-
-        // Determine the array that contains role objects
+        // PermissionList originally provided role-like entries used as source
+        // for `roles` in this component. Preserve that behavior: map payload
+        // to Role objects, dedupe by name, and set `roles`.
         const rolesArray: any[] = Array.isArray(payload)
           ? payload
           : Array.isArray(payload?.roles)
           ? payload.roles
           : [];
 
-        // Map, filter, and dedupe
         const dedupedRoles: Role[] = Array.from(
           rolesArray
-            .map((it: any) => ({
-              id: it._id ?? it.id ?? "",
-              name: (it.name ?? it.label ?? "").toString(),
-            }))
+            .map((it: any) => ({ id: it._id ?? it.id ?? "", name: (it.name ?? it.label ?? "").toString() }))
             .filter((r: Role) => r.name)
             .reduce((map: Map<string, Role>, r: Role) => {
               const key = r.name.trim().toLowerCase();
@@ -99,12 +97,64 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
 
         setRoles(dedupedRoles);
       } catch (err) {
-        console.error("❌ Role fetch failed", err);
-        setRoles([]); // fallback
+        console.error("❌ Permission fetch failed", err);
       }
     };
 
-    fetchRoles();
+    if (!permissionsFetchedRef.current) {
+      permissionsFetchedRef.current = true;
+      fetchPermissions();
+    }
+  }, []);
+
+  /* -------------------- Fetch Roles (separate) -------------------- */
+  useEffect(() => {
+    const fetchRoles = async () => {
+      try {
+        const rolesRes = await makeRequest({ url: GetRolesList, method: "GET" });
+
+        const rolesPayload =
+          (rolesRes as any).data?.result ??
+          (rolesRes as any).result ??
+          (rolesRes as any).data ??
+          rolesRes;
+
+        const rolesArray: Role[] = Array.isArray(rolesPayload)
+          ? rolesPayload.map((r: any) => ({ id: r._id ?? r.id ?? "", name: r.name ?? "" }))
+          : Array.isArray(rolesPayload?.roles)
+          ? rolesPayload.roles.map((r: any) => ({ id: r._id ?? r.id ?? "", name: r.name ?? "" }))
+          : [];
+
+        const dedupedRoles: Role[] = Array.from(
+          rolesArray
+            .filter((r: Role) => r.name)
+            .reduce((map: Map<string, Role>, r: Role) => {
+              const key = r.name.trim().toLowerCase();
+              if (!map.has(key)) map.set(key, r);
+              return map;
+            }, new Map<string, Role>())
+            .values()
+        );
+
+        // Do not override roles if PermissionList already populated them.
+        if (dedupedRoles.length > 0 && roles.length === 0) {
+          setRoles(dedupedRoles);
+
+          if (!selectedRoleId) {
+            setSelectedRoleId(dedupedRoles[0].id);
+            setNewRole(dedupedRoles[0].name);
+          }
+        }
+      } catch (err) {
+        console.error("❌ Role fetch failed", err);
+        setRoles([]);
+      }
+    };
+
+    if (!rolesFetchedRef.current) {
+      rolesFetchedRef.current = true;
+      fetchRoles();
+    }
   }, []);
 
   // When roles are loaded, default selectedRoleId to first role's id

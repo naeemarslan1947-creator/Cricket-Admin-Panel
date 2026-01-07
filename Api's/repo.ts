@@ -7,7 +7,8 @@ export const DashboardStats = API_BASE_URL + "api/admin-user/dashboard-stats";
 
 export const GetAllUser = API_BASE_URL + "api/admin-user/get-all-users";
 
-export const GetUserById = API_BASE_URL + "api/admin-user/user-details";
+// export const GetUserById = API_BASE_URL + "api/admin-user/user-details";
+export const UserGetById = API_BASE_URL + "api/admin-user/get-info-by-id"
 
 export const GetClubById = API_BASE_URL + "api/admin-user/user-details";
 

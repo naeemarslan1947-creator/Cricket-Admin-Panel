@@ -12,8 +12,10 @@ import {
   ExportDataReviews,
   ExportDataReports,
   ExportDataAdminLogs,
+  CreateDataExportEntry,
 } from "@/Api's/repo";
 import makeRequest from "@/Api's/apiHelper";
+import { useAuth } from "@/app/hooks/useAuth";
 
 interface DataType {
   id: string;
@@ -39,14 +41,40 @@ const QuickExport: React.FC<QuickExportProps> = ({
   showQuickExport,
   setShowQuickExport,
 }) => {
+  const { user } = useAuth();
   const [exportFormat, setExportFormat] = useState("csv");
-  const [dateRange, setDateRange] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [additionalFilter, setAdditionalFilter] = useState("none");
   const [isExporting, setIsExporting] = useState(false);
   const [exportStatus, setExportStatus] = useState<"idle" | "success" | "empty" | "error">("idle");
+  const [validationError, setValidationError] = useState<string>("");
+
+  const validateDates = () => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    const todayStr = today.toISOString().split('T')[0];
+
+    // Check if start date is in the future
+    if (startDate && startDate > todayStr) {
+      setValidationError("Start date cannot be in the future");
+      return false;
+    }
+
+    // Check if end date is in the future
+    if (endDate && endDate > todayStr) {
+      setValidationError("End date cannot be in the future");
+      return false;
+    }
+
+    // Check if start date is after end date
+    if (startDate && endDate && startDate > endDate) {
+      setValidationError("Start date cannot be after end date");
+      return false;
+    }
+
+    setValidationError("");
+    return true;
+  };
 
   const getFileBaseName = () => {
     const type =
@@ -144,21 +172,58 @@ const QuickExport: React.FC<QuickExportProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  const createDataExportEntry = async (
+    state: "pending" | "scheduled" | "completed" | "failed",
+    noOfRecords: number,
+    fileSizeBytes: number
+  ) => {
+    const selectedType = dataTypes.find((t) => t.id === selectedDataType);
+    const exportType = selectedType?.name || "";
+    const fileSize = fileSizeBytes / 1024;
+
+    try {
+      await makeRequest({
+        url: CreateDataExportEntry,
+        method: "POST",
+        data: {
+          created_by: user?._id || "",
+          export_type: exportType,
+          start_date: startDate,
+          end_date: endDate,  
+          no_of_records: noOfRecords,
+          state: state,
+          export_format: exportFormat,
+          size: fileSize,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to create data export entry:", error);
+    }
+  };
+
   const handleExport = async () => {
+    let exportSuccess = false;
+    let exportData: Record<string, unknown>[] = [];
+    let exportBlob: Blob | null = null;
+    let exportFilename = "";
+
     try {
       setIsExporting(true);
       setExportStatus("idle");
+
+      // Validate dates before making API call
+      if (!validateDates()) {
+        setIsExporting(false);
+        return;
+      }
 
       const response = await makeRequest({
         url: getEndpoint(selectedDataType),
         method: "GET",
         params: {
-          format: exportFormat,
-          dateRange,
+          own_user_id: user?._id,
           startDate,
           endDate,
-          status: statusFilter,
-          filter: additionalFilter,
         },
       });
 
@@ -167,12 +232,16 @@ const QuickExport: React.FC<QuickExportProps> = ({
       if (!Array.isArray(data)) {
         console.warn("Unexpected export data format");
         setExportStatus("error");
+        // Log the failed export due to unexpected data format
+        await createDataExportEntry("failed", 0, 0);
         return;
       }
 
       // Check if data is empty
       if (!data || data.length === 0) {
         setExportStatus("empty");
+        // Log the empty export
+        await createDataExportEntry("completed", 0, 0);
         return;
       }
 
@@ -180,30 +249,37 @@ const QuickExport: React.FC<QuickExportProps> = ({
       const baseName = getFileBaseName();
 
       if (exportFormat === "json") {
-        triggerDownload(
-          new Blob([JSON.stringify(data, null, 2)], {
-            type: "application/json",
-          }),
-          `${baseName}.json`
-        );
+        exportBlob = new Blob([JSON.stringify(data, null, 2)], {
+          type: "application/json",
+        });
+        exportFilename = `${baseName}.json`;
       } else if (exportFormat === "pdf") {
-        triggerDownload(
-          new Blob([convertToHTML(data)], { type: "text/html" }),
-          `${baseName}.html`
-        );
+        exportBlob = new Blob([convertToHTML(data)], { type: "text/html" });
+        exportFilename = `${baseName}.html`;
       } else {
-        triggerDownload(
-          new Blob([convertToCSV(data)], {
-            type: "text/csv;charset=utf-8;",
-          }),
-          `${baseName}.csv`
-        );
+        exportBlob = new Blob([convertToCSV(data)], {
+          type: "text/csv;charset=utf-8;",
+        });
+        exportFilename = `${baseName}.csv`;
       }
+
+      exportData = data;
+      exportSuccess = true;
+
+      triggerDownload(exportBlob, exportFilename);
+
     } catch (e) {
       console.error("Export failed", e);
       setExportStatus("error");
     } finally {
       setIsExporting(false);
+    }
+
+    // Always log the export result after the process completes
+    if (exportSuccess) {
+      await createDataExportEntry("completed", exportData.length, exportBlob?.size || 0);
+    } else {
+      await createDataExportEntry("failed", 0, 0);
     }
   };
 
@@ -290,25 +366,6 @@ const QuickExport: React.FC<QuickExportProps> = ({
                   </select>
                 </div>
 
-                {/* Date Range */}
-                <div>
-                  <Label htmlFor="date-range">Date Range</Label>
-                  <select
-                    id="date-range"
-                    value={dateRange}
-                    onChange={(e) => setDateRange(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="all">All Time</option>
-                    <option value="today">Today</option>
-                    <option value="week">Last 7 Days</option>
-                    <option value="month">Last 30 Days</option>
-                    <option value="quarter">Last 90 Days</option>
-                    <option value="year">Last Year</option>
-                    <option value="custom">Custom Range</option>
-                  </select>
-                </div>
-
                 {/* Start Date */}
                 <div>
                   <Label htmlFor="start-date">Start Date</Label>
@@ -316,7 +373,10 @@ const QuickExport: React.FC<QuickExportProps> = ({
                     id="start-date" 
                     type="date" 
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      validateDates();
+                    }}
                     className="mt-1" 
                   />
                 </div>
@@ -328,50 +388,21 @@ const QuickExport: React.FC<QuickExportProps> = ({
                     id="end-date" 
                     type="date" 
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      validateDates();
+                    }}
                     className="mt-1" 
                   />
                 </div>
 
-                {/* Status Filter */}
-                <div>
-                  <Label htmlFor="status-filter">Status Filter</Label>
-                  <select
-                    id="status-filter"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="all">All Statuses</option>
-                    <option value="active">Active Only</option>
-                    <option value="inactive">Inactive Only</option>
-                    <option value="pending">Pending Only</option>
-                    <option value="suspended">Suspended Only</option>
-                  </select>
-                </div>
-
-                {/* Additional Filters */}
-                <div>
-                  <Label htmlFor="additional-filter">Additional Filter</Label>
-                  <select
-                    id="additional-filter"
-                    value={additionalFilter}
-                    onChange={(e) => setAdditionalFilter(e.target.value)}
-                    className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="none">No Filter</option>
-                    <option value="verified">Verified Only</option>
-                    <option value="premium">Premium Only</option>
-                    <option value="free">Free Users Only</option>
-                  </select>
-                </div>
               </div>
 
               <div className="flex gap-2 pt-4 border-t border-[#e2e8f0]">
                 <Button 
                   className="bg-[#00C853] hover:bg-[#00a844] text-white"
                   onClick={handleExport}
-                  disabled={isExporting}
+                  disabled={isExporting || !!validationError}
                 >
                   {isExporting ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -382,6 +413,14 @@ const QuickExport: React.FC<QuickExportProps> = ({
                 </Button>
                 <Button variant="outline">Preview Data</Button>
               </div>
+
+              {/* Validation Error Display */}
+              {validationError && (
+                <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <span className="text-sm text-red-700 font-medium">{validationError}</span>
+                </div>
+              )}
 
               {/* Export Status Indicator */}
               {exportStatus === "success" && (

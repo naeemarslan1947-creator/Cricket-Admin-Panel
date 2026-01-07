@@ -1,61 +1,144 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AdminUsersManagement from '@/app/components/admin/settings/AdminUsersManagement';
 import AdminRoles from '@/app/components/admin/settings/AdminRoles';
 import EmailTemplates from '@/app/components/admin/settings/EmailTemplates';
 import PrivacyData from '@/app/components/admin/settings/PrivacyData';
 import Security2FA from '@/app/components/admin/settings/Security2FA';
+import makeRequest from "@/Api's/apiHelper";
+import { GetRolePermission, GetAllRoles } from "@/Api's/repo";
+
+/* -------------------- Types -------------------- */
+
+interface RolePermission {
+  _id: string;
+  name: string;
+  action: string[];
+  permission_type: string;
+  action_type: number;
+  updated_at: string;
+  created_at: string;
+  __v: number;
+}
+
+interface AdminUserData {
+  _id: string;
+  user_id: {
+    _id: string;
+    email: string;
+    full_name?: string;
+    action_type: number;
+    updated_at: string;
+    created_at: string;
+    profile_pic?: string;
+  };
+  permission: {
+    _id: string;
+    name: string;
+    action: string[];
+    permission_type: string;
+    action_type: number;
+    updated_at: string;
+    created_at: string;
+    __v: number;
+  };
+  action_type: number;
+  updated_at: string;
+  created_at: string;
+  __v: number;
+}
+
+interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  permissions: string[];
+  status: string;
+  lastLogin: string;
+  color: string;
+}
+
+
 
 export default function SystemSettings() {
   const [showAddAdmin, setShowAddAdmin] = useState(false);
   const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(false);
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+
+  const fetchRolePermissions = async () => {
+    setLoadingRoles(true);
+    try {
+      const response = await makeRequest<{ result: RolePermission[] }>({
+        url: GetRolePermission,
+        method: "GET",
+      });
+      console.log('GetRolePermission Response:', response);
+      
+      if (response.data?.result) {
+        setRolePermissions(response.data.result);
+      }
+    } catch (error) {
+      console.error('Error fetching role permissions:', error);
+    } finally {
+      setLoadingRoles(false);
+    }
+  };
+
+  const fetchAllRoles = async () => {
+    try {
+      const response = await makeRequest<{ result: AdminUserData[] }>({
+        url: GetAllRoles,
+        method: "GET",
+      });
+      console.log('GetAllRoles Response:', response);
+      
+      if (response.data?.result) {
+        const mappedUsers: AdminUser[] = response.data.result.map((item: AdminUserData) => {
+          // Determine status based on action_type
+          let status = 'Active';
+          let color = 'bg-gray-100 text-gray-700 border-gray-200';
+          
+          if (item.user_id.action_type === 3) {
+            status = 'Deleted';
+            color = 'bg-red-100 text-red-700 border-red-200';
+          } else if (item.user_id.action_type === 4) {
+            status = 'Suspended';
+            color = 'bg-orange-100 text-orange-700 border-orange-200';
+          } else if (item.user_id.action_type === 1 || item.user_id.action_type === 2) {
+            color = 'bg-green-100 text-green-700 border-green-200';
+          }
+          
+          return {
+            id: item._id,
+            email: item.user_id.email,
+            name: item.user_id.full_name || 'Unknown',
+            role: item.permission.name,
+            permissions: item.permission.action,
+            status: status,
+            lastLogin: new Date(item.updated_at).toLocaleString(),
+            color: color
+          };
+        });
+        
+        setAdminUsers(mappedUsers);
+      }
+    } catch (error) {
+      console.error('Error fetching all roles:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchRolePermissions();
+    fetchAllRoles();
+  }, []);
 
 const isSuperAdmin =
   "Super Admin"
-  const adminUsers = [
-    {
-      id: '1',
-      email: 'superadmin@crickit.com',
-      name: 'John Smith',
-      role: 'Super Admin',
-      permissions: ['All Permissions'],
-      status: 'Active',
-      lastLogin: '2024-12-04 10:30 AM',
-      color: 'bg-red-100 text-red-700 border-red-200'
-    },
-    {
-      id: '2',
-      email: 'moderator@crickit.com',
-      name: 'Sarah Wilson',
-      role: 'Moderator',
-      permissions: ['Content Moderation', 'User Management', 'Reports'],
-      status: 'Active',
-      lastLogin: '2024-12-04 09:15 AM',
-      color: 'bg-blue-100 text-blue-700 border-blue-200'
-    },
-    {
-      id: '3',
-      email: 'support@crickit.com',
-      name: 'Mike Johnson',
-      role: 'Support',
-      permissions: ['Reports', 'User Support', 'Reviews'],
-      status: 'Active',
-      lastLogin: '2024-12-03 05:20 PM',
-      color: 'bg-green-100 text-green-700 border-green-200'
-    },
-    {
-      id: '4',
-      email: 'developer@crickit.com',
-      name: 'Emma Davis',
-      role: 'Developer',
-      permissions: ['System Settings', 'Audit Logs', 'Analytics'],
-      status: 'Active',
-      lastLogin: '2024-12-03 03:10 PM',
-      color: 'bg-purple-100 text-purple-700 border-purple-200'
-    }
-  ];
 
   const allPermissions = [
     { id: 'all', name: 'All Permissions', description: 'Full system access' },
@@ -64,12 +147,10 @@ const isSuperAdmin =
     { id: 'club_management', name: 'Club Management', description: 'Manage clubs' },
     { id: 'reports', name: 'Reports & Abuse', description: 'Handle reports' },
     { id: 'reviews', name: 'Reviews', description: 'Manage reviews' },
-    { id: 'user_support', name: 'User Support', description: 'Support tickets' },
     { id: 'system_settings', name: 'System Settings', description: 'Configure system' },
     { id: 'audit_logs', name: 'Audit Logs', description: 'View activity logs' },
     { id: 'analytics', name: 'Analytics', description: 'View analytics' },
     { id: 'billing', name: 'Billing', description: 'Manage billing' },
-    { id: 'youth_safety', name: 'Youth Safety', description: 'Safety controls' },
   ];
 
   return (
@@ -85,15 +166,24 @@ const isSuperAdmin =
           <TabsTrigger value="roles">Admin Roles</TabsTrigger>
           <TabsTrigger value="email">Email Templates</TabsTrigger>
           <TabsTrigger value="privacy">Privacy & Data</TabsTrigger>
-          <TabsTrigger value="security">Security & 2FA</TabsTrigger>
+          {/* <TabsTrigger value="security">Security & 2FA</TabsTrigger> */}
         </TabsList>
 
         <TabsContent value="admins" className="space-y-4">
-        <AdminUsersManagement isSuperAdmin={isSuperAdmin} setShowAddAdmin={setShowAddAdmin} showAddAdmin={showAddAdmin} adminUsers={adminUsers} setEditingUser={setEditingUser} editingUser={editingUser} allPermissions={allPermissions}  />
+        <AdminUsersManagement 
+            rolePermissions={rolePermissions}
+            onRoleRefetch={fetchAllRoles}
+         isSuperAdmin={isSuperAdmin}  setShowAddAdmin={setShowAddAdmin} showAddAdmin={showAddAdmin} adminUsers={adminUsers} setEditingUser={setEditingUser} editingUser={editingUser}  />
         </TabsContent>
 
         <TabsContent value="roles" className="space-y-4">
-         <AdminRoles isSuperAdmin={isSuperAdmin} />
+         <AdminRoles 
+            isSuperAdmin={isSuperAdmin} 
+            rolePermissions={rolePermissions}
+            loadingRoles={loadingRoles}
+            allPermissions={allPermissions}
+            onRoleRefetch={fetchRolePermissions}
+          />
         </TabsContent>
 
         <TabsContent value="email" className="space-y-4">

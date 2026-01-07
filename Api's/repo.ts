@@ -3,6 +3,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL + "/";
 
 export const LoginClientApiCall = API_BASE_URL + "api/user/admin-login";
 
+export const AdminUserCreation = API_BASE_URL + "api/user/signup";
+
 export const DashboardStats = API_BASE_URL + "api/admin-user/dashboard-stats";
 
 export const GetAllUser = API_BASE_URL + "api/admin-user/get-all-users";
@@ -68,6 +70,26 @@ export const ExportDataReports = API_BASE_URL + "api/admin-user/export-data-repo
 export const ExportDataAdminLogs = API_BASE_URL + "api/admin-user/export-data-admin-logs";
 
 export const UpdatePassword = API_BASE_URL + "api/admin-user/update-password";
+
+export const CreateDataExportEntry = API_BASE_URL + "api/admin-user/export-logs";
+
+export const GetRolePermission = API_BASE_URL + "api/role/get-permission-list";
+
+export const UpdateRolePermission = API_BASE_URL + "api/role/create-or-update-permission";
+
+export const GetAllRoles = API_BASE_URL + "api/role/get-roles-list";
+
+export const GetExportHistory = API_BASE_URL + "api/admin-user/export-logs";
+
+export const ExportDataHeader = API_BASE_URL + "api/admin-user/export-logs-header";
+
+export const TargetedAudience = API_BASE_URL + "api/admin-user/user-types-subscription-types";
+
+export const PostCommunicationNotification = API_BASE_URL + "api/admin-user/send-notification";
+
+
+
+
 
 
 

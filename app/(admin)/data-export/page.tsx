@@ -1,12 +1,61 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Download, Calendar, Clock, Database, Users, Building2, CreditCard, Star, AlertTriangle, Shield } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Card, CardContent } from '@/app/components/ui/card';
 import QuickExport from '@/app/components/admin/data-export/QuickExport';
-import ExportHistory, { ExportHistoryItem } from '@/app/components/admin/data-export/ExportHistory';
+import ExportHistory from '@/app/components/admin/data-export/ExportHistory';
+import { ExportDataHeader } from "@/Api's/repo";
+import makeRequest from "@/Api's/apiHelper";
 
 export default function DataExportTools() {
+  // State for stats data
+  const [statsData, setStatsData] = useState({
+    totalRecords: 0,
+    thisMonth: 0,
+    lastMonth: 0,
+    totalSize: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  // Fetch ExportDataHeader and console the response
+  useEffect(() => {
+    const fetchExportDataHeader = async () => {
+      try {
+        const response = await makeRequest<{
+          result: {
+            total_records: Array<{ count: number }>;
+            total_size: Array<{ _id: null; totalSize: number }>;
+            records_this_month: Array<{ count: number }>;
+            records_last_month: Array<{ count: number }>;
+          };
+        }>({
+          url: ExportDataHeader,
+          method: "GET",
+        });
+        console.log("ExportDataHeader Response:", response.data);
+        
+        // Update stats data from API response
+        const result = response.data?.result;
+        if (result) {
+          setStatsData({
+            totalRecords: result.total_records?.[0]?.count || 0,
+            thisMonth: result.records_this_month?.[0]?.count || 0,
+            lastMonth: result.records_last_month?.[0]?.count || 0,
+            totalSize: result.total_size?.[0]?.totalSize || 0
+          });
+        }
+      } catch (error) {
+        console.error("ExportDataHeader Error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExportDataHeader();
+  }, []);
+
+
 
 
   const [selectedDataType, setSelectedDataType] = useState<string>('');
@@ -65,49 +114,6 @@ export default function DataExportTools() {
     }
   ];
 
-  // Export history
-  const exportHistory: ExportHistoryItem[] = [
-    {
-      id: '1',
-      dataType: 'User List',
-      format: 'CSV',
-      records: 15234,
-      requestedBy: 'John Smith',
-      requestedDate: '2024-12-04 10:30 AM',
-      status: 'Completed' as const,
-      fileSize: '2.3 MB'
-    },
-    {
-      id: '2',
-      dataType: 'Subscriptions',
-      format: 'Excel',
-      records: 3421,
-      requestedBy: 'Sarah Wilson',
-      requestedDate: '2024-12-03 03:15 PM',
-      status: 'Completed' as const,
-      fileSize: '1.1 MB'
-    },
-    {
-      id: '3',
-      dataType: 'Reports & Abuse',
-      format: 'JSON',
-      records: 542,
-      requestedBy: 'Mike Johnson',
-      requestedDate: '2024-12-03 11:20 AM',
-      status: 'Processing' as const,
-      fileSize: '-'
-    },
-    {
-      id: '4',
-      dataType: 'Club List',
-      format: 'CSV',
-      records: 1234,
-      requestedBy: 'John Smith',
-      requestedDate: '2024-12-02 02:45 PM',
-      status: 'Completed' as const,
-      fileSize: '456 KB'
-    }
-  ];
 
   return (
     <div className="space-y-6">
@@ -122,7 +128,7 @@ export default function DataExportTools() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[#64748b] mb-1">Total Exports</p>
-                <h3 className="text-2xl text-[#1e293b]">234</h3>
+                <h3 className="text-2xl text-[#1e293b]">{loading ? '-' : statsData.totalRecords}</h3>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Download className="w-6 h-6 text-[#007BFF]" />
@@ -136,7 +142,7 @@ export default function DataExportTools() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[#64748b] mb-1">This Month</p>
-                <h3 className="text-2xl text-[#1e293b]">45</h3>
+                <h3 className="text-2xl text-[#1e293b]">{loading ? '-' : statsData.thisMonth}</h3>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <Calendar className="w-6 h-6 text-[#00C853]" />
@@ -149,8 +155,8 @@ export default function DataExportTools() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#64748b] mb-1">Scheduled</p>
-                <h3 className="text-2xl text-[#1e293b]">2</h3>
+                <p className="text-sm text-[#64748b] mb-1">Last Month</p>
+                <h3 className="text-2xl text-[#1e293b]">{loading ? '-' : statsData.lastMonth}</h3>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Clock className="w-6 h-6 text-purple-600" />
@@ -164,7 +170,9 @@ export default function DataExportTools() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[#64748b] mb-1">Total Size</p>
-                <h3 className="text-2xl text-[#1e293b]">45.2 GB</h3>
+                <h3 className="text-2xl text-[#1e293b]">
+                  {loading ? '-' : `${(statsData.totalSize / (1024 * 1024 * 1024)).toFixed(2)} GB`}
+                </h3>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
                 <Database className="w-6 h-6 text-orange-600" />
@@ -195,7 +203,7 @@ export default function DataExportTools() {
 
         {/* Export History */}
         <TabsContent value="history" className="space-y-4">
-          <ExportHistory exportHistory={exportHistory}/>
+          <ExportHistory/>
         </TabsContent>
 
         {/* Scheduled Exports */}

@@ -1,11 +1,14 @@
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
-import { Calendar, Clock, Edit2, Plus, Send, Users } from 'lucide-react'
+import {  Clock, Edit2, Plus, Send, Users } from 'lucide-react'
 import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
+import { TargetedAudience, PostCommunicationNotification } from "@/Api's/repo"
+import makeRequest from "@/Api's/apiHelper"
+import { toastError, toastSuccess } from '@/app/helper/toast'
 
 interface Notification {
   id: string
@@ -18,6 +21,22 @@ interface Notification {
   color: string
 }
 
+interface NotificationApiResponse {
+  response_code?: number
+  success?: boolean
+  status_code?: number
+  message?: string
+  error_message?: string | null
+  token?: string | null
+  result?: unknown
+  misc_data?: unknown
+}
+
+interface AudienceOption {
+  value: string
+  label: string
+}
+
 interface PushNotificationProps {
   showNewNotification: boolean
   setShowNewNotification: (show: boolean) => void
@@ -25,6 +44,138 @@ interface PushNotificationProps {
 }
 
 const PushNotification: React.FC<PushNotificationProps> = ({showNewNotification,setShowNewNotification,sentNotifications}) => {
+  const [userTypeOptions, setUserTypeOptions] = useState<AudienceOption[]>([])
+  const [subscriptionTypeOptions, setSubscriptionTypeOptions] = useState<AudienceOption[]>([])
+  const [loadingAudience, setLoadingAudience] = useState(true)
+  
+  // Form state
+  const [title, setTitle] = useState('')
+  const [message, setMessage] = useState('')
+  const [selectedUserType, setSelectedUserType] = useState('')
+  const [selectedSubscriptionType, setSelectedSubscriptionType] = useState('')
+  const [isSending, setIsSending] = useState(false)
+
+  // Fetch audience data on mount
+  useEffect(() => {
+    const fetchAudienceData = async () => {
+      try {
+        const response = await makeRequest<{
+          result: {
+            users: { user_types: string[]; subscription_types: string[] }
+            admins: { user_types: string[]; subscription_types: string[] }
+            clubs: { user_types: string[]; subscription_types: string[] }
+          }
+        }>({
+          url: TargetedAudience,
+          method: "GET",
+        })
+
+        const result = response.data?.result
+        if (result) {
+          const userTypes: AudienceOption[] = []
+          const subTypes: AudienceOption[] = []
+
+          // Add Users user_types
+          result.users.user_types.forEach((type: string) => {
+            userTypes.push({ value: `user_type_${type}`, label: `${type} Users` })
+          })
+
+          // Add Admins user_types
+          result.admins.user_types.forEach((type: string) => {
+            userTypes.push({ value: `admin_type_${type}`, label: `${type} Admins` })
+          })
+
+          // Add Clubs user_types
+          result.clubs.user_types.forEach((type: string) => {
+            userTypes.push({ value: `club_type_${type}`, label: `${type} Clubs` })
+          })
+
+          // Add subscription types from all categories
+          const allSubscriptionTypes = new Set<string>()
+          result.users.subscription_types.forEach((type: string) => allSubscriptionTypes.add(type))
+          result.admins.subscription_types.forEach((type: string) => allSubscriptionTypes.add(type))
+          result.clubs.subscription_types.forEach((type: string) => allSubscriptionTypes.add(type))
+
+          allSubscriptionTypes.forEach((type: string) => {
+            subTypes.push({ value: `sub_${type}`, label: `${type.charAt(0).toUpperCase() + type.slice(1)}` })
+          })
+
+          setUserTypeOptions(userTypes)
+          setSubscriptionTypeOptions(subTypes)
+        }
+      } catch (error) {
+        console.error("Error fetching audience data:", error)
+      } finally {
+        setLoadingAudience(false)
+      }
+    }
+
+    fetchAudienceData()
+  }, [])
+
+  // Helper to extract clean value from option value (removes prefix like user_type_, admin_type_, club_type_, sub_)
+  const extractValue = (optionValue: string): string => {
+    if (optionValue.startsWith('user_type_')) return optionValue.replace('user_type_', '')
+    if (optionValue.startsWith('admin_type_')) return optionValue.replace('admin_type_', '')
+    if (optionValue.startsWith('club_type_')) return optionValue.replace('club_type_', '')
+    if (optionValue.startsWith('sub_')) return optionValue.replace('sub_', '')
+    return optionValue
+  }
+
+  // Handle form submission
+  const handleSubmit = async () => {
+    // Validation
+    if (!title.trim()) {
+      toastError('Please enter a notification title')
+      return
+    }
+    if (!message.trim()) {
+      toastError('Please enter a notification message')
+      return
+    }
+    if (!selectedUserType) {
+      toastError('Please select a user type')
+      return
+    }
+    if (!selectedSubscriptionType) {
+      toastError('Please select a subscription type')
+      return
+    }
+
+    setIsSending(true)
+    try {
+      const response = await makeRequest<NotificationApiResponse>({
+        url: PostCommunicationNotification,
+        method: 'POST',
+        data: {
+          title: title.trim(),
+          body: message.trim(),
+          user_type: extractValue(selectedUserType),
+          user_subscription_type: extractValue(selectedSubscriptionType),
+        },
+      })
+
+      // Check both HTTP status and API response_code for success
+      const isApiSuccess = response.data?.response_code === 200 || response.data?.success === true
+      if ((response.status === 200 || response.status === 201) && isApiSuccess) {
+        toastSuccess('Notification sent successfully!')
+        // Reset form
+        setTitle('')
+        setMessage('')
+        setSelectedUserType('')
+        setSelectedSubscriptionType('')
+        setShowNewNotification(false)
+      } else {
+        toastError(response.data?.message || 'Failed to send notification')
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error)
+      const axiosError = error as { response?: { data?: { message?: string } } }
+      toastError(axiosError?.response?.data?.message || 'Failed to send notification')
+    } finally {
+      setIsSending(false)
+    }
+  }
   return (
     <Card className="border-[#e2e8f0] ">
             <CardHeader>
@@ -56,6 +207,8 @@ const PushNotification: React.FC<PushNotificationProps> = ({showNewNotification,
                           id="notif-title" 
                           placeholder="e.g., New Feature Available" 
                           className="mt-1"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
                         />
                       </div>
                       
@@ -65,57 +218,76 @@ const PushNotification: React.FC<PushNotificationProps> = ({showNewNotification,
                           id="notif-message" 
                           placeholder="Enter your message here..." 
                           className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg min-h-[100px]"
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="notif-type">Target Audience</Label>
-                        <select id="notif-type" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg">
-                          <option value="global">Global - All Users (15,234)</option>
-                          <option value="premium">Premium Users (3,421)</option>
-                          <option value="free">Free Users (11,813)</option>
-                          <option value="club-owners">Club Owners (1,234)</option>
-                          <option value="players">Players (8,567)</option>
-                          <option value="coaches">Coaches (2,145)</option>
-                          <option value="inactive">Inactive Users (30+ days)</option>
+                        <Label htmlFor="notif-user-type">User Type</Label>
+                        <select 
+                          id="notif-user-type" 
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
+                          disabled={loadingAudience}
+                          value={selectedUserType}
+                          onChange={(e) => setSelectedUserType(e.target.value)}
+                        >
+                          {loadingAudience ? (
+                            <option>Loading...</option>
+                          ) : userTypeOptions.length > 0 ? (
+                            <>
+                              <option value="">Select User Type</option>
+                              {userTypeOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </>
+                          ) : (
+                            <option value="">No options available</option>
+                          )}
                         </select>
                       </div>
 
                       <div>
-                        <Label htmlFor="notif-icon">Icon</Label>
-                        <select id="notif-icon" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg">
-                          <option value="bell">Bell</option>
-                          <option value="star">Star</option>
-                          <option value="alert">Alert</option>
-                          <option value="info">Info</option>
-                          <option value="trophy">Trophy</option>
+                        <Label htmlFor="notif-subscription-type">Subscription Type</Label>
+                        <select 
+                          id="notif-subscription-type" 
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
+                          disabled={loadingAudience}
+                          value={selectedSubscriptionType}
+                          onChange={(e) => setSelectedSubscriptionType(e.target.value)}
+                        >
+                          {loadingAudience ? (
+                            <option>Loading...</option>
+                          ) : subscriptionTypeOptions.length > 0 ? (
+                            <>
+                              <option value="">All Subscriptions</option>
+                              {subscriptionTypeOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </>
+                          ) : (
+                            <option value="">No options available</option>
+                          )}
                         </select>
                       </div>
 
-                      <div>
-                        <Label htmlFor="notif-link">Action Link (Optional)</Label>
-                        <Input 
-                          id="notif-link" 
-                          placeholder="/dashboard" 
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="notif-silent" className="rounded" />
-                        <Label htmlFor="notif-silent">Silent notification (no sound)</Label>
-                      </div>
+                   
                     </div>
 
                     <div className="flex gap-2 pt-4 border-t border-[#e2e8f0]">
-                      <Button className="bg-[#00C853] hover:bg-[#00a844] text-white">
+                      <Button 
+                        className="bg-[#00C853] hover:bg-[#00a844] text-white"
+                        onClick={handleSubmit}
+                        disabled={isSending}
+                      >
                         <Send className="w-4 h-4 mr-2" />
-                        Send Now
+                        {isSending ? 'Sending...' : 'Send Now'}
                       </Button>
-                      <Button variant="outline">
-                        <Calendar className="w-4 h-4 mr-2" />
-                        Schedule for Later
-                      </Button>
+                     
                       <Button variant="outline" onClick={() => setShowNewNotification(false)}>
                         Cancel
                       </Button>
@@ -124,7 +296,6 @@ const PushNotification: React.FC<PushNotificationProps> = ({showNewNotification,
                 </Card>
               )}
 
-              {/* Sent Notifications History */}
               <div>
                 <h4 className="text-[#1e293b] mb-3">Recent Notifications</h4>
                 <div className="space-y-3">
@@ -154,9 +325,6 @@ const PushNotification: React.FC<PushNotificationProps> = ({showNewNotification,
                             <Button variant="outline" size="sm" className="border-[#e2e8f0]">
                               <Edit2 className="w-4 h-4 mr-1" />
                               Resend
-                            </Button>
-                            <Button variant="outline" size="sm" className="border-[#e2e8f0]">
-                              View Stats
                             </Button>
                           </div>
                         </div>

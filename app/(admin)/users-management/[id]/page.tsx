@@ -2,6 +2,7 @@
 
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
+import Loader from "@/app/components/common/Loader";
 import {
   CheckCircle,
   Mail,
@@ -87,18 +88,13 @@ const fetchUserData = useCallback(async () => {
 
   setIsLoading(true);
   try {
-    console.log("🚀 Fetching user data for userId:", userId);
     
     const userUrl = `${GetUserById}?user_id=${userId}`;
     
-    console.log("📢 User API URL:", userUrl);
-
     const userResponse = await makeRequest({
       url: userUrl,
       method: "GET",
     });
-
-    console.log("📢 User Response received:", userResponse);
 
     const userApiData = userResponse?.data as Record<string, unknown> | undefined;
 
@@ -107,10 +103,6 @@ const fetchUserData = useCallback(async () => {
       const userInfo = resultData?.user as Record<string, unknown> | undefined;
       const relatedData = resultData?.relatedData as Record<string, unknown> | undefined;
 
-      console.log("✅ User data fetched:", userInfo);
-      console.log("✅ Related data fetched:", relatedData);
-
-      // Extract player role from players array
       const playerRole = (relatedData?.players as Array<Record<string, unknown>>)?.[0]?.player_role || 'Player';
       
             const mappedUser: User = {
@@ -119,7 +111,7 @@ const fetchUserData = useCallback(async () => {
         email: String(userInfo?.email || ''),
         role: String(playerRole),
         club: String(userInfo?.is_club ? 'Club' : 'Individual') || '',
-        status:  'Active',
+        status: 'Active',
         lastActive: userInfo?.last_active
           ? new Date(userInfo.last_active as string).toLocaleDateString()
           : '-',
@@ -145,7 +137,6 @@ const fetchUserData = useCallback(async () => {
       setUserData(mappedUser);
       setError(null);
     } else {
-      console.warn("⚠️ User fetch not successful:", userApiData);
       setError("Failed to fetch user data");
     }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       
   } catch (error) {
@@ -177,7 +168,7 @@ useEffect(() => {
 
   const selectedUser = userData;
 
-  if (!selectedUser) {
+  if (!selectedUser && !isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center">
@@ -195,9 +186,8 @@ useEffect(() => {
 
 
 
-  const subscription = selectedUser.subscription ?? "Premium";
+  const subscription = selectedUser?.subscription ?? "Premium";
 
-  // Helper functions
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "Active":
@@ -266,9 +256,9 @@ useEffect(() => {
   // Handlers
   const handleEditUser = () => {
     setEditForm({
-      name: selectedUser.name,
-      email: selectedUser.email,
-      role: selectedUser.role,
+      name: selectedUser?.name || "",
+      email: selectedUser?.email || "",
+      role: selectedUser?.role || "",
       subscription,
     });
     setEditModalOpen(true);
@@ -290,7 +280,7 @@ useEffect(() => {
   };
 
   const handleUpgradeDowngrade = () => {
-    console.log(`${upgradeAction} user:`, selectedUser.name);
+    console.log(`${upgradeAction} user:`, selectedUser?.name);
     setUpgradeDowngradeOpen(false);
   };
 
@@ -303,16 +293,7 @@ useEffect(() => {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
-        <div className="text-center">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-200 mb-4 animate-spin">
-            <div className="w-8 h-8 rounded-full border-2 border-slate-300 border-t-slate-900"></div>
-          </div>
-          <p className="text-slate-600">Loading user profile...</p>
-        </div>
-      </div>
-    );
+    return <Loader />;
   }
 
   if (error || !selectedUser) {
@@ -633,7 +614,6 @@ useEffect(() => {
                     </Button>
                   </div>
 
-                  {/* Danger Zone */}
                   <div className="pt-3 border-t border-slate-100">
                     <p className="text-xs text-[#64748b] mb-3 uppercase tracking-wider">Danger Zone</p>
                     <div className="grid grid-cols-2 gap-3">
@@ -662,7 +642,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* Modals */}
       <EditUserModal
         open={editModalOpen}
         onOpenChange={setEditModalOpen}

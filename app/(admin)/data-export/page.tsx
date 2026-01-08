@@ -5,8 +5,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/ta
 import { Card, CardContent } from '@/app/components/ui/card';
 import QuickExport from '@/app/components/admin/data-export/QuickExport';
 import ExportHistory from '@/app/components/admin/data-export/ExportHistory';
-import { ExportDataHeader } from "@/Api's/repo";
+import Loader from '@/app/components/common/Loader';
+import { ExportDataHeader, GetExportHistory } from "@/Api's/repo";
 import makeRequest from "@/Api's/apiHelper";
+
+type ExportHistoryResponse = {
+  response_code: number
+  success: boolean
+  status_code: number
+  total_records: number
+  page_number: number
+  total_pages: number
+  message: string
+  error_message: null
+  token: null
+  result: ExportItem[]
+}
+type ExportItem = {
+  _id: string
+  export_type: string
+  export_format: string
+  state: string
+  no_of_records: number
+  size?: string | null
+  created_at: string
+  created_by?: CreatedBy
+}
+
+type CreatedBy = {
+  _id: string
+  user_name?: string
+  email?: string
+  full_name?: string
+}
+
 
 export default function DataExportTools() {
   // State for stats data
@@ -17,6 +49,24 @@ export default function DataExportTools() {
     totalSize: 0
   });
   const [loading, setLoading] = useState(true);
+  const [exportHistory, setExportHistory] = useState<ExportItem[]>([])
+
+  const fetchExportHistory = async () => {
+    try {
+      const response = await makeRequest<ExportHistoryResponse>({
+        url: GetExportHistory,
+        method: 'GET',
+      });
+
+      setExportHistory(response?.data?.result ?? [])
+    } catch (error) {
+      console.error('Error fetching export history:', error);
+    }
+  }
+
+  useEffect(() => {
+    fetchExportHistory()
+  }, [])
 
   // Fetch ExportDataHeader and console the response
   useEffect(() => {
@@ -61,7 +111,6 @@ export default function DataExportTools() {
   const [selectedDataType, setSelectedDataType] = useState<string>('');
   const [showQuickExport, setShowQuickExport] = useState(false);
 
-  // Data types available for export
   const dataTypes = [
     {
       id: 'users',
@@ -117,6 +166,7 @@ export default function DataExportTools() {
 
   return (
     <div className="space-y-6">
+      {loading && <Loader />}
       <div>
         <h1 className="text-2xl text-[#1e293b] mb-1">Data Export Tools</h1>
         <p className="text-[#64748b]">Export platform data for analysis and reporting</p>
@@ -197,13 +247,14 @@ export default function DataExportTools() {
             selectedDataType={selectedDataType} 
             setSelectedDataType={setSelectedDataType} 
             setShowQuickExport={setShowQuickExport} 
-            showQuickExport={showQuickExport} 
+            showQuickExport={showQuickExport}
+            onExportComplete={fetchExportHistory}
           />
         </TabsContent>
 
         {/* Export History */}
         <TabsContent value="history" className="space-y-4">
-          <ExportHistory/>
+          <ExportHistory exportHistory={exportHistory} />
         </TabsContent>
 
         {/* Scheduled Exports */}

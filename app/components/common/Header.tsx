@@ -59,13 +59,17 @@ export default function Header() {
         return null
     }
     
-const handleLogout = () => {
+    const handleLogout = () => {
   localStorage.removeItem("auth");
   localStorage.removeItem("user");
   document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
   document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
   router.push("/login");
 };
+
+    const closeUserMenu = () => {
+        setShowUserMenu(false)
+    };
 
 
     return (
@@ -176,18 +180,18 @@ const handleLogout = () => {
                             <div className="p-4 border-b border-[#e2e8f0]">
                                 <span className="text-sm font-bold">My Account</span>
                             </div>
-                            <button onClick={() => router.push("/profile-settings")} className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
+                            <button onClick={() => { closeUserMenu(); router.push("/profile-settings"); }} className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
                                 Profile Settings
                             </button>
                             {/* <button onClick={() => router.push("/safety-settings")} className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
                                 Security & 2FA
                             </button> */}
-                            <button onClick={() => router.push("/activity-log")} className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
+                            <button onClick={() => { closeUserMenu(); router.push("/activity-log"); }} className="w-full text-left px-4 py-2.5 text-sm text-[#1e293b] hover:bg-[#F8FAFC] transition-colors">
                                 Activity Log
                             </button>
                             <div className="border-t border-[#e2e8f0]" />
                             <button
-                                onClick={handleLogout}
+                                onClick={() => { closeUserMenu(); handleLogout(); }}
                                 className="w-full text-left px-4 py-2.5 text-sm text-[#ef4444] hover:bg-[#F8FAFC] transition-colors font-medium"
                             >
                                 <span className="flex items-center gap-2">

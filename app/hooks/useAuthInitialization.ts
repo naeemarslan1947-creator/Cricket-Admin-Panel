@@ -115,6 +115,12 @@ export function useAuthInitialization() {
             const fetchedUserData = result.data;
 
             if (!fetchedUserData) {
+              // Clear localStorage and redirect to login if user data not found
+              localStorage.removeItem('auth');
+              localStorage.removeItem('user');
+              tokenManager.clearToken();
+              document.cookie = 'auth=; path=/; max-age=0';
+              document.cookie = 'auth_token=; path=/; max-age=0';
               return false;
             }
 
@@ -160,10 +166,24 @@ export function useAuthInitialization() {
             // Update Redux store and localStorage with fresh user data
             dispatch(setUser(updatedAuthUser));
             localStorage.setItem('user', JSON.stringify(updatedAuthUser));
+          } else {
+            // Clear localStorage and redirect to login if API response is invalid
+            localStorage.removeItem('auth');
+            localStorage.removeItem('user');
+            tokenManager.clearToken();
+            document.cookie = 'auth=; path=/; max-age=0';
+            document.cookie = 'auth_token=; path=/; max-age=0';
+            return false;
           }
         } catch (userFetchError) {
           console.error('Failed to fetch fresh user data:', userFetchError);
-          // Continue with stored user data if fetch fails
+          // Clear localStorage and redirect to login on API error
+          localStorage.removeItem('auth');
+          localStorage.removeItem('user');
+          tokenManager.clearToken();
+          document.cookie = 'auth=; path=/; max-age=0';
+          document.cookie = 'auth_token=; path=/; max-age=0';
+          return false;
         }
       }
 

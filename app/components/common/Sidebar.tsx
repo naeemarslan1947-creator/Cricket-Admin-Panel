@@ -98,7 +98,6 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   
   const user = useSelector((state: RootState) => state.user) as ReduxUser | null | undefined;
-  console.log("📢[Sidebar.tsx:78]: user: ", user);
 
   const menuItems: MenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard' },

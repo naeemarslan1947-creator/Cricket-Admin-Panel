@@ -32,6 +32,7 @@ interface QuickExportProps {
   setSelectedDataType: (id: string) => void;
   showQuickExport: boolean;
   setShowQuickExport: (show: boolean) => void;
+  onExportComplete?: () => void;
 }
 
 const QuickExport: React.FC<QuickExportProps> = ({
@@ -40,6 +41,7 @@ const QuickExport: React.FC<QuickExportProps> = ({
   setSelectedDataType,
   showQuickExport,
   setShowQuickExport,
+  onExportComplete,
 }) => {
   const { user } = useAuth();
   const [exportFormat, setExportFormat] = useState("csv");
@@ -196,6 +198,9 @@ const QuickExport: React.FC<QuickExportProps> = ({
           size: fileSize,
         },
       });
+      
+      // Trigger the callback to refresh export history
+      onExportComplete?.();
     } catch (error) {
       console.error("Failed to create data export entry:", error);
     }

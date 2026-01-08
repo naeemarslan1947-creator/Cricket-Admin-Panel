@@ -165,7 +165,7 @@ const isSuperAdmin =
           <TabsTrigger value="admins">Admin Users</TabsTrigger>
           <TabsTrigger value="roles">Admin Roles</TabsTrigger>
           <TabsTrigger value="email">Email Templates</TabsTrigger>
-          <TabsTrigger value="privacy">Privacy & Data</TabsTrigger>
+          {/* <TabsTrigger value="privacy">Privacy & Data</TabsTrigger> */}
           {/* <TabsTrigger value="security">Security & 2FA</TabsTrigger> */}
         </TabsList>
 

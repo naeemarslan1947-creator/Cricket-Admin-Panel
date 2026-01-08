@@ -1,16 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
-import { FileSpreadsheet } from 'lucide-react'
+import { FileSpreadsheet, FileX } from 'lucide-react'
 import { Badge } from '../../ui/badge'
-import { GetExportHistory } from "@/Api's/repo"
-import makeRequest from "@/Api's/apiHelper"
-
-type CreatedBy = {
-  _id: string
-  user_name?: string
-  email?: string
-  full_name?: string
-}
+import EmptyState from '../../common/EmptyState'
 
 type ExportItem = {
   _id: string
@@ -20,19 +12,27 @@ type ExportItem = {
   no_of_records: number
   size?: string | null
   created_at: string
-  created_by?: CreatedBy
+  created_by?: {
+    _id: string
+    user_name?: string
+    email?: string
+    full_name?: string
+  }
 }
 
-// Helper function to format file size from bytes string to human readable format
-const formatFileSize = (sizeInBytesStr: string | null | undefined): string => {
-  if (!sizeInBytesStr) return '—'
+interface ExportHistoryProps {
+  exportHistory: ExportItem[]
+}
+
+// Helper function to format file size from KB string (stored in DB) to human readable format
+const formatFileSize = (sizeInKBStr: string | null | undefined): string => {
+  if (!sizeInKBStr) return '—'
   
-  const sizeInBytes = parseFloat(sizeInBytesStr)
-  if (isNaN(sizeInBytes) || sizeInBytes <= 0) return '—'
+  const sizeInKB = parseFloat(sizeInKBStr)
+  if (isNaN(sizeInKB) || sizeInKB <= 0) return '—'
   
-  const sizeInKB = sizeInBytes / 1024
-  const sizeInMB = sizeInBytes / (1024 * 1024)
-  const sizeInGB = sizeInBytes / (1024 * 1024 * 1024)
+  const sizeInMB = sizeInKB / 1024
+  const sizeInGB = sizeInKB / (1024 * 1024)
   
   if (sizeInGB >= 1) {
     return `${sizeInGB.toFixed(2)} GB`
@@ -41,42 +41,34 @@ const formatFileSize = (sizeInBytesStr: string | null | undefined): string => {
   } else if (sizeInKB >= 1) {
     return `${sizeInKB.toFixed(2)} KB`
   } else {
-    return `${sizeInBytes.toFixed(2)} B`
+    return `${(sizeInKB * 1024).toFixed(2)} B`
   }
 }
 
-type ExportHistoryResponse = {
-  response_code: number
-  success: boolean
-  status_code: number
-  total_records: number
-  page_number: number
-  total_pages: number
-  message: string
-  error_message: null
-  token: null
-  result: ExportItem[]
-}
+const ExportHistory: React.FC<ExportHistoryProps> = ({ exportHistory }) => {
 
-const ExportHistory = () => {
-  const [exportHistory, setExportHistory] = useState<ExportItem[]>([])
-
-  useEffect(() => {
-    const fetchExportHistory = async () => {
-      try {
-        const response = await makeRequest<ExportHistoryResponse>({
-          url: GetExportHistory,
-          method: 'GET',
-        });
-
-        setExportHistory(response?.data?.result ?? [])
-      } catch (error) {
-        console.error('Error fetching export history:', error);
-      }
-    }
-
-    fetchExportHistory()
-  }, [])
+  // Show empty state when no export history
+  if (exportHistory.length === 0) {
+    return (
+      <Card className="border-[#e2e8f0]">
+        <CardHeader>
+          <div>
+            <CardTitle className="text-[#1e293b]">Export History</CardTitle>
+            <p className="text-sm text-[#64748b]">
+              View and download previous exports
+            </p>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <EmptyState
+            title="No export history"
+            description="There are no export records yet. Start by creating a new export from the Quick Export tab."
+            icon={<FileX className="w-12 h-12 text-gray-400" />}
+          />
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="border-[#e2e8f0]">

@@ -11,6 +11,7 @@ import type { Club, ClubUser } from '@/app/types/clubs';
 import type { ApiResponse } from '@/Api\'s/types';
 import { mapClubUserToClub } from '@/app/types/clubs';
 import ClubStatusModal from '@/app/components/admin/club-management/ClubStatusModal';
+import Loader from '@/app/components/common/Loader';
 
 interface GetAllClubsApiResponse {
   response_code: number;
@@ -175,45 +176,55 @@ export default function ClubsManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <ClubsManagementHeader />
-      <ClubsManagementFilters
-        statusFilter={statusFilter}
-        setStatusFilter={handleStatusFilterChange}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        isLoading={isLoading}
-      />
-      {error && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <p className="text-sm text-amber-800">{error}</p>
-        </div>
-      )}
-      <ClubsManagementGrid 
-        clubs={filteredClubs} 
-        isLoading={isLoading}
-        onOverrideStatus={handleOpenStatusModal}
-      />
-      {filteredClubs.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalRecords={clubs.length}
-          limit={limit}
-          onPageChange={handlePageChange}
-        />
-      )}
+  <>
+    {isLoading ? (
+      <Loader />
+    ) : (
+      <div className="space-y-6">
+        <ClubsManagementHeader />
 
-      {/* Status Override Modal */}
-      {selectedClubForStatus && (
-        <ClubStatusModal
-          open={overrideStatusOpen}
-          onOpenChange={setOverrideStatusOpen}
-          clubName={selectedClubForStatus.name}
-          onStatusChange={handleOverrideStatus}
-          isLoading={overridingStatus}
+        <ClubsManagementFilters
+          statusFilter={statusFilter}
+          setStatusFilter={handleStatusFilterChange}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          isLoading={isLoading}
         />
-      )}
-    </div>
-  );
+
+        {error && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <p className="text-sm text-amber-800">{error}</p>
+          </div>
+        )}
+
+        <ClubsManagementGrid
+          clubs={filteredClubs}
+          isLoading={isLoading}
+          onOverrideStatus={handleOpenStatusModal}
+        />
+
+        {filteredClubs.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalRecords={clubs.length}
+            limit={limit}
+            onPageChange={handlePageChange}
+          />
+        )}
+
+        {/* Status Override Modal */}
+        {selectedClubForStatus && (
+          <ClubStatusModal
+            open={overrideStatusOpen}
+            onOpenChange={setOverrideStatusOpen}
+            clubName={selectedClubForStatus.name}
+            onStatusChange={handleOverrideStatus}
+            isLoading={overridingStatus}
+          />
+        )}
+      </div>
+    )}
+  </>
+);
 }

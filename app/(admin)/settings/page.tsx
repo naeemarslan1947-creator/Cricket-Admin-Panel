@@ -9,6 +9,7 @@ import PrivacyData from '@/app/components/admin/settings/PrivacyData';
 import Security2FA from '@/app/components/admin/settings/Security2FA';
 import makeRequest from "@/Api's/apiHelper";
 import { GetRolePermission, GetAllRoles } from "@/Api's/repo";
+import Loader from '@/app/components/common/Loader';
 
 /* -------------------- Types -------------------- */
 
@@ -154,6 +155,8 @@ const isSuperAdmin =
   ];
 
   return (
+    <> 
+    {loadingRoles ? <Loader /> : (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl text-[#1e293b] mb-1">System Settings</h1>
@@ -165,7 +168,7 @@ const isSuperAdmin =
           <TabsTrigger value="admins">Admin Users</TabsTrigger>
           <TabsTrigger value="roles">Admin Roles</TabsTrigger>
           <TabsTrigger value="email">Email Templates</TabsTrigger>
-          {/* <TabsTrigger value="privacy">Privacy & Data</TabsTrigger> */}
+          {/* <TabsTrigger value="privacy">Privacy & Data</TabsTrigger>x */}
           {/* <TabsTrigger value="security">Security & 2FA</TabsTrigger> */}
         </TabsList>
 
@@ -199,5 +202,7 @@ const isSuperAdmin =
         </TabsContent>
       </Tabs>
     </div>
+    )}
+    </> 
   );
 }

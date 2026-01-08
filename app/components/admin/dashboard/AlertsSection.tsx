@@ -15,12 +15,7 @@ const alerts = [
     description: '12 flagged posts, 11 reported comments',
     action: 'View Reports'
   },
-  {
-    type: 'info',
-    title: '3 Youth Accounts Need Parent Verification',
-    description: 'Parent consent pending for over 48 hours',
-    action: 'Review Safety'
-  },
+  
 ];
 
 

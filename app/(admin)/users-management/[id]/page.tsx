@@ -6,7 +6,6 @@ import Loader from "@/app/components/common/Loader";
 import {
   CheckCircle,
   Mail,
-  TrendingUp,
   MessageSquare,
   Star,
   Flag,
@@ -28,7 +27,6 @@ import {
   Image,
   Bell,
   Eye,
-  Check,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useCallback, useEffect } from "react";
@@ -737,14 +735,6 @@ useEffect(() => {
                     >
                       <KeyRound className="w-4 h-4 mr-2" />
                       Reset
-                    </Button>
-                    <Button 
-                      onClick={() => setViewActivityOpen(true)}
-                      variant="outline"
-                      className="h-11 border-slate-200 hover:bg-slate-50"
-                    >
-                      <Activity className="w-4 h-4 mr-2" />
-                      Activity
                     </Button>
                     <Button 
                       onClick={() => {

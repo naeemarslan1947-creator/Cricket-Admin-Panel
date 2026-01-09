@@ -88,7 +88,7 @@ export default function Header() {
             <div className="flex items-center gap-3 ml-6">
                 <div className="relative">
                    <div className="relative">
-    <button
+    {/* <button
         onClick={() => router.push("/notifications")}
         className="relative p-2 hover:bg-[#F8FAFC] rounded-lg transition-colors"
     >
@@ -96,57 +96,9 @@ export default function Header() {
         <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-[#ef4444] text-white text-xs rounded-full font-bold">
             3
         </span>
-    </button>
+    </button> */}
 </div>
 
-                    {showNotifications && (
-                        <div className="absolute right-0 mt-2 w-80 bg-white border border-[#e2e8f0] rounded-lg shadow-lg overflow-hidden">
-                            <div className="p-4 border-b border-[#e2e8f0]">
-                                <span className="font-bold">Notifications</span>
-                            </div>
-                            <div className="max-h-96 overflow-y-auto">
-                                <div className="p-4 border-b border-[#e2e8f0] hover:bg-[#F8FAFC] cursor-pointer transition-colors">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-2 h-2 rounded-full mt-2 bg-[#00C853]" />
-                                        <div className="flex-1">
-                                            <p className="text-sm text-[#1e293b]">
-                                                New club verification pending
-                                            </p>
-                                            <p className="text-xs text-[#64748b] mt-1">
-                                                2 minutes ago
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-4 border-b border-[#e2e8f0] hover:bg-[#F8FAFC] cursor-pointer transition-colors">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-2 h-2 rounded-full mt-2  bg-[#f59e0b]" />
-                                        <div className="flex-1">
-                                            <p className="text-sm text-[#1e293b]">
-                                                3 content reports awaiting review
-                                            </p>
-                                            <p className="text-xs text-[#64748b] mt-1">
-                                                15 minutes ago
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="p-4 border-b border-[#e2e8f0] hover:bg-[#F8FAFC] cursor-pointer transition-colors">
-                                    <div className="flex items-start gap-3">
-                                        <div className="w-2 h-2 rounded-full mt-2  bg-[#007BFF]" />
-                                        <div className="flex-1">
-                                            <p className="text-sm text-[#1e293b]">
-                                                Monthly analytics report ready
-                                            </p>
-                                            <p className="text-xs text-[#64748b] mt-1">
-                                                1 hour ago
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 <div className="relative">

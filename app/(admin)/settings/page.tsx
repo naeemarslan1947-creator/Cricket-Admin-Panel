@@ -97,7 +97,7 @@ export default function SystemSettings() {
         method: "GET",
       });
       console.log('GetAllRoles Response:', response);
-      
+
       if (response.data?.result) {
         const mappedUsers: AdminUser[] = response.data.result.map((item: AdminUserData) => {
           // Determine status based on action_type
@@ -118,8 +118,8 @@ export default function SystemSettings() {
             id: item._id,
             email: item.user_id.email,
             name: item.user_id.full_name || 'Unknown',
-            role: item.permission.name,
-            permissions: item.permission.action,
+            role: item.permission?.name || 'No Role',
+            permissions: item.permission?.action || [],
             status: status,
             lastLogin: new Date(item.updated_at).toLocaleString(),
             color: color
@@ -153,7 +153,6 @@ const isSuperAdmin =
     { id: 'analytics', name: 'Analytics', description: 'View analytics' },
     { id: 'billing', name: 'Billing', description: 'Manage billing' },
   ];
-
   return (
     <> 
     {loadingRoles ? <Loader /> : (

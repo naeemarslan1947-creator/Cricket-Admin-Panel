@@ -271,14 +271,14 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
                               <span>{announcement.startDate} - {announcement.endDate}</span>
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          {/* <div className="flex gap-2">
                             <Button variant="outline" size="sm" className="border-[#e2e8f0]">
                               <Edit2 className="w-4 h-4" />
                             </Button>
                             <Button variant="outline" size="sm" className="border-red-200 text-red-600">
                               <Trash2 className="w-4 h-4" />
                             </Button>
-                          </div>
+                          </div> */}
                         </div>
                       </CardContent>
                     </Card>

@@ -276,12 +276,12 @@ const PushNotification: React.FC<PushNotificationProps> = ({
                               </span>
                             </div>
                           </div>
-                          <div className="flex gap-2">
+                          {/* <div className="flex gap-2">
                             <Button variant="outline" size="sm" className="border-[#e2e8f0]">
                               <Edit2 className="w-4 h-4 mr-1" />
                               Resend
                             </Button>
-                          </div>
+                          </div> */}
                         </div>
                       </CardContent>
                     </Card>

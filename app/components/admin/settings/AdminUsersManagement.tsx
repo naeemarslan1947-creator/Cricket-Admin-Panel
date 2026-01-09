@@ -426,7 +426,7 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
                       </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    {/* <div className="flex gap-2">
                       {isSuperAdmin ? (
                         <>
                           <Button
@@ -462,7 +462,7 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
                           Locked
                         </Button>
                       )}
-                    </div>
+                    </div> */}
                   </div>
 
                  

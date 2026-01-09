@@ -307,14 +307,14 @@ const AdminRoles: React.FC<AdminRolesProps> = ({
                           </p>
                         </div>
                       </div>
-                      <Button
+                     {role.name !== "Super-Admin" && <Button
                         variant="outline"
                         size="sm"
                         disabled={!isSuperAdmin}
                         onClick={() => setEditingRole(isEditing ? null : role._id)}
                       >
                         {isSuperAdmin ? (isEditing ? 'Close' : 'Manage') : <Lock className="w-4 h-4" />}
-                      </Button>
+                      </Button>}
                     </div>
 
                     {isEditing && isSuperAdmin && (

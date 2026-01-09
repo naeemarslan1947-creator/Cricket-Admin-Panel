@@ -1,11 +1,15 @@
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
-import { Edit2, Plus, Trash2 } from 'lucide-react'
+import { Edit2, Plus, Send, Trash2 } from 'lucide-react'
 import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
+import { toastError, toastSuccess } from '@/app/helper/toast'
+import makeRequest from '@/Api\'s/apiHelper'
+import { PostCommunicationNotification } from '@/Api\'s/repo'
+import { useAuth } from '@/app/hooks/useAuth'
 
 interface Announcement {
   id: string
@@ -18,13 +22,113 @@ interface Announcement {
   endDate: string
 }
 
+interface AudienceOption {
+  value: string
+  label: string
+}
+interface AnnouncementApiResponse {
+  response_code?: number
+  success?: boolean
+  status_code?: number
+  message?: string
+  error_message?: string | null
+  token?: string | null
+  result?: unknown
+  misc_data?: unknown
+}
+
 interface InAppAnnouncementsProps {
   announcements: Announcement[]
   setShowNewAnnouncement: (show: boolean) => void
   showNewAnnouncement: boolean
+  userTypeOptions: AudienceOption[]
+  subscriptionTypeOptions: AudienceOption[]
+  loadingAudience: boolean
+  triggerRefetch?: () => void
 }
 
-const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({announcements,setShowNewAnnouncement, showNewAnnouncement }) => {
+const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
+  announcements,
+  setShowNewAnnouncement,
+  showNewAnnouncement,
+  userTypeOptions,
+  subscriptionTypeOptions,
+  loadingAudience,
+  triggerRefetch
+}) => {
+  const {user} = useAuth()
+    const [title, setTitle] = useState('')
+    const [message, setMessage] = useState('')
+    const [selectedUserType, setSelectedUserType] = useState('')
+    const [selectedSubscriptionType, setSelectedSubscriptionType] = useState('')
+    const [isSending, setIsSending] = useState(false)
+  
+    // Helper to extract clean value from option value
+    const extractValue = (optionValue: string): string => {
+      if (optionValue.startsWith('user_type_')) return optionValue.replace('user_type_', '')
+      if (optionValue.startsWith('admin_type_')) return optionValue.replace('admin_type_', '')
+      if (optionValue.startsWith('club_type_')) return optionValue.replace('club_type_', '')
+      if (optionValue.startsWith('sub_')) return optionValue.replace('sub_', '')
+      return optionValue
+    }
+
+    const handleSubmit = async () => {
+        // Validation
+        if (!title.trim()) {
+          toastError('Please enter a notification title')
+          return
+        }
+        if (!message.trim()) {
+          toastError('Please enter a notification message')
+          return
+        }
+        if (!selectedUserType) {
+          toastError('Please select a user type')
+          return
+        }
+        if (!selectedSubscriptionType) {
+          toastError('Please select a subscription type')
+          return
+        }
+    
+        setIsSending(true)
+        try {
+          const response = await makeRequest<AnnouncementApiResponse>({
+            url: PostCommunicationNotification,
+            method: 'POST',
+            data: {
+          created_by: user?._id || '',
+              title: title.trim(),
+              body: message.trim(),
+              user_type: extractValue(selectedUserType),
+              user_subscription_type: extractValue(selectedSubscriptionType),
+              type: "adminAnnouncement"
+            },
+          })
+    
+          // Check both HTTP status and API response_code for success
+          const isApiSuccess = response.data?.response_code === 200 || response.data?.success === true
+          if ((response.status === 200 || response.status === 201) && isApiSuccess) {
+            toastSuccess('Notification sent successfully!')
+            // Reset form
+            setTitle('')
+            setMessage('')
+            setSelectedUserType('')
+            setSelectedSubscriptionType('')
+            setShowNewAnnouncement(false)
+            // Trigger refetch to update the list
+            triggerRefetch?.()
+          } else {
+            toastError(response.data?.message || 'Failed to send notification')
+          }
+        } catch (error) {
+          console.error('Error sending notification:', error)
+          const axiosError = error as { response?: { data?: { message?: string } } }
+          toastError(axiosError?.response?.data?.message || 'Failed to send notification')
+        } finally {
+          setIsSending(false)
+        }
+      }
   return (
     <Card className="border-[#e2e8f0] ">
             <CardHeader>
@@ -56,76 +160,87 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({announcements,se
                           id="ann-title" 
                           placeholder="e.g., Welcome to Crickit!" 
                           className="mt-1"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
                         />
                       </div>
                       
-                      <div className="col-span-2">
-                        <Label htmlFor="ann-content">Content</Label>
+                      <div className="col-span-2">ann
+                        <Label htmlFor="ann-message">Message</Label>
                         <textarea 
-                          id="ann-content" 
-                          placeholder="Enter announcement content..." 
-                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg min-h-[120px]"
+                          id="ann-message" 
+                          placeholder="Enter your message here..." 
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg min-h-[100px]"
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
                         />
                       </div>
 
                       <div>
-                        <Label htmlFor="ann-display">Display Type</Label>
-                        <select id="ann-display" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg">
-                          <option value="banner">Top Banner</option>
-                          <option value="modal">Popup Modal</option>
-                          <option value="bottom">Bottom Banner</option>
-                          <option value="sidebar">Sidebar Card</option>
+                        <Label htmlFor="ann-user-type">User Type</Label>
+                        <select 
+                          id="ann-user-type" 
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
+                          disabled={loadingAudience}
+                          value={selectedUserType}
+                          onChange={(e) => setSelectedUserType(e.target.value)}
+                        >
+                          {loadingAudience ? (
+                            <option>Loading...</option>
+                          ) : userTypeOptions.length > 0 ? (
+                            <>
+                              <option value="">Select User Type</option>
+                              {userTypeOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </>
+                          ) : (
+                            <option value="">No options available</option>
+                          )}
                         </select>
                       </div>
 
                       <div>
-                        <Label htmlFor="ann-style">Style</Label>
-                        <select id="ann-style" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg">
-                          <option value="info">Info (Blue)</option>
-                          <option value="success">Success (Green)</option>
-                          <option value="warning">Warning (Orange)</option>
-                          <option value="promo">Promotional (Purple)</option>
+                        <Label htmlFor="ann-subscription-type">Subscription Type</Label>
+                        <select 
+                          id="ann-subscription-type" 
+                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
+                          disabled={loadingAudience}
+                          value={selectedSubscriptionType}
+                          onChange={(e) => setSelectedSubscriptionType(e.target.value)}
+                        >
+                          {loadingAudience ? (
+                            <option>Loading...</option>
+                          ) : subscriptionTypeOptions.length > 0 ? (
+                            <>
+                              <option value="">All Subscriptions</option>
+                              {subscriptionTypeOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </>
+                          ) : (
+                            <option value="">No options available</option>
+                          )}
                         </select>
                       </div>
 
-                      <div>
-                        <Label htmlFor="ann-start">Start Date</Label>
-                        <Input 
-                          id="ann-start" 
-                          type="datetime-local" 
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="ann-end">End Date</Label>
-                        <Input 
-                          id="ann-end" 
-                          type="datetime-local" 
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div className="col-span-2">
-                        <Label htmlFor="ann-action">Action Button Text (Optional)</Label>
-                        <Input 
-                          id="ann-action" 
-                          placeholder="e.g., Learn More" 
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="ann-dismissible" className="rounded" defaultChecked />
-                        <Label htmlFor="ann-dismissible">User can dismiss</Label>
-                      </div>
+                   
                     </div>
 
                     <div className="flex gap-2 pt-4 border-t border-[#e2e8f0]">
-                      <Button className="bg-[#00C853] hover:bg-[#00a844] text-white">
-                        Create Announcement
+                      <Button 
+                        className="bg-[#00C853] hover:bg-[#00a844] text-white"  
+                        onClick={handleSubmit}
+                        disabled={isSending}
+                      >
+                        <Send className="w-4 h-4 mr-2" />
+                        {isSending ? 'Sending...' : 'Send Now'}
                       </Button>
-                      <Button variant="outline">Preview</Button>
+                     
                       <Button variant="outline" onClick={() => setShowNewAnnouncement(false)}>
                         Cancel
                       </Button>

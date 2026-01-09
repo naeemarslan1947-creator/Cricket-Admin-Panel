@@ -4,6 +4,7 @@ export interface User {
   email: string;
   role: string;
   club: string;
+  isClub: boolean;
   subscription: string;
   status: 'Active' | 'Suspended' | 'Pending' | 'Inactive' | 'Deleted';
   lastActive: string;

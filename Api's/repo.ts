@@ -87,6 +87,17 @@ export const TargetedAudience = API_BASE_URL + "api/admin-user/user-types-subscr
 
 export const PostCommunicationNotification = API_BASE_URL + "api/admin-user/send-notification";
 
+export const GetActivityLogById = API_BASE_URL + "api/admin-user/admin-logs-by-user-id";
+
+export const GetAllAdminLogs = API_BASE_URL + "api/admin-user/admin-logs";
+
+export const GetCommunicationHeader = API_BASE_URL + "api/admin-user/communication-header";
+
+export const GetNotification = API_BASE_URL + "api/admin-user/notification-requests";
+
+
+
+
 
 
 

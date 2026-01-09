@@ -8,6 +8,7 @@ export interface ActivityLog {
   timestamp: string;
   type: string;
   ipAddress?: string;
+  profile_pic?: string;
 }
 
 export interface AdminUser {

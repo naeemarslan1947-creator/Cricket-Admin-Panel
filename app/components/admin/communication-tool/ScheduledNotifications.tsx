@@ -1,11 +1,15 @@
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
 import { AlertCircle, Clock, Edit2, Plus, Send, Target, Trash2 } from 'lucide-react'
 import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
+import { toastError, toastSuccess } from '@/app/helper/toast'
+import { PostCommunicationNotification } from '@/Api\'s/repo'
+import makeRequest from '@/Api\'s/apiHelper'
+import { useAuth } from '@/app/hooks/useAuth'
 
 interface ScheduledNotification {
   id: string
@@ -18,20 +22,130 @@ interface ScheduledNotification {
   lastTriggered: string
 }
 
+interface AudienceOption {
+  value: string
+  label: string
+}
+interface ScheduledNotificationApiResponse {
+  response_code?: number
+  success?: boolean
+  status_code?: number
+  message?: string
+  error_message?: string | null
+  token?: string | null
+  result?: unknown
+  misc_data?: unknown
+}
+
+
 interface ScheduledNotificationsProps {
   scheduledNotifications: ScheduledNotification[]
   setShowNewScheduled: (show: boolean) => void
   showNewScheduled: boolean
+  userTypeOptions: AudienceOption[]
+  subscriptionTypeOptions: AudienceOption[]
+  loadingAudience: boolean
+  triggerRefetch?: () => void
 }
 
-const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({scheduledNotifications, setShowNewScheduled, showNewScheduled}) => {
+const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({
+  scheduledNotifications,
+  setShowNewScheduled,
+  showNewScheduled,
+  userTypeOptions,
+  subscriptionTypeOptions,
+  loadingAudience,
+  triggerRefetch
+}) => {
+     const {user}= useAuth()
+     const [title, setTitle] = useState('')
+      const [message, setMessage] = useState('')
+      const [selectedUserType, setSelectedUserType] = useState('')
+      const [selectedSubscriptionType, setSelectedSubscriptionType] = useState('')
+      const [scheduledAt, setScheduledAt] = useState('')
+      const [isSending, setIsSending] = useState(false)
+    
+      // Helper to extract clean value from option value
+      const extractValue = (optionValue: string): string => {
+        if (optionValue.startsWith('user_type_')) return optionValue.replace('user_type_', '')
+        if (optionValue.startsWith('admin_type_')) return optionValue.replace('admin_type_', '')
+        if (optionValue.startsWith('club_type_')) return optionValue.replace('club_type_', '')
+        if (optionValue.startsWith('sub_')) return optionValue.replace('sub_', '')
+        return optionValue
+      }
+  
+      const handleSubmit = async () => {
+          // Validation
+          if (!title.trim()) {
+            toastError('Please enter a notification title')
+            return
+          }
+          if (!message.trim()) {
+            toastError('Please enter a notification message')
+            return
+          }
+          if (!selectedUserType) {
+            toastError('Please select a user type')
+            return
+          }
+          if (!selectedSubscriptionType) {
+            toastError('Please select a subscription type')
+            return
+          }
+          if (!scheduledAt) {
+            toastError('Please select a scheduled date and time')
+            return
+          }
+      
+          setIsSending(true)
+          try {
+            // Convert datetime-local to ISO 8601 format
+            const scheduledAtISO = scheduledAt ? new Date(scheduledAt).toISOString() : ''
+            
+            const response = await makeRequest<ScheduledNotificationApiResponse>({
+              url: PostCommunicationNotification,
+              method: 'POST',
+              data: {
+                created_by: user?._id || '',
+                title: title.trim(),
+                body: message.trim(),
+                user_type: extractValue(selectedUserType),
+                user_subscription_type: extractValue(selectedSubscriptionType),
+                scheduled_at: scheduledAtISO,
+                type: "adminNotification"
+              },
+            })
+      
+            // Check both HTTP status and API response_code for success
+            const isApiSuccess = response.data?.response_code === 200 || response.data?.success === true
+            if ((response.status === 200 || response.status === 201) && isApiSuccess) {
+              toastSuccess('Notification scheduled successfully!')
+              // Reset form
+              setTitle('')
+              setMessage('')
+              setSelectedUserType('')
+              setSelectedSubscriptionType('')
+              setScheduledAt('')
+              setShowNewScheduled(false)
+              // Trigger refetch to update the list
+              triggerRefetch?.()
+            } else {
+              toastError(response.data?.message || 'Failed to schedule notification')
+            }
+          } catch (error) {
+            console.error('Error scheduling notification:', error)
+            const axiosError = error as { response?: { data?: { message?: string } } }
+            toastError(axiosError?.response?.data?.message || 'Failed to schedule notification')
+          } finally {
+            setIsSending(false)
+          }
+        }
   return (
     <Card className="border-[#e2e8f0] ">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="text-[#1e293b]">Automated & Scheduled Notifications</CardTitle>
-                  <p className="text-sm text-[#64748b]">Set up trigger-based notifications (e.g., premium expires in 30 days)</p>
                 </div>
                 <Button 
                   className="bg-purple-600 hover:bg-purple-700 text-white"
@@ -59,91 +173,114 @@ const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({schedule
               {/* New Scheduled Notification Form */}
               {showNewScheduled && (
                 <Card className="border-purple-600 bg-purple-50">
-                  <CardContent className="p-4 space-y-4">
+                                 <CardContent className="p-4 space-y-4">
                     <h4 className="text-[#1e293b]">Create Scheduled Notification Rule</h4>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="col-span-2">
+                                   
+                                   <div className="grid grid-cols-2 gap-4">
+                                     <div className="col-span-2">
                         <Label htmlFor="sched-name">Rule Name</Label>
-                        <Input 
+                                       <Input 
                           id="sched-name" 
                           placeholder="e.g., Premium Expiry Reminder" 
-                          className="mt-1"
-                        />
-                      </div>
+                                         className="mt-1"
+                                         value={title}
+                                         onChange={(e) => setTitle(e.target.value)}
+                                       />
+                                     </div>
+                                     
+                                     <div className="col-span-2">ann
+                                       <Label htmlFor="notif-message">Message</Label>
+                                       <textarea 
+                                         id="notif-message" 
+                                         placeholder="Enter your message here..." 
+                                         className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg min-h-[100px]"
+                                         value={message}
+                                         onChange={(e) => setMessage(e.target.value)}
+                                       />
+                                     </div>
+               
+                                     <div>
+                                       <Label htmlFor="notif-user-type">User Type</Label>
+                                       <select 
+                                         id="notif-user-type" 
+                                         className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
+                                         disabled={loadingAudience}
+                                         value={selectedUserType}
+                                         onChange={(e) => setSelectedUserType(e.target.value)}
+                                       >
+                                         {loadingAudience ? (
+                                           <option>Loading...</option>
+                                         ) : userTypeOptions.length > 0 ? (
+                                           <>
+                                             <option value="">Select User Type</option>
+                                             {userTypeOptions.map((option) => (
+                                               <option key={option.value} value={option.value}>
+                                                 {option.label}
+                                               </option>
+                                             ))}
+                                           </>
+                                         ) : (
+                                           <option value="">No options available</option>
+                                         )}
+                                       </select>
+                                     </div>
+               
+                                     <div>
+                                       <Label htmlFor="notif-subscription-type">Subscription Type</Label>
+                                       <select 
+                                         id="notif-subscription-type" 
+                                         className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
+                                         disabled={loadingAudience}
+                                         value={selectedSubscriptionType}
+                                         onChange={(e) => setSelectedSubscriptionType(e.target.value)}
+                                       >
+                                         {loadingAudience ? (
+                                           <option>Loading...</option>
+                                         ) : subscriptionTypeOptions.length > 0 ? (
+                                           <>
+                                             <option value="">All Subscriptions</option>
+                                             {subscriptionTypeOptions.map((option) => (
+                                               <option key={option.value} value={option.value}>
+                                                 {option.label}
+                                               </option>
+                                             ))}
+                                           </>
+                                         ) : (
+                                           <option value="">No options available</option>
+                                         )}
+                                       </select>
+                                     </div>
 
-                      <div className="col-span-2">
-                        <Label htmlFor="sched-trigger">Trigger Condition</Label>
-                        <select id="sched-trigger" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg">
-                          <option value="">Select trigger event...</option>
-                          <option value="premium-30">Premium expires in 30 days</option>
-                          <option value="premium-7">Premium expires in 7 days</option>
-                          <option value="premium-1">Premium expires in 1 day</option>
-                          <option value="new-user">New user registration</option>
-                          <option value="inactive-7">No activity for 7 days</option>
-                          <option value="inactive-30">No activity for 30 days</option>
-                          <option value="match-reminder">Match starts in 1 hour</option>
-                          <option value="birthday">User birthday</option>
-                          <option value="milestone">Reached milestone (custom)</option>
-                        </select>
-                      </div>
-                      
-                      <div className="col-span-2">
-                        <Label htmlFor="sched-title">Notification Title</Label>
-                        <Input 
-                          id="sched-title" 
-                          placeholder="e.g., Your premium expires soon!" 
-                          className="mt-1"
-                        />
-                      </div>
-                      
-                      <div className="col-span-2">
-                        <Label htmlFor="sched-message">Message</Label>
-                        <textarea 
-                          id="sched-message" 
-                          placeholder="Use {name}, {days}, {date} for dynamic values" 
-                          className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg min-h-[100px]"
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="sched-audience">Target Audience</Label>
-                        <select id="sched-audience" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg">
-                          <option value="premium">Premium Users</option>
-                          <option value="free">Free Users</option>
-                          <option value="all">All Users</option>
-                          <option value="club-owners">Club Owners</option>
-                          <option value="players">Players</option>
-                          <option value="new">New Users</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="sched-time">Send Time</Label>
-                        <select id="sched-time" className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg">
-                          <option value="immediate">Immediately</option>
-                          <option value="morning">9:00 AM</option>
-                          <option value="afternoon">2:00 PM</option>
-                          <option value="evening">6:00 PM</option>
-                        </select>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <input type="checkbox" id="sched-active" className="rounded" defaultChecked />
-                        <Label htmlFor="sched-active">Active (start sending immediately)</Label>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 pt-4 border-t border-[#e2e8f0]">
-                      <Button className="bg-purple-600 hover:bg-purple-700 text-white">
-                        Create Rule
-                      </Button>
-                      <Button variant="outline" onClick={() => setShowNewScheduled(false)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                                     <div>
+                                       <Label htmlFor="scheduled-at">Scheduled Date & Time</Label>
+                                       <Input 
+                                         id="scheduled-at" 
+                                         type="datetime-local" 
+                                         className="mt-1"
+                                         value={scheduledAt}
+                                         onChange={(e) => setScheduledAt(e.target.value)}
+                                       />
+                                     </div>
+               
+                                  
+                                   </div>
+               
+                                   <div className="flex gap-2 pt-4 border-t border-[#e2e8f0]">
+                                     <Button 
+                                       className="bg-purple-600 hover:bg-purple-700 text-white"
+                                       onClick={handleSubmit}
+                                       disabled={isSending}
+                                     >
+                                       <Send className="w-4 h-4 mr-2" />
+                                       {isSending ? 'Sending...' : 'Send Now'}
+                                     </Button>
+                                    
+                                     <Button variant="outline" onClick={() => setShowNewScheduled(false)}>
+                                       Cancel
+                                     </Button>
+                                   </div>
+                                 </CardContent>
+                               </Card>
               )}
 
               {/* Active Rules */}

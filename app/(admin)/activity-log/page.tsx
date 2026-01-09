@@ -1,204 +1,159 @@
 "use client";
 
-import { useState } from 'react';
-import { Search, Download, Filter, Calendar, User, Shield, Settings, Database, Users, FileText,  Eye, CheckCircle, XCircle, AlertTriangle, Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, Download, User, Shield, Settings, Database, Users, FileText, CheckCircle, XCircle, AlertTriangle, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { Badge } from '@/app/components/ui/badge';
+import makeRequest from "@/Api's/apiHelper";
+import { GetActivityLogById } from "@/Api's/repo";
+import { useAuth } from "@/app/hooks/useAuth";
+import Pagination from '@/app/components/common/Pagination';
+import Loader from '@/app/components/common/Loader';
 
+interface UserInfo {
+  _id: string;
+  email: string;
+  full_name: string;
+  profile_pic: string;
+}
 
-interface ActivityLog {
-  id: number;
-  timestamp: string;
-  user: string;
-  userRole: string;
+interface ActivityLogItem {
+  _id: string;
+  user_id: UserInfo;
   action: string;
-  category: 'user' | 'security' | 'content' | 'system' | 'admin';
-  description: string;
-  ipAddress: string;
-  status: 'success' | 'failed' | 'warning';
-  details?: string;
+  ip: string;
+  response_status: number;
+  created_at: string;
+}
+
+interface ActivityLogResponse {
+  response_code: number;
+  success: boolean;
+  status_code: number;
+  total_records: number | null;
+  page_number: number | null;
+  total_pages: number | null;
+  message: string;
+  error_message: null;
+  token: null;
+  result: ActivityLogItem[];
+  misc_data: null;
 }
 
 export default function ActivityLogs() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'user' | 'security' | 'content' | 'system' | 'admin'>('all');
-  const [visibleCount, setVisibleCount] = useState(8);
+  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const limit = 10;
 
-  const activityLogs: ActivityLog[] = [
-    {
-      id: 1,
-      timestamp: 'Today, 10:30 AM',
-      user: 'Rahul Sharma',
-      userRole: 'Super Admin',
-      action: 'Updated user role',
-      category: 'admin',
-      description: 'Changed Priya Patel role from Support to Moderator',
-      ipAddress: '103.21.45.78',
-      status: 'success',
-      details: 'User ID: #12345',
-    },
-    {
-      id: 2,
-      timestamp: 'Today, 10:15 AM',
-      user: 'Amit Kumar',
-      userRole: 'Moderator',
-      action: 'Deleted reported content',
-      category: 'content',
-      description: 'Removed inappropriate post from Mumbai Cricket Club',
-      ipAddress: '103.21.45.92',
-      status: 'success',
-      details: 'Post ID: #98765',
-    },
-    {
-      id: 3,
-      timestamp: 'Today, 9:45 AM',
-      user: 'Priya Patel',
-      userRole: 'Support',
-      action: 'Resolved support ticket',
-      category: 'user',
-      description: 'Helped user with subscription billing issue',
-      ipAddress: '103.21.45.88',
-      status: 'success',
-      details: 'Ticket ID: #54321',
-    },
-    {
-      id: 4,
-      timestamp: 'Today, 9:30 AM',
-      user: 'Vikram Singh',
-      userRole: 'Developer',
-      action: 'Deployed system update',
-      category: 'system',
-      description: 'Released v2.4.1 with bug fixes and performance improvements',
-      ipAddress: '103.21.45.65',
-      status: 'success',
-      details: 'Version: 2.4.1',
-    },
-    {
-      id: 5,
-      timestamp: 'Today, 8:45 AM',
-      user: 'Amit Kumar',
-      userRole: 'Moderator',
-      action: 'Approved club registration',
-      category: 'content',
-      description: 'Verified and approved Bangalore Strikers Cricket Club',
-      ipAddress: '103.21.45.92',
-      status: 'success',
-      details: 'Club ID: #7891',
-    },
-    {
-      id: 6,
-      timestamp: 'Today, 8:30 AM',
-      user: 'Rahul Sharma',
-      userRole: 'Super Admin',
-      action: 'Sent push notification',
-      category: 'admin',
-      description: 'Global announcement: New tournament features available',
-      ipAddress: '103.21.45.78',
-      status: 'success',
-      details: 'Recipients: 18,542',
-    },
-    {
-      id: 7,
-      timestamp: 'Today, 7:50 AM',
-      user: 'Unknown User',
-      userRole: 'N/A',
-      action: 'Failed login attempt',
-      category: 'security',
-      description: 'Multiple failed login attempts from suspicious IP',
-      ipAddress: '182.75.34.21',
-      status: 'failed',
-      details: 'Attempts: 7',
-    },
-    {
-      id: 8,
-      timestamp: 'Yesterday, 11:45 PM',
-      user: 'System',
-      userRole: 'System',
-      action: 'Security scan completed',
-      category: 'security',
-      description: 'Weekly security vulnerability scan finished',
-      ipAddress: 'Internal',
-      status: 'success',
-      details: 'Vulnerabilities found: 0',
-    },
-    {
-      id: 9,
-      timestamp: 'Yesterday, 10:30 PM',
-      user: 'Amit Kumar',
-      userRole: 'Moderator',
-      action: 'Banned user account',
-      category: 'content',
-      description: 'Suspended account for violating community guidelines',
-      ipAddress: '103.21.45.92',
-      status: 'success',
-      details: 'User ID: #34567',
-    },
-    {
-      id: 10,
-      timestamp: 'Yesterday, 9:15 PM',
-      user: 'Rahul Sharma',
-      userRole: 'Super Admin',
-      action: 'Created new admin user',
-      category: 'admin',
-      description: 'Added new support staff member: Anjali Verma',
-      ipAddress: '103.21.45.78',
-      status: 'success',
-      details: 'User ID: #45678',
-    },
-    {
-      id: 11,
-      timestamp: 'Yesterday, 8:00 PM',
-      user: 'Vikram Singh',
-      userRole: 'Developer',
-      action: 'Updated API configuration',
-      category: 'system',
-      description: 'Modified rate limiting for payment gateway integration',
-      ipAddress: '103.21.45.65',
-      status: 'warning',
-      details: 'Config: api_rate_limit',
-    },
-    {
-      id: 12,
-      timestamp: 'Yesterday, 7:30 PM',
-      user: 'Priya Patel',
-      userRole: 'Support',
-      action: 'Exported user data',
-      category: 'user',
-      description: 'Generated CSV export of premium users for marketing team',
-      ipAddress: '103.21.45.88',
-      status: 'success',
-      details: 'Records: 2,847',
-    },
-  ];
+  const fetchActivityLog = async (page: number = 1) => {
+    try {
+      setIsLoading(true);
+      if (!user?._id) return;
 
-  const stats = {
-    total: activityLogs.length,
-    today: activityLogs.filter(log => log.timestamp.includes('Today')).length,
-    success: activityLogs.filter(log => log.status === 'success').length,
-    failed: activityLogs.filter(log => log.status === 'failed').length,
+      const response = await makeRequest<ActivityLogResponse>({
+        url: GetActivityLogById,
+        method: 'GET',
+        params: { user_id: user._id, page, limit },
+      });
+
+      console.log('Activity Log Response:', response);
+
+      if (response.data) {
+        setActivityLogs(response.data.result || []);
+        setTotalPages(response.data.total_pages || 1);
+        setTotalRecords(response.data.total_records || response.data.result?.length || 0);
+        setCurrentPage(response.data.page_number || page);
+      }
+    } catch (error) {
+      console.error('Error fetching activity log:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const filterCategories = [
-    { id: 'all', label: 'All Activities', icon: FileText, count: activityLogs.length },
-    { id: 'user', label: 'User Actions', icon: Users, count: activityLogs.filter(log => log.category === 'user').length },
-    { id: 'security', label: 'Security', icon: Shield, count: activityLogs.filter(log => log.category === 'security').length },
-    { id: 'content', label: 'Content', icon: Database, count: activityLogs.filter(log => log.category === 'content').length },
-    { id: 'system', label: 'System', icon: Settings, count: activityLogs.filter(log => log.category === 'system').length },
-    { id: 'admin', label: 'Admin', icon: User, count: activityLogs.filter(log => log.category === 'admin').length },
-  ];
+  useEffect(() => {
+    fetchActivityLog(1);
+  }, [user]);
+
+  const handlePageChange = (page: number) => {
+    fetchActivityLog(page);
+  };
+
+  const getStatusFromResponseCode = (status: number): 'success' | 'failed' | 'warning' => {
+    if (status >= 200 && status < 300) return 'success';
+    if (status >= 400) return 'failed';
+    return 'warning';
+  };
+
+  const getCategoryFromAction = (action: string): 'user' | 'security' | 'content' | 'system' | 'admin' => {
+    const actionLower = action.toLowerCase();
+    if (actionLower.includes('login') || actionLower.includes('logout') || actionLower.includes('auth')) return 'security';
+    if (actionLower.includes('create') || actionLower.includes('update') || actionLower.includes('delete')) return 'admin';
+    if (actionLower.includes('content') || actionLower.includes('post') || actionLower.includes('media')) return 'content';
+    if (actionLower.includes('settings') || actionLower.includes('config') || actionLower.includes('system')) return 'system';
+    return 'user';
+  };
+
+  const formatTimestamp = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} min ago`;
+    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getActionDescription = (action: string): string => {
+    const actionLower = action.toLowerCase();
+    if (actionLower.includes('login')) return 'Logged into the system';
+    if (actionLower.includes('logout')) return 'Logged out from the system';
+    if (actionLower.includes('create')) return `Created new ${actionLower.replace('/admin-create-', '').replace('-', ' ')}`;
+    if (actionLower.includes('update')) return `Updated ${actionLower.replace('/admin-update-', '').replace('-', ' ')}`;
+    if (actionLower.includes('delete')) return `Deleted ${actionLower.replace('/admin-delete-', '').replace('-', ' ')}`;
+    if (actionLower.includes('view')) return `Viewed ${actionLower.replace('/admin-view-', '').replace('-', ' ')}`;
+    if (actionLower.includes('export')) return `Exported ${actionLower.replace('/admin-export-', '').replace('-', ' ')}`;
+    return action;
+  };
 
   const filteredLogs = activityLogs.filter(log => {
     const matchesSearch = searchQuery === '' || 
-      log.user.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      log.user_id.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       log.action.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      log.description.toLowerCase().includes(searchQuery.toLowerCase());
+      log.ip.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesFilter = activeFilter === 'all' || log.category === activeFilter;
-    
-    return matchesSearch && matchesFilter;
+    return matchesSearch;
   });
+
+  const stats = {
+    total: totalRecords,
+    today: activityLogs.filter(log => {
+      const logDate = new Date(log.created_at);
+      const today = new Date();
+      return logDate.toDateString() === today.toDateString();
+    }).length,
+    success: activityLogs.filter(log => log.response_status >= 200 && log.response_status < 300).length,
+    failed: activityLogs.filter(log => log.response_status >= 400).length,
+  };
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -239,6 +194,10 @@ export default function ActivityLogs() {
     console.log('Exporting activity logs...');
     // Export logic here
   };
+
+  if (isLoading) {
+    return <Loader />;
+  }
 
   return (
     <div className="space-y-6">
@@ -322,53 +281,16 @@ export default function ActivityLogs() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748b]" />
                 <Input
-                  placeholder="Search activities by user, action, or description..."
+                  placeholder="Search activities by user, action, or IP address..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 border-[#e2e8f0] h-11"
                 />
               </div>
             </div>
-
-            {/* Date Filter */}
-            <div className="flex gap-2">
-              <Button variant="outline" className="border-[#e2e8f0]">
-                <Calendar className="w-4 h-4 mr-2" />
-                Date Range
-              </Button>
-              <Button variant="outline" className="border-[#e2e8f0]">
-                <Filter className="w-4 h-4 mr-2" />
-                More Filters
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Category Filters */}
-      <div className="flex flex-wrap gap-2">
-        {filterCategories.map((category) => {
-          const Icon = category.icon;
-          const isActive = activeFilter === category.id;
-          return (
-            <button
-              key={category.id}
-              onClick={() => setActiveFilter(category.id as typeof activeFilter)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border transition-all ${
-                isActive
-                  ? 'border-[#007BFF] bg-blue-50 text-[#007BFF]'
-                  : 'border-[#e2e8f0] bg-white text-[#64748b] hover:border-[#007BFF] hover:text-[#007BFF]'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              <span className="text-sm">{category.label}</span>
-              <Badge className={`${isActive ? 'bg-[#007BFF] text-white' : 'bg-slate-100 text-[#64748b]'} hover:bg-current`}>
-                {category.count}
-              </Badge>
-            </button>
-          );
-        })}
-      </div>
 
       {/* Activity Logs Table */}
       <Card className="border-[#e2e8f0] shadow-sm">
@@ -377,70 +299,65 @@ export default function ActivityLogs() {
             Activity Timeline
           </CardTitle>
           <CardDescription className="text-[#64748b]">
-            Showing {filteredLogs.length} of {activityLogs.length} activities
+            Showing {filteredLogs.length} of {totalRecords} activities
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {filteredLogs.slice(0, visibleCount).map((log) => (
-              <div
-                key={log.id}
-                className="p-5 bg-slate-50 rounded-lg border border-[#e2e8f0] hover:border-[#007BFF] transition-all hover:shadow-sm"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex gap-4 flex-1">
-                    {/* Category Icon */}
-                    <div className={`w-10 h-10 rounded-lg ${getCategoryColor(log.category).replace('text-', 'bg-').replace('100', '50')} flex items-center justify-center flex-shrink-0`}>
-                      {getCategoryIcon(log.category)}
-                    </div>
-
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <h4 className="text-sm text-[#1e293b]">{log.action}</h4>
-                        <Badge className={`${getCategoryColor(log.category)} hover:${getCategoryColor(log.category)} text-xs`}>
-                          {log.category}
-                        </Badge>
-                        {getStatusIcon(log.status)}
+            {filteredLogs.map((log) => {
+              const category = getCategoryFromAction(log.action);
+              const status = getStatusFromResponseCode(log.response_status);
+              
+              return (
+                <div
+                  key={log._id}
+                  className="p-5 bg-slate-50 rounded-lg border border-[#e2e8f0] hover:border-[#007BFF] transition-all hover:shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex gap-4 flex-1">
+                      {/* Category Icon */}
+                      <div className={`w-10 h-10 rounded-lg ${getCategoryColor(category).replace('text-', 'bg-').replace('100', '50')} flex items-center justify-center shrink-0`}>
+                        {getCategoryIcon(category)}
                       </div>
-                      
-                      <p className="text-sm text-[#64748b] mb-3">{log.description}</p>
-                      
-                      <div className="flex flex-wrap gap-4 text-xs text-[#64748b]">
-                        <div className="flex items-center gap-1.5">
-                          <User className="w-3.5 h-3.5" />
-                          <span>{log.user}</span>
-                          {log.userRole !== 'System' && log.userRole !== 'N/A' && (
-                            <Badge className="bg-slate-100 text-[#64748b] hover:bg-slate-100 text-xs px-1.5 py-0">
-                              {log.userRole}
-                            </Badge>
-                          )}
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          <h4 className="text-sm text-[#1e293b]">{getActionDescription(log.action)}</h4>
+                          <Badge className={`${getCategoryColor(category)} hover:${getCategoryColor(category)} text-xs`}>
+                            {category}
+                          </Badge>
+                          {getStatusIcon(status)}
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5" />
-                          <span>{log.timestamp}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <Shield className="w-3.5 h-3.5" />
-                          <span>{log.ipAddress}</span>
-                        </div>
-                        {log.details && (
+                        
+                        <p className="text-sm text-[#64748b] mb-3">
+                          {log.user_id.full_name} ({log.user_id.email})
+                        </p>
+                        
+                        <div className="flex flex-wrap gap-4 text-xs text-[#64748b]">
+                          <div className="flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5" />
+                            <span>{log.user_id.full_name}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{formatTimestamp(log.created_at)}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Shield className="w-3.5 h-3.5" />
+                            <span>{log.ip}</span>
+                          </div>
                           <div className="flex items-center gap-1.5">
                             <FileText className="w-3.5 h-3.5" />
-                            <span>{log.details}</span>
+                            <span>Status: {log.response_status}</span>
                           </div>
-                        )}
+                        </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Action Button */}
-                  <Button variant="ghost" size="sm" className="text-[#64748b] hover:text-[#007BFF]">
-                    <Eye className="w-4 h-4" />
-                  </Button>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {filteredLogs.length === 0 && (
@@ -451,23 +368,18 @@ export default function ActivityLogs() {
           )}
 
           {/* Pagination */}
-          {filteredLogs.length > 0 && (
-            <div className="flex items-center justify-between mt-6 pt-6 border-t border-[#e2e8f0]">
-              <p className="text-sm text-[#64748b]">
-                Showing 1 to {Math.min(visibleCount, filteredLogs.length)} of {filteredLogs.length} results
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="border-[#e2e8f0]">
-                  Previous
-                </Button>
-                <Button variant="outline" size="sm" className="border-[#e2e8f0]" onClick={() => setVisibleCount(visibleCount + 8)}>
-                  Next
-                </Button>
-              </div>
-            </div>
+          {totalPages > 1 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalRecords={totalRecords}
+              limit={limit}
+              onPageChange={handlePageChange}
+            />
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
+

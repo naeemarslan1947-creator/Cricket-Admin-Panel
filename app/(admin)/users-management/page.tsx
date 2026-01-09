@@ -125,8 +125,10 @@ export default function UsersManagement() {
             email: String(user.email || ''),
             role: String(playerRole || user.role || 'Player'),
             club: String(user.club || (user.is_club ? user.user_name : '')),
+            isClub: Boolean(user.is_club),
             subscription: String(user.subscription || 'Free'),
             status: getStatus(user.action_type as number),
+            
             lastActive: user.last_active
               ? new Date(user.last_active as string).toLocaleDateString()
               : '-',

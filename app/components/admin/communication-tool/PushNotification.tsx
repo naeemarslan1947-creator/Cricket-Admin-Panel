@@ -1,14 +1,15 @@
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
 import {  Clock, Edit2, Plus, Send, Users } from 'lucide-react'
 import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
-import { TargetedAudience, PostCommunicationNotification } from "@/Api's/repo"
+import { PostCommunicationNotification } from "@/Api's/repo"
 import makeRequest from "@/Api's/apiHelper"
 import { toastError, toastSuccess } from '@/app/helper/toast'
+import { useAuth } from '@/app/hooks/useAuth'
 
 interface Notification {
   id: string
@@ -41,79 +42,29 @@ interface PushNotificationProps {
   showNewNotification: boolean
   setShowNewNotification: (show: boolean) => void
   sentNotifications: Notification[]
+  userTypeOptions: AudienceOption[]
+  subscriptionTypeOptions: AudienceOption[]
+  loadingAudience: boolean
+  triggerRefetch?: () => void
 }
 
-const PushNotification: React.FC<PushNotificationProps> = ({showNewNotification,setShowNewNotification,sentNotifications}) => {
-  const [userTypeOptions, setUserTypeOptions] = useState<AudienceOption[]>([])
-  const [subscriptionTypeOptions, setSubscriptionTypeOptions] = useState<AudienceOption[]>([])
-  const [loadingAudience, setLoadingAudience] = useState(true)
-  
-  // Form state
+const PushNotification: React.FC<PushNotificationProps> = ({
+  showNewNotification,
+  setShowNewNotification,
+  sentNotifications,
+  userTypeOptions,
+  subscriptionTypeOptions,
+  loadingAudience,
+  triggerRefetch
+}) => {
+ const {user} = useAuth();
   const [title, setTitle] = useState('')
   const [message, setMessage] = useState('')
   const [selectedUserType, setSelectedUserType] = useState('')
   const [selectedSubscriptionType, setSelectedSubscriptionType] = useState('')
   const [isSending, setIsSending] = useState(false)
 
-  // Fetch audience data on mount
-  useEffect(() => {
-    const fetchAudienceData = async () => {
-      try {
-        const response = await makeRequest<{
-          result: {
-            users: { user_types: string[]; subscription_types: string[] }
-            admins: { user_types: string[]; subscription_types: string[] }
-            clubs: { user_types: string[]; subscription_types: string[] }
-          }
-        }>({
-          url: TargetedAudience,
-          method: "GET",
-        })
-
-        const result = response.data?.result
-        if (result) {
-          const userTypes: AudienceOption[] = []
-          const subTypes: AudienceOption[] = []
-
-          // Add Users user_types
-          result.users.user_types.forEach((type: string) => {
-            userTypes.push({ value: `user_type_${type}`, label: `${type} Users` })
-          })
-
-          // Add Admins user_types
-          result.admins.user_types.forEach((type: string) => {
-            userTypes.push({ value: `admin_type_${type}`, label: `${type} Admins` })
-          })
-
-          // Add Clubs user_types
-          result.clubs.user_types.forEach((type: string) => {
-            userTypes.push({ value: `club_type_${type}`, label: `${type} Clubs` })
-          })
-
-          // Add subscription types from all categories
-          const allSubscriptionTypes = new Set<string>()
-          result.users.subscription_types.forEach((type: string) => allSubscriptionTypes.add(type))
-          result.admins.subscription_types.forEach((type: string) => allSubscriptionTypes.add(type))
-          result.clubs.subscription_types.forEach((type: string) => allSubscriptionTypes.add(type))
-
-          allSubscriptionTypes.forEach((type: string) => {
-            subTypes.push({ value: `sub_${type}`, label: `${type.charAt(0).toUpperCase() + type.slice(1)}` })
-          })
-
-          setUserTypeOptions(userTypes)
-          setSubscriptionTypeOptions(subTypes)
-        }
-      } catch (error) {
-        console.error("Error fetching audience data:", error)
-      } finally {
-        setLoadingAudience(false)
-      }
-    }
-
-    fetchAudienceData()
-  }, [])
-
-  // Helper to extract clean value from option value (removes prefix like user_type_, admin_type_, club_type_, sub_)
+  // Helper to extract clean value from option value
   const extractValue = (optionValue: string): string => {
     if (optionValue.startsWith('user_type_')) return optionValue.replace('user_type_', '')
     if (optionValue.startsWith('admin_type_')) return optionValue.replace('admin_type_', '')
@@ -148,10 +99,12 @@ const PushNotification: React.FC<PushNotificationProps> = ({showNewNotification,
         url: PostCommunicationNotification,
         method: 'POST',
         data: {
+          created_by: user?._id || '',
           title: title.trim(),
           body: message.trim(),
           user_type: extractValue(selectedUserType),
           user_subscription_type: extractValue(selectedSubscriptionType),
+          type: "adminNotification"
         },
       })
 
@@ -165,6 +118,8 @@ const PushNotification: React.FC<PushNotificationProps> = ({showNewNotification,
         setSelectedUserType('')
         setSelectedSubscriptionType('')
         setShowNewNotification(false)
+        // Trigger refetch to update the list
+        triggerRefetch?.()
       } else {
         toastError(response.data?.message || 'Failed to send notification')
       }

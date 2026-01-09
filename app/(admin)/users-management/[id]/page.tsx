@@ -24,6 +24,11 @@ import {
   Calendar,
   Clock,
   Users,
+  Heart,
+  Image,
+  Bell,
+  Eye,
+  Check,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useState, useCallback, useEffect } from "react";
@@ -36,7 +41,7 @@ import UpgradeDowngradeModal from "@/app/components/admin/users-management/id/Up
 import ViewActivityModal from "@/app/components/admin/users-management/id/ViewActivityModal";
 import { Card, CardContent } from "@/app/components/ui/card";
 import makeRequest from "@/Api's/apiHelper";
-import { GetUserById } from "@/Api's/repo";
+import {  GetUserById } from "@/Api's/repo";
 
 type User = {
   id: string;
@@ -57,6 +62,26 @@ type User = {
   comments?: number;
   reviews?: number;
   reports?: number;
+  stories?: number;
+  likes?: number;
+  userLogs?: UserLog[];
+};
+
+type UserLog = {
+  _id: string;
+  action_taken: number;
+  details: {
+    request: {
+      method: string;
+      path: string;
+      body?: Record<string, unknown>;
+    };
+    response: {
+      statusCode: number;
+      duration_ms?: number;
+    };
+  };
+  created_at: string;
 };
 
 export default function UserProfilePage() {
@@ -105,7 +130,7 @@ const fetchUserData = useCallback(async () => {
 
       const playerRole = (relatedData?.players as Array<Record<string, unknown>>)?.[0]?.player_role || 'Player';
       
-            const mappedUser: User = {
+      const mappedUser: User = {
         id: String(userInfo?._id || ''),
         name: String(userInfo?.full_name || userInfo?.user_name || ''),
         email: String(userInfo?.email || ''),
@@ -127,11 +152,14 @@ const fetchUserData = useCallback(async () => {
         followers: (relatedData?.followers as Array<unknown>)?.length || 0,
         following: (relatedData?.following as Array<unknown>)?.length || 0,
         posts: (relatedData?.posts as Array<unknown>)?.length || 0,
+        stories: (relatedData?.stories as Array<unknown>)?.length || 0,
+        likes: (relatedData?.likes as Array<unknown>)?.length || 0,
         comments: (relatedData?.posts as Array<Record<string, unknown>>)?.reduce((acc, post) => {
           return acc + ((post?.comments as Array<unknown>)?.length || 0);
         }, 0) || 0,
         reviews: (relatedData?.player_ratings as Array<unknown>)?.length || 0,
-        reports: 2, // Will calculate from actual data when available
+        reports: 0,
+        userLogs: (relatedData?.user_logs as UserLog[]) || [],
       };
 
       setUserData(mappedUser);
@@ -251,6 +279,88 @@ useEffect(() => {
       default:
         return <Badge>{sub}</Badge>;
     }
+  };
+
+  // Helper function to format user log actions
+  const getActivityFromLog = (log: UserLog) => {
+    const path = log.details?.request?.path || '';
+    const actionType = log.action_taken;
+    
+    let action = '';
+    let IconComponent = Activity;
+    let colorClass = 'bg-blue-50 text-blue-600';
+
+    // Map action_taken to activities
+    switch (actionType) {
+      case 1:
+        if (path.includes('/comment')) {
+          action = 'Commented on a post';
+          IconComponent = MessageSquare;
+          colorClass = 'bg-indigo-50 text-indigo-600';
+        } else if (path.includes('/follow')) {
+          action = 'Followed a user';
+          IconComponent = User;
+          colorClass = 'bg-purple-50 text-purple-600';
+        } else if (path.includes('/posts')) {
+          action = 'Created a post';
+          IconComponent = FileText;
+          colorClass = 'bg-blue-50 text-blue-600';
+        } else if (path.includes('/stories')) {
+          action = 'Posted a story';
+          IconComponent = Image;
+          colorClass = 'bg-pink-50 text-pink-600';
+        } else {
+          action = 'Performed an action';
+          IconComponent = Activity;
+          colorClass = 'bg-blue-50 text-blue-600';
+        }
+        break;
+      case 2:
+        if (path.includes('/notification')) {
+          action = 'Marked notification as read';
+          IconComponent = Bell;
+          colorClass = 'bg-amber-50 text-amber-600';
+        } else {
+          action = 'Updated something';
+          IconComponent = Edit;
+          colorClass = 'bg-green-50 text-green-600';
+        }
+        break;
+      case 3:
+        action = 'Deleted content';
+        IconComponent = Trash2;
+        colorClass = 'bg-red-50 text-red-600';
+        break;
+      case 4:
+        action = 'Reported content';
+        IconComponent = Flag;
+        colorClass = 'bg-orange-50 text-orange-600';
+        break;
+      case 5:
+        action = 'Viewed notifications';
+        IconComponent = Eye;
+        colorClass = 'bg-slate-50 text-slate-600';
+        break;
+      default:
+        action = 'Unknown action';
+        IconComponent = Activity;
+        colorClass = 'bg-gray-50 text-gray-600';
+    }
+
+    return { action, IconComponent, colorClass };
+  };
+
+  // Format time ago from date
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+    return date.toLocaleDateString();
   };
 
   // Handlers
@@ -474,6 +584,38 @@ useEffect(() => {
                   </div>
                 </div>
 
+                {/* Stories */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center">
+                        <Image className="w-5 h-5 text-pink-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#0f172a]">Stories Posted</p>
+                        <p className="text-xs text-[#64748b]">Temporary content shared</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-semibold text-[#0f172a]">{selectedUser.stories || 0}</span>
+                  </div>
+                </div>
+
+                {/* Likes */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                        <Heart className="w-5 h-5 text-red-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-[#0f172a]">Likes Given</p>
+                        <p className="text-xs text-[#64748b]">Content appreciated</p>
+                      </div>
+                    </div>
+                    <span className="text-2xl font-semibold text-[#0f172a]">{selectedUser.likes || 0}</span>
+                  </div>
+                </div>
+
                 {/* Comments */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -510,8 +652,8 @@ useEffect(() => {
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
-                        <Flag className="w-5 h-5 text-red-600" />
+                      <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center">
+                        <Flag className="w-5 h-5 text-orange-600" />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-[#0f172a]">Reports Submitted</p>
@@ -535,24 +677,27 @@ useEffect(() => {
               </div>
               <CardContent className="p-6">
                 <div className="space-y-5">
-                  {[
-                    { action: 'Logged in from Mumbai, India', time: '2 hours ago', icon: Activity, color: 'bg-blue-50 text-blue-600' },
-                    { action: 'Updated profile picture', time: '1 day ago', icon: User, color: 'bg-green-50 text-green-600' },
-                    { action: 'Joined Mumbai Cricket Club', time: '3 days ago', icon: Shield, color: 'bg-purple-50 text-purple-600' },
-                    { action: 'Posted match score update', time: '5 days ago', icon: TrendingUp, color: 'bg-orange-50 text-orange-600' },
-                    { action: 'Left a review for Delhi Academy', time: '1 week ago', icon: Star, color: 'bg-amber-50 text-amber-600' },
-                    { action: 'Commented on team discussion', time: '1 week ago', icon: MessageSquare, color: 'bg-indigo-50 text-indigo-600' },
-                  ].map((activity, i) => (
-                    <div key={i} className="flex items-start gap-4 pb-5 border-b border-slate-100 last:border-0 last:pb-0">
-                      <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${activity.color}`}>
-                        <activity.icon className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1 pt-1">
-                        <p className="text-sm font-medium text-[#0f172a]">{activity.action}</p>
-                        <p className="text-xs text-[#64748b] mt-1">{activity.time}</p>
-                      </div>
+                  {selectedUser?.userLogs && selectedUser.userLogs.length > 0 ? (
+                    selectedUser.userLogs.slice(0, 10).map((log) => {
+                      const { action, IconComponent, colorClass } = getActivityFromLog(log);
+                      return (
+                        <div key={log._id} className="flex items-start gap-4 pb-5 border-b border-slate-100 last:border-0 last:pb-0">
+                          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${colorClass}`}>
+                            <IconComponent className="w-5 h-5" />
+                          </div>
+                          <div className="flex-1 pt-1">
+                            <p className="text-sm font-medium text-[#0f172a]">{action}</p>
+                            <p className="text-xs text-[#64748b] mt-1">{getTimeAgo(log.created_at)}</p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-8 text-[#64748b]">
+                      <Activity className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>No recent activity found</p>
                     </div>
-                  ))}
+                  )}
                 </div>
               </CardContent>
             </Card>

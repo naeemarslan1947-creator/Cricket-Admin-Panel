@@ -1,109 +1,405 @@
 "use client"
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Send, Clock, CheckCircle2, MessagesSquare } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { Card, CardContent} from '@/app/components/ui/card';
 import PushNotification from '@/app/components/admin/communication-tool/PushNotification';
 import InAppAnnouncements from '@/app/components/admin/communication-tool/InAppAnnouncements';
 import ScheduledNotifications from '@/app/components/admin/communication-tool/ScheduledNotifications';
+import { TargetedAudience, GetCommunicationHeader, GetNotification } from "@/Api's/repo";
+import makeRequest from "@/Api's/apiHelper";
+import { useAuth } from '@/app/hooks/useAuth';
+import Loader from '@/app/components/common/Loader';
+
+interface AudienceOption {
+  value: string
+  label: string
+}
+
+interface AudienceData {
+  userTypeOptions: AudienceOption[]
+  subscriptionTypeOptions: AudienceOption[]
+}
+
+interface CommunicationHeaderData {
+  total_notifications: number
+  notifications_today: number
+  notifications_this_month: number
+  scheduled_notifications: number
+}
+
+interface Notification {
+  _id: string
+  notification_ids: string[]
+  user_type: string
+  title: string
+  body: string
+  type: string
+  user_subscription_type: string
+  created_by: string
+  created_at: string
+  __v?: number
+  // Mapped fields for display
+  id: string
+  message: string
+  status: string
+  recipients: number
+  sentDate: string
+  color: string
+}
+
+interface Announcement {
+  _id: string
+  notification_ids: string[]
+  user_type: string
+  title: string
+  body: string
+  type: string
+  user_subscription_type: string
+  created_by: string
+  created_at: string
+  __v?: number
+  // Mapped fields for display
+  id: string
+  content: string
+  displayLocation: string
+  status: string
+  views: number
+  startDate: string
+  endDate: string
+}
+
+interface ScheduledNotification {
+  _id: string
+  notification_ids: string[]
+  user_type: string
+  title: string
+  body: string
+  type: string
+  user_subscription_type: string
+  created_by: string
+  scheduled_at: string
+  created_at: string
+  __v?: number
+  // Mapped fields for display
+  id: string
+  message: string
+  trigger: string
+  targetAudience: string
+  status: string
+  sentCount: number
+  lastTriggered: string
+}
+
+interface RawNotificationResponse {
+  _id: string
+  notification_ids: string[]
+  user_type: string
+  title: string
+  body: string
+  type: string
+  user_subscription_type: string
+  created_by: string
+  scheduled_at?: string
+  created_at: string
+  __v?: number
+}
+
+interface NotificationApiResponse {
+  response_code?: number
+  success?: boolean
+  status_code?: number
+  message?: string
+  error_message?: string | null
+  result?: RawNotificationResponse[] | Announcement[] | ScheduledNotification[]
+  misc_data?: unknown
+}
+
 export default function CommunicationTools() {
+  const { user } = useAuth();
   const [showNewNotification, setShowNewNotification] = useState(false);
   const [showNewAnnouncement, setShowNewAnnouncement] = useState(false);
   const [showNewScheduled, setShowNewScheduled] = useState(false);
+  const [audienceData, setAudienceData] = useState<AudienceData>({
+    userTypeOptions: [],
+    subscriptionTypeOptions: []
+  });
+  const [loadingAudience, setLoadingAudience] = useState(true);
+  const [communicationHeader, setCommunicationHeader] = useState<CommunicationHeaderData | null>(null);
+  const [loadingCommunicationHeader, setLoadingCommunicationHeader] = useState(true);
+  
+  // Notification state
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [scheduledNotifications, setScheduledNotifications] = useState<ScheduledNotification[]>([]);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [currentTab, setCurrentTab] = useState('push');
+  
+  // Cache and refetch flags
+  const [notificationsLoaded, setNotificationsLoaded] = useState(false);
+  const [announcementsLoaded, setAnnouncementsLoaded] = useState(false);
+  const shouldRefetchRef = useRef(false);
 
-  const sentNotifications = [
-    {
-      id: '1',
-      title: 'New Feature: Live Match Scoring',
-      message: 'Check out our new live match scoring feature!',
-      type: 'Global',
-      status: 'Sent',
-      recipients: 15234,
-      sentDate: '2024-12-04 10:30 AM',
-      color: 'bg-blue-100 text-blue-700'
-    },
-    {
-      id: '2',
-      title: 'Premium Plan Discount',
-      message: 'Get 30% off premium plans this week only!',
-      type: 'Targeted - Premium Users',
-      status: 'Sent',
-      recipients: 3421,
-      sentDate: '2024-12-03 02:15 PM',
-      color: 'bg-purple-100 text-purple-700'
-    },
-    {
-      id: '3',
-      title: 'System Maintenance Notice',
-      message: 'Scheduled maintenance on Dec 5th, 2-4 AM',
-      type: 'Global',
-      status: 'Sent',
-      recipients: 15234,
-      sentDate: '2024-12-02 09:00 AM',
-      color: 'bg-orange-100 text-orange-700'
-    }
-  ];
+  // Fetch audience data on mount
+  useEffect(() => {
+    const fetchAudienceData = async () => {
+      try {
+        const response = await makeRequest<{
+          result: {
+            users: { user_types: string[]; subscription_types: string[] }
+            admins: { user_types: string[]; subscription_types: string[] }
+            clubs: { user_types: string[]; subscription_types: string[] }
+          }
+        }>({
+          url: TargetedAudience,
+          method: "GET",
+        })
 
-  // Mock data for announcements
-  const announcements = [
-    {
-      id: '1',
-      title: 'Welcome to Crickit 2.0!',
-      content: 'Explore new features and improved performance',
-      displayLocation: 'Dashboard Banner',
-      status: 'Active',
-      views: 8543,
-      startDate: '2024-12-01',
-      endDate: '2024-12-15'
-    },
-    {
-      id: '2',
-      title: 'Holiday Tournament Registration',
-      content: 'Register now for the annual holiday cricket tournament',
-      displayLocation: 'Popup Modal',
-      status: 'Scheduled',
-      views: 0,
-      startDate: '2024-12-10',
-      endDate: '2024-12-20'
-    }
-  ];
+        const result = response.data?.result
+        if (result) {
+          const userTypes: AudienceOption[] = []
+          const subTypes: AudienceOption[] = []
 
-  // Mock data for scheduled notifications
-  const scheduledNotifications = [
-    {
-      id: '1',
-      title: 'Premium Expiry Reminder',
-      message: 'Your premium subscription expires in 30 days',
-      trigger: 'Premium expires in 30 days',
-      targetAudience: 'Premium Users',
-      status: 'Active',
-      sentCount: 234,
-      lastTriggered: '2024-12-04 08:00 AM'
-    },
-    {
-      id: '2',
-      title: 'Welcome New Users',
-      message: 'Welcome to Crickit! Complete your profile to get started',
-      trigger: 'New user registration',
-      targetAudience: 'New Users (0-24 hours)',
-      status: 'Active',
-      sentCount: 456,
-      lastTriggered: '2024-12-04 11:45 AM'
-    },
-    {
-      id: '3',
-      title: 'Inactive User Re-engagement',
-      message: 'We miss you! Come back and see what\'s new',
-      trigger: 'No activity for 30 days',
-      targetAudience: 'Inactive Users',
-      status: 'Paused',
-      sentCount: 123,
-      lastTriggered: '2024-12-01 06:00 AM'
+          // Add Users user_types
+          result.users.user_types.forEach((type: string) => {
+            userTypes.push({ value: `user_type_${type}`, label: `${type} Users` })
+          })
+
+          // Add Admins user_types
+          result.admins.user_types.forEach((type: string) => {
+            userTypes.push({ value: `admin_type_${type}`, label: `${type} Admins` })
+          })
+
+          // Add Clubs user_types
+          result.clubs.user_types.forEach((type: string) => {
+            userTypes.push({ value: `club_type_${type}`, label: `${type} Clubs` })
+          })
+
+          // Add subscription types from all categories
+          const allSubscriptionTypes = new Set<string>()
+          result.users.subscription_types.forEach((type: string) => allSubscriptionTypes.add(type))
+          result.admins.subscription_types.forEach((type: string) => allSubscriptionTypes.add(type))
+          result.clubs.subscription_types.forEach((type: string) => allSubscriptionTypes.add(type))
+
+          allSubscriptionTypes.forEach((type: string) => {
+            subTypes.push({ value: `sub_${type}`, label: `${type.charAt(0).toUpperCase() + type.slice(1)}` })
+          })
+
+          setAudienceData({
+            userTypeOptions: userTypes,
+            subscriptionTypeOptions: subTypes
+          })
+        }
+      } catch (error) {
+        console.error("Error fetching audience data:", error)
+      } finally {
+        setLoadingAudience(false)
+      }
     }
-  ];
+
+    fetchAudienceData()
+  }, [])
+
+  // Fetch communication header data
+  useEffect(() => {
+    const fetchCommunicationHeader = async () => {
+      try {
+        const response = await makeRequest<{
+          result: CommunicationHeaderData
+        }>({
+          url: GetCommunicationHeader,
+          method: "GET",
+        })
+        
+        console.log("Communication Header Response:", response);
+        if (response.data?.result) {
+          setCommunicationHeader(response.data.result);
+        }
+      } catch (error) {
+        console.error("Error fetching communication header:", error);
+      } finally {
+        setLoadingCommunicationHeader(false);
+      }
+    };
+
+  fetchCommunicationHeader();
+  }, []);
+
+  // Fetch notifications based on type
+  const fetchNotifications = useCallback(async (type: string) => {
+    if (!user?._id) return;
+    
+    setLoadingNotifications(true);
+    try {
+      const response = await makeRequest<NotificationApiResponse>({
+        url: GetNotification,
+        method: "GET",
+        params: {
+          type: type,
+          created_by: user._id
+        }
+      });
+      
+      console.log(`${type} Response:`, response);
+      
+      if (response.data?.result) {
+        // Map API response to Notification interface
+        const mappedNotifications: Notification[] = (response.data.result as RawNotificationResponse[]).map(item => ({
+          _id: item._id,
+          notification_ids: item.notification_ids || [],
+          user_type: item.user_type,
+          title: item.title,
+          body: item.body,
+          type: item.type,
+          user_subscription_type: item.user_subscription_type,
+          created_by: item.created_by,
+          created_at: item.created_at,
+          __v: item.__v,
+          // Mapped display fields
+          id: item._id,
+          message: item.body,
+          status: 'Sent',
+          recipients: 0,
+          sentDate: new Date(item.created_at).toLocaleString(),
+          color: getNotificationColor(item.user_type)
+        }));
+
+        if (type === 'adminNotification') {
+          setNotifications(mappedNotifications);
+          
+          // Also filter and set scheduled notifications from the same response
+          const scheduledItems = (response.data.result as RawNotificationResponse[]).filter(item => item.scheduled_at);
+          const mappedScheduled: ScheduledNotification[] = scheduledItems.map(item => ({
+            _id: item._id,
+            notification_ids: item.notification_ids || [],
+            user_type: item.user_type,
+            title: item.title,
+            body: item.body,
+            type: item.type,
+            user_subscription_type: item.user_subscription_type,
+            created_by: item.created_by,
+            scheduled_at: item.scheduled_at!,
+            created_at: item.created_at,
+            __v: item.__v,
+            // Mapped display fields
+            id: item._id,
+            message: item.body,
+            trigger: 'Scheduled Notification',
+            targetAudience: item.user_type === 'all-users' ? 'All Users' : `${item.user_type} Users`,
+            status: 'Scheduled',
+            sentCount: 0,
+            lastTriggered: '-'
+          }));
+          setScheduledNotifications(mappedScheduled);
+        } else if (type === 'adminAnnouncement') {
+          // Map API response to Announcement interface
+          const mappedAnnouncements: Announcement[] = (response.data.result as RawNotificationResponse[]).map(item => ({
+            _id: item._id,
+            notification_ids: item.notification_ids || [],
+            user_type: item.user_type,
+            title: item.title,
+            body: item.body,
+            type: item.type,
+            user_subscription_type: item.user_subscription_type,
+            created_by: item.created_by,
+            created_at: item.created_at,
+            __v: item.__v,
+            // Mapped display fields
+            id: item._id,
+            content: item.body,
+            displayLocation: 'Dashboard Banner',
+            status: 'Active',
+            views: 0,
+            startDate: new Date(item.created_at).toISOString().split('T')[0],
+            endDate: new Date(new Date(item.created_at).setMonth(new Date(item.created_at).getMonth() + 1)).toISOString().split('T')[0]
+          }));
+          setAnnouncements(mappedAnnouncements);
+        } 
+      }
+    } catch (error) {
+      console.error(`Error fetching ${type}:`, error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }, [user]);
+
+  // Helper function to get notification color based on user type
+  const getNotificationColor = (userType: string): string => {
+    const colorMap: Record<string, string> = {
+      'all-users': 'bg-blue-100 text-blue-700',
+      'premium': 'bg-purple-100 text-purple-700',
+      'free': 'bg-green-100 text-green-700',
+      'admin': 'bg-red-100 text-red-700'
+    };
+    return colorMap[userType] || 'bg-gray-100 text-gray-700';
+  };
+
+  // Fetch notifications when tab changes - with caching
+  const handleTabChange = (value: string) => {
+    setCurrentTab(value);
+    if (value === 'push') {
+      // Only fetch if not loaded or refetch is needed
+      if (!notificationsLoaded || shouldRefetchRef.current) {
+        fetchNotifications('adminNotification');
+        setNotificationsLoaded(true);
+      }
+    } else if (value === 'announcements') {
+      if (!announcementsLoaded || shouldRefetchRef.current) {
+        fetchNotifications('adminAnnouncement');
+        setAnnouncementsLoaded(true);
+      }
+    } else if (value === 'scheduled') {
+      // Scheduled uses same data as push, just filtered
+      if (!notificationsLoaded || shouldRefetchRef.current) {
+        fetchNotifications('adminNotification');
+        setNotificationsLoaded(true);
+      }
+    }
+  };
+
+  // Function to trigger refetch when a new notification/announcement is created
+  const triggerRefetch = useCallback(async () => {
+    shouldRefetchRef.current = true;
+    setNotificationsLoaded(false);
+    setAnnouncementsLoaded(false);
+    
+    // Fetch notifications and announcements in parallel
+    await Promise.all([
+      fetchNotifications('adminNotification'),
+      fetchNotifications('adminAnnouncement')
+    ]);
+    
+    // Also refetch the communication header to update stats in real-time
+    try {
+      const headerResponse = await makeRequest<{
+        result: CommunicationHeaderData
+      }>({
+        url: GetCommunicationHeader,
+        method: "GET",
+      })
+      
+      if (headerResponse.data?.result) {
+        setCommunicationHeader(headerResponse.data.result);
+      }
+    } catch (error) {
+      console.error("Error refetching communication header:", error);
+    }
+    
+    setNotificationsLoaded(true);
+    setAnnouncementsLoaded(true);
+    shouldRefetchRef.current = false;
+  }, [fetchNotifications]);
+
+  // Initial fetch for push notifications on mount
+  useEffect(() => {
+    fetchNotifications('adminNotification');
+    setNotificationsLoaded(true);
+  }, [fetchNotifications]);
 
   return (
     <div className="space-y-6">
+      {loadingNotifications && <Loader />}
+      
       <div>
         <h1 className="text-2xl text-[#1e293b] mb-1">Communication Tools</h1>
         <p className="text-[#64748b]">Manage push notifications, announcements, and automated messaging</p>
@@ -116,7 +412,9 @@ export default function CommunicationTools() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-[#64748b] mb-1">Total Sent</p>
-                <h3 className="text-2xl text-[#1e293b]">18,655</h3>
+                <h3 className="text-2xl text-[#1e293b]">
+                  {loadingCommunicationHeader ? '-' : communicationHeader?.total_notifications ?? 0}
+                </h3>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <Send className="w-6 h-6 text-[#007BFF]" />
@@ -129,8 +427,10 @@ export default function CommunicationTools() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#64748b] mb-1">Active Announcements</p>
-                <h3 className="text-2xl text-[#1e293b]">1</h3>
+                <p className="text-sm text-[#64748b] mb-1">Notifications Today</p>
+                <h3 className="text-2xl text-[#1e293b]">
+                  {loadingCommunicationHeader ? '-' : communicationHeader?.notifications_today ?? 0}
+                </h3>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <MessagesSquare className="w-6 h-6 text-[#00C853]" />
@@ -143,8 +443,10 @@ export default function CommunicationTools() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#64748b] mb-1">Scheduled Rules</p>
-                <h3 className="text-2xl text-[#1e293b]">2</h3>
+                <p className="text-sm text-[#64748b] mb-1">This Month</p>
+                <h3 className="text-2xl text-[#1e293b]">
+                  {loadingCommunicationHeader ? '-' : communicationHeader?.notifications_this_month ?? 0}
+                </h3>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <Clock className="w-6 h-6 text-purple-600" />
@@ -157,8 +459,10 @@ export default function CommunicationTools() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[#64748b] mb-1">Delivery Rate</p>
-                <h3 className="text-2xl text-[#1e293b]">98.2%</h3>
+                <p className="text-sm text-[#64748b] mb-1">Scheduled</p>
+                <h3 className="text-2xl text-[#1e293b]">
+                  {loadingCommunicationHeader ? '-' : communicationHeader?.scheduled_notifications ?? 0}
+                </h3>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
                 <CheckCircle2 className="w-6 h-6 text-[#00C853]" />
@@ -168,7 +472,7 @@ export default function CommunicationTools() {
         </Card>
       </div>
 
-      <Tabs defaultValue="push" className="space-y-4">
+      <Tabs defaultValue="push" className="space-y-4" onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="push">Push Notifications</TabsTrigger>
           <TabsTrigger value="announcements">In-App Announcements</TabsTrigger>
@@ -176,17 +480,84 @@ export default function CommunicationTools() {
         </TabsList>
 
         <TabsContent value="push" className="space-y-4">
-         <PushNotification sentNotifications={sentNotifications} setShowNewNotification={setShowNewNotification} showNewNotification={showNewNotification}/>
+          {loadingNotifications ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader />
+            </div>
+          ) : notifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <MessagesSquare className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">No notifications found</h3>
+              <p className="text-gray-500">There are no push notifications to display.</p>
+            </div>
+          ) : (
+            <PushNotification 
+              sentNotifications={notifications} 
+              setShowNewNotification={setShowNewNotification} 
+              showNewNotification={showNewNotification}
+              userTypeOptions={audienceData.userTypeOptions}
+              subscriptionTypeOptions={audienceData.subscriptionTypeOptions}
+              loadingAudience={loadingAudience}
+              triggerRefetch={triggerRefetch}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="announcements" className="space-y-4">
-         <InAppAnnouncements setShowNewAnnouncement={setShowNewAnnouncement} announcements={announcements} showNewAnnouncement={showNewAnnouncement}/>
+          {loadingNotifications ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader />
+            </div>
+          ) : announcements.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <MessagesSquare className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">No announcements found</h3>
+              <p className="text-gray-500">There are no in-app announcements to display.</p>
+            </div>
+          ) : (
+            <InAppAnnouncements 
+              setShowNewAnnouncement={setShowNewAnnouncement} 
+              announcements={announcements} 
+              showNewAnnouncement={showNewAnnouncement}
+              userTypeOptions={audienceData.userTypeOptions}
+              subscriptionTypeOptions={audienceData.subscriptionTypeOptions}
+              loadingAudience={loadingAudience}
+              triggerRefetch={triggerRefetch}
+            />
+          )}
         </TabsContent>
 
         <TabsContent value="scheduled" className="space-y-4">
-          <ScheduledNotifications scheduledNotifications={scheduledNotifications} setShowNewScheduled={setShowNewScheduled} showNewScheduled={showNewScheduled}/>
+          {loadingNotifications ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader />
+            </div>
+          ) : scheduledNotifications.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                <Clock className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">No scheduled notifications found</h3>
+              <p className="text-gray-500">There are no scheduled notifications to display.</p>
+            </div>
+          ) : (
+            <ScheduledNotifications 
+              scheduledNotifications={scheduledNotifications} 
+              setShowNewScheduled={setShowNewScheduled} 
+              showNewScheduled={showNewScheduled}
+              userTypeOptions={audienceData.userTypeOptions}
+              subscriptionTypeOptions={audienceData.subscriptionTypeOptions}
+              loadingAudience={loadingAudience}
+              triggerRefetch={triggerRefetch}
+            />
+          )}
         </TabsContent>
       </Tabs>
     </div>
   );
 }
+

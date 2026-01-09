@@ -105,7 +105,7 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
     { id: 'club-management', label: 'Clubs Management', icon: Building2, path: '/club-management', requiredPermission: 'club_management' },
     { id: 'moderation', label: 'Content Moderation', icon: Shield, path: '/content-moderation', requiredPermission: 'content_moderation' },
     { id: 'reviews-rating', label: 'Reviews & Ratings', icon: Star, path: '/reviews-rating', requiredPermission: 'reviews_ratings' },
-    { id: 'billing-subscription', label: 'Billing & Subscriptions', icon: CreditCard, path: '/billing-subscription', requiredPermission: 'billing_subscriptions' },
+    // { id: 'billing-subscription', label: 'Billing & Subscriptions', icon: CreditCard, path: '/billing-subscription', requiredPermission: 'billing_subscriptions' },
     { id: 'reports-abuse', label: 'Reports & Abuse', icon: AlertTriangle, path: '/reports-abuse', requiredPermission: 'reports_abuse' },
     { id: 'analytics-insights', label: 'Analytics & Insights', icon: BarChart3, path: '/analytics-insights', requiredPermission: 'analytics_and_insights' },
     { id: 'communication-tool', label: 'Communication Tool', icon: Bell, path: '/communication-tool', requiredPermission: 'communication_tool' },

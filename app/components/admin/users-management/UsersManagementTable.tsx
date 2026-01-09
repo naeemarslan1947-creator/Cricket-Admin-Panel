@@ -91,6 +91,9 @@ export default function UsersManagementTable({
     setDeleteDialogOpen(true);
   };
 
+  // Filter out club users (only show non-club users)
+  const filteredUsers = users.filter((user) => !user.isClub);
+
   return (
     <>
       <Card className="border-[#e2e8f0] shadow-sm">
@@ -111,9 +114,9 @@ export default function UsersManagementTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {filteredUsers.map((user) => (
                 <TableRow 
-                  key={user.id} 
+                  key={user.id}
                   className={isUserAccessible(user) ? "cursor-pointer hover:bg-slate-50" : "cursor-not-allowed opacity-60 hover:bg-slate-50"}
                 >
                   <TableCell>

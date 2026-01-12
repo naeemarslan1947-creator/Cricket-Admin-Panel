@@ -10,34 +10,36 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/ui/table";
-import { Eye } from "lucide-react";
+import { Heart } from "lucide-react";
 import React from "react";
 
-type ViewedPost = {
+type LikedPost = {
   id: string | number;
   title: string;
   author: string;
-  views: number;
+  likes: number;
   date: string;
 };
 
-interface MostViewedPostsProps {
-  mostViewedPosts: ViewedPost[];
+interface MostLikedPostsProps {
+  mostLikedPosts: LikedPost[];
 }
 
-const MostViewedPosts: React.FC<MostViewedPostsProps> = ({ mostViewedPosts }) => {
+const MostLikedPosts: React.FC<MostLikedPostsProps> = ({ mostLikedPosts }) => {
+  const totalLikes = mostLikedPosts.reduce((sum, post) => sum + post.likes, 0);
+
   return (
     <Card className="border-[#e2e8f0]">
       <CardHeader className="pb-6">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-[#1e293b] mb-1">Most Viewed Posts</CardTitle>
-            <p className="text-sm text-[#64748b]">Top content by view count</p>
+            <CardTitle className="text-[#1e293b] mb-1">Most Liked Posts</CardTitle>
+            <p className="text-sm text-[#64748b]">Top content by like count</p>
           </div>
 
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100 flex items-center gap-1">
-            <Eye className="w-3 h-3" />
-            48.8K Total Views
+          <Badge className="bg-red-100 text-red-800 hover:bg-red-100 flex items-center gap-1">
+            <Heart className="w-3 h-3" />
+            {totalLikes.toLocaleString()} Total Likes
           </Badge>
         </div>
       </CardHeader>
@@ -49,13 +51,13 @@ const MostViewedPosts: React.FC<MostViewedPostsProps> = ({ mostViewedPosts }) =>
               <TableHead className="w-12">#</TableHead>
               <TableHead>Post Title</TableHead>
               <TableHead>Author</TableHead>
-              <TableHead>Views</TableHead>
+              <TableHead>Likes</TableHead>
               <TableHead>Date</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {mostViewedPosts.map((post, index) => (
+            {mostLikedPosts.map((post, index) => (
               <TableRow key={post.id}>
                 <TableCell className="py-4">
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
@@ -73,9 +75,9 @@ const MostViewedPosts: React.FC<MostViewedPostsProps> = ({ mostViewedPosts }) =>
 
                 <TableCell className="py-4">
                   <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-[#64748b]" />
+                    <Heart className="w-4 h-4 text-red-500" />
                     <span className="font-medium text-[#1e293b]">
-                      {post.views.toLocaleString()}
+                      {post.likes.toLocaleString()}
                     </span>
                   </div>
                 </TableCell>
@@ -92,4 +94,4 @@ const MostViewedPosts: React.FC<MostViewedPostsProps> = ({ mostViewedPosts }) =>
   );
 };
 
-export default MostViewedPosts;
+export default MostLikedPosts;

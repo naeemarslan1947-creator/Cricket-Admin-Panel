@@ -95,6 +95,9 @@ export const GetCommunicationHeader = API_BASE_URL + "api/admin-user/communicati
 
 export const GetNotification = API_BASE_URL + "api/admin-user/notification-requests";
 
+export const GetAnalyticsDashboard = API_BASE_URL + "api/admin-user/user-analytics";
+
+
 
 
 

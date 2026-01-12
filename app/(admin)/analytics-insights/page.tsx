@@ -1,95 +1,291 @@
 "use client"
 
 import DetailUserTypeChart from '@/app/components/admin/analytics-insights/analytics-detailed/DetailUserTypeChart';
-import MostSearchedClubs from '@/app/components/admin/analytics-insights/analytics-detailed/MostSearchedClubs';
-import MostViewedPosts from '@/app/components/admin/analytics-insights/analytics-detailed/MostViewedPosts';
+import MostFollowedClubs from '@/app/components/admin/analytics-insights/analytics-detailed/MostFollowedClubs';
+import MostLikedPosts from '@/app/components/admin/analytics-insights/analytics-detailed/MostLikedPosts';
 import EngagementTrend from '@/app/components/admin/analytics-insights/analytics-overview/EngagementTrend';
 import OverViewChart from '@/app/components/admin/analytics-insights/analytics-overview/OverViewChart';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/ui/tabs';
 import { TrendingUp, Users, Building2, Activity } from 'lucide-react';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import makeRequest from "@/Api's/apiHelper";
+import { GetAnalyticsDashboard } from "@/Api's/repo";
+import Loader from '@/app/components/common/Loader';
+
+type AudienceItem = {
+  name: string;
+  value: number;
+  color: string;
+};
+
+type UserActivityItem = {
+  date: string;
+  users: number;
+  clubs: number;
+};
+
+type EngagementItem = {
+  month: string;
+  engagement: number;
+};
+
+type GrowthRateData = {
+  growth_rate: string;
+  active_users: number;
+  retentions: number;
+  club_enagagement: number;
+  user_activity_trends: Array<{ month: string; year: number; users: number }>;
+};
+
+type PieGraphData = {
+  clubs: number;
+  players: number;
+  teams: number;
+};
+
+type EngagementTrendItem = {
+  month: string;
+  count: number;
+};
+
+type UserTypeItem = {
+  name: string;
+  value: number;
+  percentage: string;
+  color: string;
+};
+
+type DailySignup = {
+  date: string;
+  signups: number;
+};
+
+type WeeklySignup = {
+  week: string;
+  signups: number;
+};
+
+type MonthlySignup = {
+  month: string;
+  signups: number;
+};
+
+type LikedPost = {
+  id: string | number;
+  title: string;
+  author: string;
+  likes: number;
+  date: string;
+};
+
+type FollowedClub = {
+  id: number;
+  name: string;
+  owner: string;
+  followers: number;
+};
+
+type PremiumVsFreeGraph = {
+  premium: number;
+  free: number;
+};
+
+type UserSignupTrends = {
+  last_seven_days: number[];
+  last_seven_weeks: number[];
+  last_seven_months: number[];
+};
+
+type MostLikedPost = {
+  _id: string;
+  caption: string;
+  user_id: {
+    _id: string;
+    user_name: string;
+    full_name: string;
+    profile_pic: string;
+  };
+  likeCount: number;
+  created_at: string;
+};
+
+type MostFollowedClub = {
+  _id: string;
+  name: string;
+  user_id: {
+    _id: string;
+    user_name: string;
+    full_name: string;
+  };
+};
+
+type AnalyticsAPIResponse = {
+  growth_rate: GrowthRateData;
+  pie_graph: PieGraphData;
+  engagement_trends: EngagementTrendItem[];
+  premium_vs_free_graph: PremiumVsFreeGraph;
+  user_signup_trends: UserSignupTrends;
+  most_liked_posts: MostLikedPost[];
+  most_followed_clubs: MostFollowedClub[];
+};
 
 export default function AnalyticsInsights() {
   const [activeTab, setActiveTab] = useState('overview');
+  const [isLoading, setIsLoading] = useState(false);
+    const fetchedTabsRef = useRef<Set<string>>(new Set());
+  const [audienceData, setAudienceData] = useState<AudienceItem[]>([]);
+  const [userActivityData, setUserActivityData] = useState<UserActivityItem[]>([]);
+  const [engagementData, setEngagementData] = useState<EngagementItem[]>([]);
+  const [growthRate, setGrowthRate] = useState<string>('0%');
+  const [activeUsers, setActiveUsers] = useState<string>('0');
+  const [retention, setRetention] = useState<string>('0%');
+  const [clubEngagement, setClubEngagement] = useState<string>('0%');
+  const [userTypeData, setUserTypeData] = useState<UserTypeItem[]>([]);
+  const [dailySignups, setDailySignups] = useState<DailySignup[]>([]);
+  const [weeklySignups, setWeeklySignups] = useState<WeeklySignup[]>([]);
+  const [monthlySignups, setMonthlySignups] = useState<MonthlySignup[]>([]);
+  const [mostViewedPosts, setMostViewedPosts] = useState<LikedPost[]>([]);
+  const [mostSearchedClubs, setMostSearchedClubs] = useState<FollowedClub[]>([]);
 
-  const userActivityData = [
-    { date: 'Nov 1', users: 420, clubs: 45 },
-    { date: 'Nov 5', users: 480, clubs: 52 },
-    { date: 'Nov 10', users: 550, clubs: 58 },
-    { date: 'Nov 15', users: 610, clubs: 65 },
-    { date: 'Nov 20', users: 680, clubs: 71 },
-  ];
+  const transformData = useCallback((data: AnalyticsAPIResponse) => {
+    if (data.growth_rate) {
+      setGrowthRate(`+${data.growth_rate.growth_rate}%`);
+      setActiveUsers(data.growth_rate.active_users.toString());
+      setRetention(`${data.growth_rate.retentions}%`);
+      setClubEngagement(`${data.growth_rate.club_enagagement}%`);
 
-  const audienceData = [
-    { name: 'Players', value: 12450, color: '#007BFF' },
-    { name: 'Clubs', value: 856, color: '#00C853' },
-    { name: 'Visitors', value: 8934, color: '#f59e0b' },
-  ];
+      if (data.growth_rate.user_activity_trends) {
+        const trends = data.growth_rate.user_activity_trends.map((item) => ({
+          date: `${item.month} ${item.year}`,
+          users: item.users,
+          clubs: 0, // API doesn't provide club data, default to 0
+        }));
+        setUserActivityData(trends);
+      }
+    }
 
-  const engagementData = [
-    { month: 'Jun', engagement: 65 },
-    { month: 'Jul', engagement: 72 },
-    { month: 'Aug', engagement: 68 },
-    { month: 'Sep', engagement: 78 },
-    { month: 'Oct', engagement: 85 },
-    { month: 'Nov', engagement: 92 },
-  ];
+    if (data.pie_graph) {
+      const pieData: AudienceItem[] = [];
+      if (data.pie_graph.players > 0) {
+        pieData.push({ name: 'Players', value: data.pie_graph.players, color: '#007BFF' });
+      }
+      if (data.pie_graph.clubs > 0) {
+        pieData.push({ name: 'Clubs', value: data.pie_graph.clubs, color: '#00C853' });
+      }
+      if (data.pie_graph.teams > 0) {
+        pieData.push({ name: 'Teams', value: data.pie_graph.teams, color: '#f59e0b' });
+      }
+      if (pieData.length > 0) {
+        setAudienceData(pieData);
+      }
+    }
 
-  const userTypeData = [
-    { name: 'Premium', value: 3420, color: '#9333ea', percentage: '27.5%' },
-    { name: 'Free', value: 9030, color: '#64748b', percentage: '72.5%' },
-  ];
+    if (data.engagement_trends) {
+      const engagement = data.engagement_trends.map((item) => ({
+        month: item.month,
+        engagement: item.count,
+      }));
+      setEngagementData(engagement);
+    }
 
-  const dailySignups = [
-    { date: 'Dec 5', signups: 145 },
-    { date: 'Dec 4', signups: 132 },
-    { date: 'Dec 3', signups: 158 },
-    { date: 'Dec 2', signups: 120 },
-    { date: 'Dec 1', signups: 167 },
-    { date: 'Nov 30', signups: 142 },
-    { date: 'Nov 29', signups: 135 },
-  ];
+    if (data.premium_vs_free_graph) {
+      const { premium, free } = data.premium_vs_free_graph;
+      const total = premium + free;
+      const premiumPercentage = total > 0 ? ((premium / total) * 100).toFixed(1) : '0';
+      const freePercentage = total > 0 ? ((free / total) * 100).toFixed(1) : '0';
+      
+      setUserTypeData([
+        { name: 'Premium', value: premium, color: '#9333ea', percentage: `${premiumPercentage}%` },
+        { name: 'Free', value: free, color: '#64748b', percentage: `${freePercentage}%` },
+      ]);
+    }
 
-  const weeklySignups = [
-    { week: 'Week 48', signups: 1050 },
-    { week: 'Week 47', signups: 980 },
-    { week: 'Week 46', signups: 1120 },
-    { week: 'Week 45', signups: 890 },
-    { week: 'Week 44', signups: 1200 },
-    { week: 'Week 43', signups: 950 },
-    { week: 'Week 42', signups: 1080 },
-    { week: 'Week 41', signups: 920 },
-  ];
+    if (data.user_signup_trends) {
+      const { last_seven_days, last_seven_weeks, last_seven_months } = data.user_signup_trends;
+      
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const today = new Date();
+      setDailySignups(last_seven_days.map((count, index) => {
+        const date = new Date(today);
+        date.setDate(today.getDate() - (6 - index));
+        return {
+          date: days[date.getDay()],
+          signups: count,
+        };
+      }));
+      
+      setWeeklySignups(last_seven_weeks.slice().reverse().map((count, index) => ({
+        week: `Week ${index + 1}`,
+        signups: count,
+      })));
+      
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const currentMonth = new Date().getMonth();
+      setMonthlySignups(last_seven_months.map((count, index) => {
+        const monthIndex = (currentMonth - (6 - index) + 12) % 12;
+        return {
+          month: months[monthIndex],
+          signups: count,
+        };
+      }));
+    }
 
-  const monthlySignups = [
-    { month: 'Nov', signups: 4520 },
-    { month: 'Oct', signups: 4180 },
-    { month: 'Sep', signups: 3890 },
-    { month: 'Aug', signups: 4320 },
-    { month: 'Jul', signups: 3650 },
-    { month: 'Jun', signups: 3420 },
-  ];
+if (data.most_liked_posts && data.most_liked_posts.length > 0) {
+      const posts: LikedPost[] = data.most_liked_posts.map((post) => ({
+        id: post._id,
+        title: post.caption || 'Untitled Post',
+        author: post.user_id?.full_name || post.user_id?.user_name || 'Unknown',
+        likes: post.likeCount,
+        date: new Date(post.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      }));
+      setMostViewedPosts(posts);
+    }
 
-  const mostViewedPosts = [
-    { id: 1, title: 'Top 10 Cricket Techniques for Beginners', author: 'Virat Kohli', views: 12540, date: 'Nov 28, 2024' },
-    { id: 2, title: 'How to Improve Your Bowling Speed', author: 'Jasprit Bumrah', views: 10230, date: 'Nov 25, 2024' },
-    { id: 3, title: 'Best Batting Strategies for T20', author: 'Rohit Sharma', views: 9870, date: 'Nov 22, 2024' },
-    { id: 4, title: 'Cricket Fitness Training Guide', author: 'MS Dhoni', views: 8450, date: 'Nov 20, 2024' },
-    { id: 5, title: 'Wicket Keeping Tips and Tricks', author: 'Rishabh Pant', views: 7820, date: 'Nov 18, 2024' },
-  ];
+    if (data.most_followed_clubs && data.most_followed_clubs.length > 0) {
+      const clubs: FollowedClub[] = data.most_followed_clubs.map((club, index) => ({
+        id: index + 1,
+        name: club.name,
+        owner: club.user_id?.full_name || club.user_id?.user_name || 'Unknown',
+        followers: 0, 
+      }));
+      setMostSearchedClubs(clubs);
+    }
+  }, []);
 
-  const mostSearchedClubs = [
-    { id: 1, name: 'Mumbai Indians', searches: 8940, location: 'Mumbai, India', members: 2450 },
-    { id: 2, name: 'Chennai Super Kings', searches: 8120, location: 'Chennai, India', members: 2280 },
-    { id: 3, name: 'Royal Challengers Bangalore', searches: 7850, location: 'Bangalore, India', members: 2190 },
-    { id: 4, name: 'Kolkata Knight Riders', searches: 7320, location: 'Kolkata, India', members: 2050 },
-    { id: 5, name: 'Delhi Capitals', searches: 6890, location: 'Delhi, India', members: 1920 },
-    { id: 6, name: 'Rajasthan Royals', searches: 6120, location: 'Jaipur, India', members: 1780 },
-    { id: 7, name: 'Punjab Kings', searches: 5670, location: 'Punjab, India', members: 1650 },
-    { id: 8, name: 'Sunrisers Hyderabad', searches: 5340, location: 'Hyderabad, India', members: 1520 },
-  ];
+  const fetchAnalyticsData = useCallback(async () => {
+    // Skip if this tab has already been fetched
+    if (fetchedTabsRef.current.has(activeTab)) {
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const response = await makeRequest<any>({
+        url: GetAnalyticsDashboard,
+        method: "GET",
+        params: { view: activeTab },
+      });
+      
+      console.log('Analytics response:', response);
+      
+      if (response?.data?.result) {
+        const data = response.data.result as AnalyticsAPIResponse;
+        transformData(data);
+        fetchedTabsRef.current.add(activeTab);
+      }
+    } catch (error) {
+      console.error('Error fetching analytics data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [activeTab, transformData]);
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [fetchAnalyticsData]);
 
   return (
     <div className="space-y-8">
@@ -98,68 +294,80 @@ export default function AnalyticsInsights() {
         <p className="text-[#64748b]">Track platform performance and user engagement metrics</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="border-[#e2e8f0]">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#64748b] mb-2">Growth Rate</p>
-                <p className="text-2xl text-[#1e293b]">+18.2%</p>
-              </div>
-              <TrendingUp className="w-8 h-8 text-[#00C853]" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-[#e2e8f0]">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#64748b] mb-2">Active Users</p>
-                <p className="text-2xl text-[#1e293b]">12,450</p>
-              </div>
-              <Users className="w-8 h-8 text-[#007BFF]" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-[#e2e8f0]">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#64748b] mb-2">Retention</p>
-                <p className="text-2xl text-[#1e293b]">76.4%</p>
-              </div>
-              <Activity className="w-8 h-8 text-[#f59e0b]" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-[#e2e8f0]">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-[#64748b] mb-2">Club Engagement</p>
-                <p className="text-2xl text-[#1e293b]">92%</p>
-              </div>
-              <Building2 className="w-8 h-8 text-[#00C853]" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {isLoading ? (
+       <Loader/>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <Card className="border-[#e2e8f0]">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-[#64748b] mb-2">Growth Rate</p>
+                    <p className="text-2xl text-[#1e293b]">{growthRate}</p>
+                  </div>
+                  <TrendingUp className="w-8 h-8 text-[#00C853]" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-[#e2e8f0]">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-[#64748b] mb-2">Active Users</p>
+                    <p className="text-2xl text-[#1e293b]">{parseInt(activeUsers).toLocaleString()}</p>
+                  </div>
+                  <Users className="w-8 h-8 text-[#007BFF]" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-[#e2e8f0]">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-[#64748b] mb-2">Retention</p>
+                    <p className="text-2xl text-[#1e293b]">{retention}</p>
+                  </div>
+                  <Activity className="w-8 h-8 text-[#f59e0b]" />
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="border-[#e2e8f0]">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-[#64748b] mb-2">Club Engagement</p>
+                    <p className="text-2xl text-[#1e293b]">{clubEngagement}</p>
+                  </div>
+                  <Building2 className="w-8 h-8 text-[#00C853]" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full mb-8">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="detailed">Detailed</TabsTrigger>
-        </TabsList>
-        <TabsContent value="overview" className="space-y-8">
-          <OverViewChart audienceData={audienceData} userActivityData={userActivityData} />
-          <EngagementTrend engagementData={engagementData} />
-        </TabsContent>
-        <TabsContent value="detailed" className="space-y-8">
-         <DetailUserTypeChart userTypeData={userTypeData} monthlySignups={monthlySignups} weeklySignups={weeklySignups} dailySignups={dailySignups} />
-         <MostViewedPosts mostViewedPosts={mostViewedPosts} />
-         <MostSearchedClubs mostSearchedClubs={mostSearchedClubs} />
-        </TabsContent>
-      </Tabs>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full mb-8">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="detailed">Detailed</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview" className="space-y-8">
+              <OverViewChart audienceData={audienceData} userActivityData={userActivityData} />
+              <EngagementTrend engagementData={engagementData} />
+            </TabsContent>
+            <TabsContent value="detailed" className="space-y-8">
+              <DetailUserTypeChart 
+                userTypeData={userTypeData} 
+                monthlySignups={monthlySignups} 
+                weeklySignups={weeklySignups} 
+                dailySignups={dailySignups} 
+              />
+<MostLikedPosts mostLikedPosts={mostViewedPosts} />
+              <MostFollowedClubs mostFollowedClubs={mostSearchedClubs} />
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
     </div>
   );
 }
+

@@ -30,7 +30,6 @@ interface CommentReportsProps {
 }
 
 export default function CommentReports({ reports, getReasonBadgeColor, formatTimestamp, onActionComplete }: CommentReportsProps) {
-  console.log("📢[CommentReports.tsx:30]: reports: ", reports);
   
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | number | null>(null);
@@ -334,16 +333,6 @@ export default function CommentReports({ reports, getReasonBadgeColor, formatTim
 
               </div>
 
-            </div>
-
-            {/* Offender History */}
-            <div className="mt-4 pt-4 border-t border-[#e2e8f0]">
-              <h4 className="text-sm font-medium text-[#1e293b] mb-2">Offender History</h4>
-              <div className="flex flex-wrap gap-4 text-sm text-[#64748b]">
-                <span>Previous Warnings: <span className="font-medium text-[#1e293b]">2</span></span>
-                <span>Content Removed: <span className="font-medium text-[#1e293b]">1</span></span>
-                <span>Account Age: <span className="font-medium text-[#1e293b]">3 months</span></span>
-              </div>
             </div>
 
           </CardContent>

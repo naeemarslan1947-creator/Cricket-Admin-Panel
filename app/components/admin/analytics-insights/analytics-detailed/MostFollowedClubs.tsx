@@ -3,31 +3,32 @@
 import { Badge } from '@/app/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/app/components/ui/table'
-import { Search, Users } from 'lucide-react'
+import { Users, Trophy } from 'lucide-react'
 import React from 'react'
 
-interface Club {
+interface FollowedClub {
   id: number
   name: string
-  location: string
-  members: number
-  searches: number
+  owner: string
+  followers: number
 }
-interface MostSearchedClubsProps {
-  mostSearchedClubs: Club[]
+interface MostFollowedClubsProps {
+  mostFollowedClubs: FollowedClub[]
 }
-const MostSearchedClubs: React.FC<MostSearchedClubsProps> = ({ mostSearchedClubs }) => {
+const MostFollowedClubs: React.FC<MostFollowedClubsProps> = ({ mostFollowedClubs }) => {
+  const totalFollowers = mostFollowedClubs.reduce((sum, club) => sum + club.followers, 0);
+
   return (
     <Card className="border-[#e2e8f0] ">
       <CardHeader className="pb-6">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-[#1e293b] mb-1">Most Searched Clubs</CardTitle>
-            <p className="text-sm text-[#64748b]">Top clubs by search volume</p>
+            <CardTitle className="text-[#1e293b] mb-1">Most Followed Clubs</CardTitle>
+            <p className="text-sm text-[#64748b]">Top clubs by follower count</p>
           </div>
           <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100 flex items-center gap-1">
-            <Search className="w-3 h-3" />
-            56.2K Total Searches
+            <Trophy className="w-3 h-3" />
+            {totalFollowers.toLocaleString()} Total Followers
           </Badge>
         </div>
       </CardHeader>
@@ -38,14 +39,13 @@ const MostSearchedClubs: React.FC<MostSearchedClubsProps> = ({ mostSearchedClubs
             <TableRow>
               <TableHead className="w-12">#</TableHead>
               <TableHead>Club Name</TableHead>
-              <TableHead>Location</TableHead>
-              <TableHead>Members</TableHead>
-              <TableHead>Searches</TableHead>
+              <TableHead>Owner</TableHead>
+              <TableHead>Followers</TableHead>
             </TableRow>
           </TableHeader>
 
           <TableBody>
-            {mostSearchedClubs.map((club, index) => (
+            {mostFollowedClubs.map((club, index) => (
               <TableRow key={club.id}>
                 <TableCell className="py-4">
                   <Badge
@@ -68,23 +68,14 @@ const MostSearchedClubs: React.FC<MostSearchedClubsProps> = ({ mostSearchedClubs
                 </TableCell>
 
                 <TableCell className="text-[#64748b] py-4">
-                  {club.location}
+                  {club.owner}
                 </TableCell>
 
                 <TableCell className="py-4">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-[#64748b]" />
                     <span className="text-[#1e293b]">
-                      {club.members.toLocaleString()}
-                    </span>
-                  </div>
-                </TableCell>
-
-                <TableCell className="py-4">
-                  <div className="flex items-center gap-2">
-                    <Search className="w-4 h-4 text-[#64748b]" />
-                    <span className="font-medium text-[#1e293b]">
-                      {club.searches.toLocaleString()}
+                      {club.followers.toLocaleString()}
                     </span>
                   </div>
                 </TableCell>
@@ -98,4 +89,4 @@ const MostSearchedClubs: React.FC<MostSearchedClubsProps> = ({ mostSearchedClubs
   )
 }
 
-export default MostSearchedClubs
+export default MostFollowedClubs

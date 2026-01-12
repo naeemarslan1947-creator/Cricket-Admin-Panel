@@ -58,10 +58,11 @@ const DangerZone: React.FC<DangerZoneProps> = ({ userId }) => {
 
       if (response.status === 200 || response.status === 201) {
         toastSuccess(pendingAction === 'deactivate' ? 'Account deactivated successfully!' : 'Account deleted successfully!');
-        // Clear local storage and redirect to login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        router.push('/login');
+        localStorage.removeItem("auth");
+  localStorage.removeItem("user");
+  document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = "auth=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  router.push("/login");
       } else {
         const errorData = response.data as { message?: string };
         toastError(errorData?.message || `Failed to ${pendingAction} account`);

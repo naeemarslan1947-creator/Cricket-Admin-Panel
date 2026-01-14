@@ -99,11 +99,11 @@ export default function Header() {
             <div className="flex-1 max-w-xl">
                 <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748b]" />
-                    <input
+                    {/* <input
                         type="text"
                         placeholder="Search users, clubs, reports..."
                         className="w-full pl-10 pr-4 py-2 bg-[#F8FAFC] border border-[#e2e8f0] rounded-lg focus:border-[#007BFF] focus:outline-none focus:ring-2 focus:ring-[#007BFF]/20 text-sm"
-                    />
+                    /> */}
                 </div>
             </div>
 

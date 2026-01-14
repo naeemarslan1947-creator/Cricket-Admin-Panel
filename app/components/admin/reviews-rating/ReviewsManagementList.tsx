@@ -1,4 +1,4 @@
-import { XCircle, CheckCircle } from 'lucide-react';
+import { XCircle, CheckCircle, Star, ShieldCheck, ShieldX } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -11,10 +11,15 @@ interface Review {
   id: number;
   club: string;
   reviewer: string;
+  reviewerProfilePic?: string;
   date: string;
   comment: string;
+  rating?: number;
+  isVerified?: boolean;
   type: 'Player' | 'Club Admin' | 'Youth' | 'Parent';
   status: 'Active' | 'Deleted' | 'Suspended';
+  userId?: string;
+  reviewerId?: string;
 }
 
 interface ReviewsManagementListProps {
@@ -22,8 +27,10 @@ interface ReviewsManagementListProps {
   onStatusChange?: (reviewId: number, newStatus: 'Active' | 'Deleted' | 'Suspended') => void;
 }
 
+const PROFILE_PIC_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://api-cricket.dsmeglobal.com';
+
 export default function ReviewsManagementList({ reviews, onStatusChange }: ReviewsManagementListProps) {
-  console.log("📢[ReviewsManagementList.tsx:21]: reviews: ", reviews);
+  console.log("📢[ReviewsManagementList.tsx:33]: reviews: ", reviews);
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedAction, setSelectedAction] = useState<ReviewAction>('remove');
@@ -56,6 +63,27 @@ export default function ReviewsManagementList({ reviews, onStatusChange }: Revie
     setDialogOpen(true);
   };
 
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-3.5 h-3.5 ${star <= rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const getFullProfilePicUrl = (profilePic?: string) => {
+    if (!profilePic) return null;
+    if (profilePic.startsWith('http://') || profilePic.startsWith('https://')) {
+      return profilePic;
+    }
+    return `${PROFILE_PIC_BASE_URL}${profilePic}`;
+  };
+
   return (
     <>
       <Card className="border-[#e2e8f0]">
@@ -63,63 +91,81 @@ export default function ReviewsManagementList({ reviews, onStatusChange }: Revie
           <CardTitle className="text-[#1e293b]">Recent Reviews</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {reviews.map((review) => (
-            <div key={review.id} className="p-4 border border-[#e2e8f0] rounded-lg hover: transition-shadow">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="text-[#1e293b]">{review.club}</h4>
+          {reviews.map((review) => {
+            const profilePicUrl = getFullProfilePicUrl(review.reviewerProfilePic);
+            
+            return (
+              <div key={review.id} className="p-4 border border-[#e2e8f0] rounded-lg hover: transition-shadow">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="text-[#1e293b]">{review.club}</h4>
+                      {review.isVerified && (
+                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-[#64748b]">
+                      {/* Reviewer Profile Pic */}
+                      {profilePicUrl && (
+                        <img
+                          src={profilePicUrl}
+                          alt={review.reviewer}
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                      )}
+                      <span>{review.reviewer}</span>
+                      <span>•</span>
+                      <Badge className={`${getTypeBadgeClass(review.type)} hover:${getTypeBadgeClass(review.type).split(' ')[0]}`}>
+                        {review.type}
+                      </Badge>
+                      <span>•</span>
+                      <span>{review.date}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-[#64748b]">
-                    <span>{review.reviewer}</span>
-                    <span>•</span>
-                    <Badge className={`${getTypeBadgeClass(review.type)} hover:${getTypeBadgeClass(review.type).split(' ')[0]}`}>
-                      {review.type}
+                  <div className="flex items-center gap-2">
+                    {review.rating !== undefined && renderStars(review.rating)}
+                    <Badge className={`${getStatusBadgeClass(review.status)} hover:${getStatusBadgeClass(review.status).split(' ')[0]}`}>
+                      {review.status}
                     </Badge>
-                    <span>•</span>
-                    <span>{review.date}</span>
                   </div>
                 </div>
-                <Badge className={`${getStatusBadgeClass(review.status)} hover:${getStatusBadgeClass(review.status).split(' ')[0]}`}>
-                  {review.status}
-                </Badge>
+                <p className="text-[#64748b] mb-3">{review.comment}</p>
+                <div className="flex gap-2">
+                  {review.status !== 'Active' && (
+                    <Button 
+                      size="sm" 
+                      className="bg-[#00C853] hover:bg-[#00a844] text-white"
+                      onClick={() => openActionDialog(review.id, 'activate', review.club)}
+                    >
+                      <CheckCircle className="w-3 h-3 mr-1" />
+                      Activate
+                    </Button>
+                  )}
+                  {review.status !== 'Suspended' && (
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="border-[#e2e8f0]"
+                      onClick={() => openActionDialog(review.id, 'suspend', review.club)}
+                    >
+                      <XCircle className="w-3 h-3 mr-1" />
+                      Suspend
+                    </Button>
+                  )}
+                  {review.status !== 'Deleted' && (
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => openActionDialog(review.id, 'remove', review.club)}
+                    >
+                      <XCircle className="w-3 h-3 mr-1" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
               </div>
-              <p className="text-[#64748b] mb-3">{review.comment}</p>
-              <div className="flex gap-2">
-                {review.status !== 'Active' && (
-                  <Button 
-                    size="sm" 
-                    className="bg-[#00C853] hover:bg-[#00a844] text-white"
-                    onClick={() => openActionDialog(review.id, 'activate', review.club)}
-                  >
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Activate
-                  </Button>
-                )}
-                {review.status !== 'Suspended' && (
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="border-[#e2e8f0]"
-                    onClick={() => openActionDialog(review.id, 'suspend', review.club)}
-                  >
-                    <XCircle className="w-3 h-3 mr-1" />
-                    Suspend
-                  </Button>
-                )}
-                {review.status !== 'Deleted' && (
-                  <Button 
-                    size="sm" 
-                    variant="destructive"
-                    onClick={() => openActionDialog(review.id, 'remove', review.club)}
-                  >
-                    <XCircle className="w-3 h-3 mr-1" />
-                    Remove
-                  </Button>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </CardContent>
       </Card>
 

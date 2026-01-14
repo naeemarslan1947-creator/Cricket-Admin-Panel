@@ -14,9 +14,11 @@ interface ReviewItem {
   user_id: {
     _id: string;
     user_name: string;
+    email: string;
     full_name: string;
     is_club: boolean;
     club_name?: string;
+    profile_pic?: string;
   };
   review: string;
   action_type: number;
@@ -24,11 +26,14 @@ interface ReviewItem {
   created_by: {
     _id: string;
     user_name: string;
+    email: string;
     full_name: string;
     is_club: boolean;
+    profile_pic?: string;
   };
   updated_at: string;
   created_at: string;
+  rating: number;
 }
 
 interface RatingItem {
@@ -81,16 +86,31 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
     status = 'Active';
   }
 
+  const reviewerType = apiReview.created_by.is_club 
+    ? 'Club Admin' as const 
+    : 'Player' as const;
+
+  const reviewedSubject = apiReview.user_id.is_club === true
+    ? (apiReview.user_id.club_name || apiReview.user_id.full_name || 'Unknown Club')
+    : (apiReview.user_id.full_name || 'Unknown Player');
+
+  const reviewer = apiReview.created_by.full_name || apiReview.created_by.user_name || 'Unknown Reviewer';
+
+  const reviewerProfilePic = apiReview.created_by.profile_pic || '';
+
   return {
     id: apiReview._id as unknown as number,
-    club: apiReview?.user_id?.is_club === true 
-      ? (apiReview.user_id.club_name || apiReview.user_id.full_name || 'Unknown')
-      : (apiReview.user_id.full_name || 'Unknown'),
-    reviewer: apiReview.user_id.full_name || apiReview.user_id.user_name || 'Unknown',
+    club: reviewedSubject,
+    reviewer: reviewer,
+    reviewerProfilePic: reviewerProfilePic,
     date: formattedDate,
     comment: apiReview.review,
-    type: 'Player' as const,
+    rating: apiReview.rating,
+    isVerified: apiReview.is_verified,
+    type: reviewerType,
     status,
+    userId: apiReview.user_id._id,
+    reviewerId: apiReview.created_by._id,
   };
 };
 
@@ -161,10 +181,15 @@ export default function ReviewsManagement() {
     id: number;
     club: string;
     reviewer: string;
+    reviewerProfilePic: string;
     date: string;
     comment: string;
+    rating: number;
+    isVerified: boolean;
     type: 'Player' | 'Club Admin' | 'Youth' | 'Parent';
     status: 'Active' | 'Deleted' | 'Suspended';
+    userId: string;
+    reviewerId: string;
   }[]>([]);
   const [aggregateRatings, setAggregateRatings] = useState<AggregateRating[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);

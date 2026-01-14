@@ -34,7 +34,7 @@ export default function ClubsManagementFilters({
               />
             </div>
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter} disabled={isLoading}>
+          {/* <Select value={statusFilter} onValueChange={setStatusFilter} disabled={isLoading}>
             <SelectTrigger className="w-full md:w-[200px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
@@ -44,7 +44,7 @@ export default function ClubsManagementFilters({
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="hidden">Hidden</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
         </div>
       </CardContent>
     </Card>

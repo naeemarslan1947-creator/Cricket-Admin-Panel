@@ -39,10 +39,10 @@ export default function UsersManagementFilters({ roleFilter, setRoleFilter, sear
               <SelectItem value="parent">Parent</SelectItem>
             </SelectContent>
           </Select>
-          <Button className="bg-[#91C137] hover:bg-[#91C137] text-white">
+          {/* <Button className="bg-[#91C137] hover:bg-[#91C137] text-white">
             <Filter className="w-4 h-4 mr-2" />
             Advanced Filters
-          </Button>
+          </Button> */}
         </div>
       </CardContent>
     </Card>

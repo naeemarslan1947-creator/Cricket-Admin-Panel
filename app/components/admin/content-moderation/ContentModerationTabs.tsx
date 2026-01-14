@@ -5,6 +5,7 @@ import makeRequest from "@/Api's/apiHelper";
 import { GetReportedMedia } from "@/Api's/repo";
 import { useState, useEffect, useCallback } from 'react';
 import { Loader2, FileWarning } from 'lucide-react';
+import Pagination from '@/app/components/common/Pagination';
 
 interface ReporterInfo {
   _id: string;
@@ -45,6 +46,7 @@ interface ApiReportItem {
   detail: string;
   created_by: ReporterInfo;
   action_type: number;
+  escalation: number;
   updated_at: string;
   created_at: string;
 }
@@ -82,6 +84,28 @@ interface ReportsData {
   media: Report[];
 }
 
+// Pagination state per tab
+interface PaginationState {
+  posts: {
+    currentPage: number;
+    totalPages: number;
+    totalRecords: number;
+    limit: number;
+  };
+  comments: {
+    currentPage: number;
+    totalPages: number;
+    totalRecords: number;
+    limit: number;
+  };
+  media: {
+    currentPage: number;
+    totalPages: number;
+    totalRecords: number;
+    limit: number;
+  };
+}
+
 interface ContentModerationTabsProps {
   activeTab: string;
   setActiveTab: (value: string) => void;
@@ -94,6 +118,14 @@ interface LoadingState {
   comments: boolean;
   media: boolean;
 }
+
+// Default pagination values
+const DEFAULT_PAGINATION = {
+  currentPage: 1,
+  totalPages: 1,
+  totalRecords: 0,
+  limit: 10,
+};
 
 export default function ContentModerationTabs({
   activeTab,
@@ -111,6 +143,11 @@ export default function ContentModerationTabs({
     posts: false,
     comments: false,
     media: false,
+  });
+  const [pagination, setPagination] = useState<PaginationState>({
+    posts: { ...DEFAULT_PAGINATION },
+    comments: { ...DEFAULT_PAGINATION },
+    media: { ...DEFAULT_PAGINATION },
   });
 
   const mapApiReportToReport = useCallback((apiReport: ApiReportItem, tab: string): Report => {
@@ -171,14 +208,19 @@ export default function ContentModerationTabs({
     };
   }, []);
 
-  const fetchReportedMedia = useCallback(async (tab: string) => {
-    if (cachedTabs.has(tab)) return;
+  const fetchReportedMedia = useCallback(async (tab: string, page: number = 1, limit: number = 10) => {
+    // Clear cache when fetching new page to ensure fresh data
+    setCachedTabs(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(tab);
+      return newSet;
+    });
 
     setLoadingState(prev => ({ ...prev, [tab]: true }));
     try {
       const query = tab === 'posts' ? 'Post' : tab === 'comments' ? 'Comment' : 'media';
       const response = await makeRequest<ApiResponse>({
-        url: `${GetReportedMedia}?reported_media_type=${encodeURIComponent(query)}`,
+        url: `${GetReportedMedia}?reported_media_type=${encodeURIComponent(query)}&page=${page}&limit=${limit}`,
         method: 'GET',
       });
 
@@ -190,6 +232,18 @@ export default function ContentModerationTabs({
           [tab]: mappedReports,
         }));
 
+        // Update pagination state
+        const data = response.data;
+        setPagination(prev => ({
+          ...prev,
+          [tab]: {
+            currentPage: data.page_number || 1,
+            totalPages: data.total_pages || 1,
+            totalRecords: data.total_records || 0,
+            limit: limit,
+          },
+        }));
+
         setCachedTabs(prev => new Set([...prev, tab]));
         console.log(`Reported ${tab} response:`, response.data);
       }
@@ -198,12 +252,39 @@ export default function ContentModerationTabs({
     } finally {
       setLoadingState(prev => ({ ...prev, [tab]: false }));
     }
-  }, [cachedTabs, mapApiReportToReport]);
+  }, [mapApiReportToReport]);
 
-  // Fetch reported media only once when tab changes and not cached
+  // Track if initial data has been fetched for each tab to avoid refetching
+  const [fetchedTabs, setFetchedTabs] = useState<Set<string>>(new Set());
+
+  // Fetch reported media when tab changes or pagination changes
   useEffect(() => {
-    fetchReportedMedia(activeTab);
-  }, [activeTab, fetchReportedMedia]);
+    const currentPagination = pagination[activeTab as keyof PaginationState];
+    const tabKey = `${activeTab}-${currentPagination.currentPage}`;
+    
+    // Only fetch if not already fetched for this specific page
+    if (!fetchedTabs.has(tabKey)) {
+      fetchReportedMedia(activeTab, currentPagination.currentPage, currentPagination.limit);
+      setFetchedTabs(prev => new Set([...prev, tabKey]));
+    }
+  }, [activeTab, fetchReportedMedia, pagination, fetchedTabs]);
+
+  const handlePageChange = useCallback((newPage: number) => {
+    // Clear the fetched state for the new page to allow refetching
+    setFetchedTabs(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(`${activeTab}-${newPage}`);
+      return newSet;
+    });
+    
+    setPagination(prev => ({
+      ...prev,
+      [activeTab]: {
+        ...prev[activeTab as keyof PaginationState],
+        currentPage: newPage,
+      },
+    }));
+  }, [activeTab]);
 
   const getReasonBadgeColor = (code: string) => {
     switch (code) {
@@ -217,6 +298,12 @@ export default function ContentModerationTabs({
         return 'bg-purple-100 text-purple-800 border-purple-200 border hover:bg-purple-100';
       case 'HARASSMENT':
         return 'bg-red-100 text-red-800 border-red-200 border hover:bg-red-100';
+      case 'INAPPROPRIATE':
+        return 'bg-red-100 text-red-800 border-red-200 border hover:bg-red-100';
+      case 'BULLYING':
+        return 'bg-red-100 text-red-800 border-red-200 border hover:bg-red-100';
+      case 'IMPERSONATION':
+        return 'bg-purple-100 text-purple-800 border-purple-200 border hover:bg-purple-100';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200 border hover:bg-gray-100';
     }
@@ -259,42 +346,57 @@ export default function ContentModerationTabs({
     </div>
   );
 
+  const renderPagination = (tab: string) => {
+    const tabPagination = pagination[tab as keyof PaginationState];
+    
+    // Only show pagination if there are records and multiple pages
+    if (tabPagination.totalRecords === 0 || tabPagination.totalPages <= 1) {
+      return null;
+    }
+
+    return (
+      <Pagination
+        currentPage={tabPagination.currentPage}
+        totalPages={tabPagination.totalPages}
+        totalRecords={tabPagination.totalRecords}
+        limit={tabPagination.limit}
+        onPageChange={handlePageChange}
+      />
+    );
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-     <TabsList >
-  <TabsTrigger
-    value="posts"
-   
-  >
-    Posts ({reports.posts.length})
-  </TabsTrigger>
+      <TabsList>
+        <TabsTrigger value="posts">
+          Posts ({pagination.posts.totalRecords > 0 ? `${reports.posts.length} of ${pagination.posts.totalRecords}` : 0})
+        </TabsTrigger>
+        <TabsTrigger value="comments">
+          Comments ({pagination.comments.totalRecords > 0 ? `${reports.comments.length} of ${pagination.comments.totalRecords}` : 0})
+        </TabsTrigger>
+      </TabsList>
 
-  <TabsTrigger
-    value="comments"
-   
-  >
-    Comments ({reports.comments.length})
-  </TabsTrigger>
-</TabsList>
-
-
-<TabsContent value="posts" className="space-y-4">
+      <TabsContent value="posts" className="space-y-4">
         {loadingState.posts ? (
           renderLoadingState()
         ) : reports.posts.length > 0 ? (
-          <PostReports
-            formatTimestamp={formatTimestamp}
-            getReasonBadgeColor={getReasonBadgeColor}
-            reports={reports.posts}
-            onActionComplete={() => {
-              setCachedTabs(prev => {
-                const newSet = new Set(prev);
-                newSet.delete('posts');
-                return newSet;
-              });
-              fetchReportedMedia('posts');
-            }}
-          />
+          <>
+            <PostReports
+              formatTimestamp={formatTimestamp}
+              getReasonBadgeColor={getReasonBadgeColor}
+              reports={reports.posts}
+              onActionComplete={() => {
+                const currentPagination = pagination.posts;
+                setCachedTabs(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete('posts');
+                  return newSet;
+                });
+                fetchReportedMedia('posts', currentPagination.currentPage, currentPagination.limit);
+              }}
+            />
+            {renderPagination('posts')}
+          </>
         ) : (
           renderEmptyState('No Post Reports', 'There are no post reports to display.')
         )}
@@ -304,25 +406,27 @@ export default function ContentModerationTabs({
         {loadingState.comments ? (
           renderLoadingState()
         ) : reports.comments.length > 0 ? (
-          <CommentReports
-            onActionComplete={() => {
-              setCachedTabs(prev => {
-                const newSet = new Set(prev);
-                newSet.delete('comments');
-                return newSet;
-              });
-              fetchReportedMedia('comments');
-            }}
-            formatTimestamp={formatTimestamp}
-            getReasonBadgeColor={getReasonBadgeColor}
-            reports={reports.comments}
-          />
+          <>
+            <CommentReports
+              onActionComplete={() => {
+                const currentPagination = pagination.comments;
+                setCachedTabs(prev => {
+                  const newSet = new Set(prev);
+                  newSet.delete('comments');
+                  return newSet;
+                });
+                fetchReportedMedia('comments', currentPagination.currentPage, currentPagination.limit);
+              }}
+              formatTimestamp={formatTimestamp}
+              getReasonBadgeColor={getReasonBadgeColor}
+              reports={reports.comments}
+            />
+            {renderPagination('comments')}
+          </>
         ) : (
           renderEmptyState('No Comment Reports', 'There are no comment reports to display.')
         )}
       </TabsContent>
-
-    
     </Tabs>
   );
 }

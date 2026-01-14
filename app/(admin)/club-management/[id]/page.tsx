@@ -18,6 +18,7 @@ import InviteModal from '@/app/components/admin/club-management/id/InviteModal';
 import ViewPlayersModal from '@/app/components/admin/club-management/id/ViewPlayersModal';
 import OverrideStatusModal from '@/app/components/admin/club-management/id/OverrideStatusModal';
 import DeleteClubModal from '@/app/components/admin/club-management/id/DeleteClubModal';
+import VerifyClubModal from '@/app/components/admin/club-management/id/VerifyClubModal';
 import { Button } from '@/app/components/ui/button';
 
 interface EditForm {
@@ -43,6 +44,7 @@ export default function ClubProfilePage() {
   const [viewPlayersOpen, setViewPlayersOpen] = useState(false);
   const [overrideStatusOpen, setOverrideStatusOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [verifyClubOpen, setVerifyClubOpen] = useState(false);
 
   // Form state
   const [editForm, setEditForm] = useState<EditForm>({ 
@@ -53,6 +55,7 @@ export default function ClubProfilePage() {
   });
   const [deleting, setDeleting] = useState(false);
   const [overridingStatus, setOverridingStatus] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const fetchClubDetails = async () => {
     try {
@@ -185,6 +188,36 @@ export default function ClubProfilePage() {
     }
   };
 
+  const handleVerifyClub = async () => {
+    if (!club) return;
+
+    try {
+      setVerifying(true);
+      
+      const response = await makeRequest<ApiResponse>({
+        url: updateClubProfile,
+        method: 'POST',
+        data: {
+          user_id: clubId,
+          is_club_verified: true,
+        },
+      });
+
+      if (response.data?.success) {
+        toastSuccess('Club verified successfully');
+        // Refresh club details to show updated verification status
+        await fetchClubDetails();
+      } else {
+        toastError((response.data?.message as string) || 'Failed to verify club');
+      }
+    } catch (err) {
+      console.error('Error verifying club:', err);
+      toastError('Failed to verify club. Please try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   useEffect(() => {
     if (clubId) {
       fetchClubDetails();
@@ -263,6 +296,8 @@ export default function ClubProfilePage() {
               onViewPlayers={() => setViewPlayersOpen(true)}
               onOverrideStatus={() => setOverrideStatusOpen(true)}
               onDeleteClub={() => setDeleteDialogOpen(true)}
+              onVerifyClub={() => setVerifyClubOpen(true)}
+              isClubVerified={club.isClubVerified}
             />
           </div>
         </div>
@@ -312,6 +347,14 @@ export default function ClubProfilePage() {
         clubName={club.clubName}
         onDelete={handleDeleteClub}
         isLoading={deleting}
+      />
+
+      <VerifyClubModal
+        open={verifyClubOpen}
+        onOpenChange={setVerifyClubOpen}
+        clubName={club.clubName}
+        onVerify={handleVerifyClub}
+        isLoading={verifying}
       />
     </div>
   );

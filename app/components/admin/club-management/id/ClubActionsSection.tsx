@@ -4,7 +4,8 @@ import {
   Trophy, 
   Users, 
   AlertTriangle, 
-  Trash2 
+  Trash2,
+  ShieldCheck 
 } from 'lucide-react';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -16,6 +17,8 @@ interface ClubActionsSectionProps {
   onViewPlayers: () => void;
   onOverrideStatus: () => void;
   onDeleteClub: () => void;
+  onVerifyClub?: () => void;
+  isClubVerified?: boolean;
 }
 
 export default function ClubActionsSection({
@@ -25,6 +28,8 @@ export default function ClubActionsSection({
   onViewPlayers,
   onOverrideStatus,
   onDeleteClub,
+  onVerifyClub,
+  isClubVerified = false,
 }: ClubActionsSectionProps) {
   return (
     <Card className="border-slate-200  overflow-hidden">
@@ -71,6 +76,19 @@ export default function ClubActionsSection({
               View Players
             </Button>
           </div>
+
+          {!isClubVerified && (
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                onClick={onVerifyClub}
+                variant="outline"
+                className="h-11 border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+              >
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                Verify Club
+              </Button>
+            </div>
+          )}
 
           {/* Danger Zone */}
           <div className="pt-3 border-t border-slate-100">

@@ -1,10 +1,11 @@
 'use client';
 
-import {  useState } from 'react';
+import { useState } from 'react';
 import { Sidebar } from '../components/common/Sidebar';
 import CrickitHeader from '../components/common/Header';
 import { useAuthInitialization } from '../hooks/useAuthInitialization';
 import Loader from '../components/common/Loader';
+import FCM from '../components/fcm';
 
 export default function AdminLayout({
   children,
@@ -40,6 +41,9 @@ export default function AdminLayout({
           {children}
         </main>
       </div>
+      
+      {/* Firebase Cloud Messaging Component */}
+      <FCM />
     </div>
   );
 }

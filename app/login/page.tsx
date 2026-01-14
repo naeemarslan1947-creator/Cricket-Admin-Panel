@@ -16,6 +16,7 @@ import { setUser } from "../../redux/actions";
 import { tokenManager } from "../../Api's/tokenManager";
 import { toastError, toastSuccess } from "../helper/toast";
 import Loader from "../components/common/Loader";
+import { getFreshFCMToken } from "../lib/firebase/firebase";
 
 const statsData = [
   { icon: Users, label: "Active Users", value: "12.5K+", color: "from-blue-500 to-blue-600" },
@@ -27,6 +28,7 @@ const statsData = [
 interface ExtendedLoginResponse {
   response_code?: number;
   success?: boolean;
+  status_code?: number;
   message?: string;
   token?: string;
   result?: {
@@ -106,11 +108,20 @@ export default function LoginPage() {
     setError("");
 
     try {
+      // Get a fresh FCM token for login
+      const fcmToken = await getFreshFCMToken();
+      console.log("FCM Token for login:", fcmToken);
+
       const response = await makeRequest<LoginResponse>({
         url: LoginClientApiCall,
         method: "POST",
-        data: { email, password },
+        data: { 
+          email, 
+          password,
+          fcm_token: fcmToken,
+        },
       });
+
 
       const loginData = response.data as ExtendedLoginResponse;
 
@@ -123,7 +134,14 @@ export default function LoginPage() {
 
       const hasValidToken = !!(rootToken || resultToken || tokenManager.extractTokenFromResponse(loginData));
 
-        if (hasValidToken && isAdmin) {
+      // Check if API response indicates an error (success: false or response_code indicates error)
+      const apiResponseCode = loginData?.response_code;
+      const isApiError = !loginData?.success || (typeof apiResponseCode === 'number' && apiResponseCode >= 400);
+
+      // Get the API error message
+      const apiErrorMessage = loginData?.message || "";
+
+      if (hasValidToken && isAdmin && !isApiError) {
         const userInfo = userData;
         const userId = userInfo?._id;
         
@@ -193,15 +211,27 @@ export default function LoginPage() {
           router.push("/dashboard");
         }, 100);
       } else {
-        if (!isAdmin) {
-          const errorMsg = "You do not have admin access.";
-          setError(errorMsg);
-          toastError(errorMsg);
+        // Build error message combining API error message and context
+        let errorMsg = "";
+        
+        if (apiErrorMessage) {
+          // If API returns an error message, display it with context
+          if (!isAdmin) {
+            errorMsg = `${apiErrorMessage} - You do not have admin access.`;
+          } else {
+            errorMsg = apiErrorMessage;
+          }
         } else {
-          const errorMsg = loginData?.message || "Invalid email or password.";
-          setError(errorMsg);
-          toastError(errorMsg);
+          // Fallback to default messages
+          if (!isAdmin) {
+            errorMsg = "You do not have admin access.";
+          } else {
+            errorMsg = "Invalid email or password.";
+          }
         }
+        
+        setError(errorMsg);
+        toastError(errorMsg);
       }
     } catch (err) {
       const parsedError = handleApiError(err);

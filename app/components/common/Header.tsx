@@ -1,37 +1,59 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, Bell, User, LogOut, ChevronDown } from 'lucide-react'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '@/redux/reducer'
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
+import makeRequest from "@/Api's/apiHelper"
+import { GetUnreadNotifications } from "@/Api's/repo"
+import { setNotificationCount } from '@/redux/actions'
+import { useAuth } from '@/app/hooks/useAuth'
 
-interface ReduxUser {
-  name?: string;
-  full_name?: string;
-  user_name?: string;
-  email?: string;
-  avatar?: string;
-  profile_pic?: string;
-  profile_media?: string;
-  role?: {
-    id?: string;
-    name?: string;
-    permissions?: string[];
-    color?: string;
-  };
-  role_id?: string | string[];
-  is_admin?: boolean;
-  _id?: string;
-}
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || ''
 
 export default function Header() {
     const router = useRouter()
-    const [showNotifications, setShowNotifications] = useState(false)
+    const dispatch = useDispatch()
     const [showUserMenu, setShowUserMenu] = useState(false)
     
-    const user = useSelector((state: RootState) => state.user) as ReduxUser | null | undefined
+    const { user } = useAuth()
+    const notificationCount = useSelector((state: RootState) => state.notificationCount)
+    
+    const fetchNotificationCount = useCallback(async () => {
+        if (!user?._id) return
+        
+        try {
+            const response = await makeRequest<unknown[]>({
+                url: GetUnreadNotifications,
+                method: "GET",
+                params: { user_id: user._id },
+            })
+            
+            const notifications = response.data ?? []
+            const count = Array.isArray(notifications) ? notifications.length : 0
+            dispatch(setNotificationCount(count))
+        } catch (error) {
+            console.error("Error fetching notification count:", error)
+            // Keep existing count on error
+        } finally {
+        }
+    }, [user, dispatch])
+    
+    useEffect(() => {
+        fetchNotificationCount()
+    }, [fetchNotificationCount])
+    
+    // Listen for notification updates from other components
+    useEffect(() => {
+        const handleNotificationUpdate = () => {
+            fetchNotificationCount()
+        }
+        
+        window.addEventListener('notificationCountUpdated', handleNotificationUpdate)
+        return () => window.removeEventListener('notificationCountUpdated', handleNotificationUpdate)
+    }, [fetchNotificationCount])
+    
     const getUserName = () => {
         if (user?.user_name) return user.user_name
         if (user?.name) return user.name
@@ -86,17 +108,19 @@ export default function Header() {
             </div>
 
             <div className="flex items-center gap-3 ml-6">
-                <div className="relative">
-                   <div className="relative">
-    {/* <button
+<div className="relative">
+                    <div className="relative">
+    <button
         onClick={() => router.push("/notifications")}
         className="relative p-2 hover:bg-[#F8FAFC] rounded-lg transition-colors"
     >
         <Bell className="w-5 h-5 text-[#64748b]" />
-        <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-[#ef4444] text-white text-xs rounded-full font-bold">
-            3
-        </span>
-    </button> */}
+        {notificationCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center bg-[#ef4444] text-white text-xs rounded-full font-bold">
+                {notificationCount > 99 ? '99+' : notificationCount}
+            </span>
+        )}
+    </button>
 </div>
 
                 </div>
@@ -104,9 +128,7 @@ export default function Header() {
                 <div className="relative">
                     <button
                         onClick={() => {
-                            setShowUserMenu(!showUserMenu)
-                            setShowNotifications(false)
-                        }}
+                            setShowUserMenu(!showUserMenu)}}
                         className="flex items-center gap-2 px-2 py-1 hover:bg-[#F8FAFC] rounded-lg transition-colors"
                     >
                         <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#00C853] to-[#007BFF] flex items-center justify-center overflow-hidden">

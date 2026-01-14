@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ReduxProvider from "./components/ReduxProvider";
+import FCM from "./components/fcm";
 
 export const metadata: Metadata = {
   title: "Cricket Admin Panel",
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body >
         <ReduxProvider>
           {children}
+          <FCM />
         </ReduxProvider>
       </body>
     </html>

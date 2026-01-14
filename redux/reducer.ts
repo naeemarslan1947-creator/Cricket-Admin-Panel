@@ -1,4 +1,4 @@
-import { LOADER, USER, TOAST } from "./actionTypes";
+import { LOADER, USER, TOAST, NOTIFICATION_COUNT } from "./actionTypes";
 
 interface Toast {
   id: string;
@@ -11,12 +11,14 @@ interface AppState {
   loading: boolean;
   user: any;
   toasts: Toast[];
+  notificationCount: number;
 }
 
 const initialState: AppState = {
   loading: false,
   user: null,
   toasts: [],
+  notificationCount: 0,
 };
 
 const reducer = (state = initialState, action: any): AppState => {
@@ -45,6 +47,12 @@ const reducer = (state = initialState, action: any): AppState => {
       return {
         ...state,
         toasts: [...state.toasts, action.payload],
+      };
+
+    case NOTIFICATION_COUNT:
+      return {
+        ...state,
+        notificationCount: action.payload,
       };
 
     default:

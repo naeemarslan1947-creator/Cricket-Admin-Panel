@@ -97,6 +97,18 @@ export const GetNotification = API_BASE_URL + "api/admin-user/notification-reque
 
 export const GetAnalyticsDashboard = API_BASE_URL + "api/admin-user/user-analytics";
 
+export const GetNotificationByUser = API_BASE_URL + "api/notification/getByUser";
+
+export const GetUnreadNotifications = API_BASE_URL + "api/notification/unreadForUser";
+
+export const MarkAsReadNotification = API_BASE_URL + "api/notification/markAsRead";
+
+export const DeleteNotification = API_BASE_URL + "api/notification/delete";
+
+export const SaveFcmToken = API_BASE_URL + "api/user/save-fcm-token";
+
+
+
 
 
 

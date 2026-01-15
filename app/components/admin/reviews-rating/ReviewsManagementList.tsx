@@ -1,4 +1,4 @@
-import { XCircle, CheckCircle, Star, ShieldCheck, ShieldX } from 'lucide-react';
+import { XCircle, CheckCircle, Star, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';

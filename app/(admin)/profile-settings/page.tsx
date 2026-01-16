@@ -352,7 +352,7 @@ export default function ProfileSettings() {
 
           {/* <NotificationPreferences notifications={notifications} handleNotificationToggle={handleNotificationToggle} /> */}
 
-          {userData?.role?.[0]?.permission?.name !== 'Super Admin' &&<DangerZone userId={userData?._id} />}
+          {userData?.role?.[0]?.permission?.name !== 'Super-Admin' &&<DangerZone userId={userData?._id} />}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, Clock, FileImage, Flag, User, XCircle } from 'lucide-react';
+import { CheckCircle, Clock, FileImage, Flag, User, XCircle, MapPin, AlertTriangle } from 'lucide-react';
 import { Card, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '@/app/components/ui/button';
@@ -20,6 +20,11 @@ interface Report {
   hasMedia?: boolean;
   mediaType?: 'image' | 'video' | null;
   mediaUrls?: string[];
+  escalation?: number;
+  reportedMediaType?: string;
+  mediaId?: string;
+  detail?: string;
+  location?: string;
 }
 
 interface PostReportsProps {
@@ -30,7 +35,7 @@ interface PostReportsProps {
 }
 
 export default function PostReports({ reports, getReasonBadgeColor, formatTimestamp, onActionComplete }: PostReportsProps) {
-  console.log("📢[PostReports.tsx:26]: reports: ", reports);
+  console.log("📢[PostReports.tsx:33]: reports: ", reports);
   
   const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [selectedReportId, setSelectedReportId] = useState<string | number | null>(null);
@@ -182,6 +187,19 @@ export default function PostReports({ reports, getReasonBadgeColor, formatTimest
     }
   };
 
+  const getEscalationBadgeColor = (level: number) => {
+    switch (level) {
+      case 1:
+        return 'bg-blue-100 text-blue-800 border-blue-200 border';
+      case 2:
+        return 'bg-orange-100 text-orange-800 border-orange-200 border';
+      case 3:
+        return 'bg-red-100 text-red-800 border-red-200 border';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200 border';
+    }
+  };
+
   return (
     <>
       {reports.map((report) => (
@@ -192,9 +210,16 @@ export default function PostReports({ reports, getReasonBadgeColor, formatTimest
             <div className="mb-4 pb-4 border-b border-[#e2e8f0]">
               <div className="flex items-start justify-between mb-3">
                 <h3 className="text-base font-medium text-[#1e293b]">Report #{report.id}</h3>
-                <Badge className={getReasonBadgeColor(report.reasonCode)}>
-                  {report.reasonCode}
-                </Badge>
+                <div className="flex gap-2">
+                  {report.escalation !== undefined && (
+                    <Badge className={getEscalationBadgeColor(report.escalation)}>
+                      Level {report.escalation}
+                    </Badge>
+                  )}
+                  <Badge className={getReasonBadgeColor(report.reasonCode)}>
+                    {report.reasonCode}
+                  </Badge>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -230,6 +255,15 @@ export default function PostReports({ reports, getReasonBadgeColor, formatTimest
 
               {/* Content Section */}
               <div className="flex-1">
+                {/* Media Type Badge */}
+                {report.reportedMediaType && (
+                  <div className="mb-3">
+                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                      {report.reportedMediaType}
+                    </Badge>
+                  </div>
+                )}
+
                 <div className="mb-4">
                   <h4 className="text-sm font-medium text-[#1e293b] mb-2 flex items-center gap-2">
                     <Flag className="w-4 h-4 text-red-600" />
@@ -240,10 +274,27 @@ export default function PostReports({ reports, getReasonBadgeColor, formatTimest
                     <p className="text-[#1e293b]">{report.reportedContent}</p>
                   </div>
 
-                  <div className="mt-2 text-sm text-[#64748b]">
+                  {/* Detail field if available */}
+                  {report.detail && report.detail !== report.reportedContent && (
+                    <div className="mt-2 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                      <p className="text-xs text-amber-700 mb-1 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Report Details
+                      </p>
+                      <p className="text-sm text-[#1e293b]">{report.detail}</p>
+                    </div>
+                  )}
+
+                  <div className="mt-2 text-sm text-[#64748b] space-y-1">
                     <span>
                       Posted by: <span className="font-medium text-[#1e293b]">{report.reportedUser}</span>
                     </span>
+                    {report.location && (
+                      <span className="flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {report.location}
+                      </span>
+                    )}
                   </div>
                 </div>
 

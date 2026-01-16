@@ -18,6 +18,7 @@ interface PostReportedMediaInfo {
   _id: string;
   media?: string[];
   caption?: string;
+  location?: string;
   user_id: string;
   is_private: boolean;
   media_type?: string;
@@ -44,7 +45,7 @@ interface ApiReportItem {
   reported_media_type: string;
   reason: string;
   detail: string;
-  created_by: ReporterInfo;
+  created_by: ReporterInfo | null; // Can be null for anonymous reports
   action_type: number;
   escalation: number;
   updated_at: string;
@@ -76,6 +77,12 @@ interface Report {
   hasMedia?: boolean;
   mediaType?: 'image' | 'video' | null;
   mediaUrls?: string[];
+  escalation?: number;
+  reportedMediaType?: string;
+  reportedMediaId?: string;
+  mediaId?: string; // Add mediaId field
+  detail?: string; // Add detail field for report description
+  location?: string; // Add location field for posts
 }
 
 interface ReportsData {
@@ -159,18 +166,23 @@ export default function ContentModerationTabs({
     let reportedContent = '';
     let reportedUser = '';
     let mediaUrls: string[] = [];
+    let location = '';
+    let mediaId = '';
 
     if ('caption' in reportedMedia) {
       // Post type structure
       reportedContent = reportedMedia.caption || apiReport.detail || '';
       reportedUser = reportedMedia.user_id || '';
+      location = reportedMedia.location || '';
+      mediaId = reportedMedia._id || '';
       mediaUrls = (reportedMedia.media || []).map(
-        (url) => `${BASE_URL}${url}`
+        (url) => url.startsWith('http') ? url : `${BASE_URL}${url}`
       );
     } else if ('comment' in reportedMedia) {
       // Comment type structure
       reportedContent = reportedMedia.comment || apiReport.detail || '';
       reportedUser = reportedMedia.comment_by || '';
+      mediaId = reportedMedia._id || '';
     }
 
     // Map action_type to status: 3=deleted, 4=suspended, 1 or 2=active
@@ -182,18 +194,24 @@ export default function ContentModerationTabs({
     } else {
       status = 'active';
     }
+    
     let mediaStatus: 'active' | 'suspended' | 'deleted';
-    if (apiReport.reported_media_id.action_type === 3) {
+    if (reportedMedia.action_type === 3) {
       mediaStatus = 'deleted';
-    } else if (apiReport.reported_media_id.action_type === 4) {
+    } else if (reportedMedia.action_type === 4) {
       mediaStatus = 'suspended';
     } else {
       mediaStatus = 'active';
     }
 
+    // Handle null created_by (anonymous reporter)
+    const reporterName = apiReport.created_by 
+      ? (apiReport.created_by.user_name || apiReport.created_by.email)
+      : 'Anonymous';
+
     return {
       id: apiReport._id,
-      reporterName: apiReport.created_by.user_name || apiReport.created_by.email,
+      reporterName,
       reportedContent,
       reasonCode: apiReport.reason,
       timestamp: formattedDate,
@@ -205,6 +223,11 @@ export default function ContentModerationTabs({
         ? (reportedMedia.media_type === 'video' || mediaUrls[0]?.endsWith('.mp4') ? 'video' as const : 'image' as const) 
         : null,
       mediaUrls,
+      escalation: apiReport.escalation,
+      reportedMediaType: apiReport.reported_media_type,
+      mediaId,
+      detail: apiReport.detail,
+      location,
     };
   }, []);
 

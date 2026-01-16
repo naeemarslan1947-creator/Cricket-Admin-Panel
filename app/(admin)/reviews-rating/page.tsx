@@ -90,9 +90,11 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
     ? 'Club Admin' as const 
     : 'Player' as const;
 
-  const reviewedSubject = apiReview.user_id.is_club === true
-    ? (apiReview.user_id.club_name || apiReview.user_id.full_name || 'Unknown Club')
-    : (apiReview.user_id.full_name || 'Unknown Player');
+  const reviewedSubject = apiReview.user_id === null
+    ? 'Unknown Subject'
+    : apiReview.user_id.is_club === true
+      ? (apiReview.user_id.club_name || apiReview.user_id.full_name || 'Unknown Club')
+      : (apiReview.user_id.full_name || 'Unknown Player');
 
   const reviewer = apiReview.created_by.full_name || apiReview.created_by.user_name || 'Unknown Reviewer';
 
@@ -109,7 +111,7 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
     isVerified: apiReview.is_verified,
     type: reviewerType,
     status,
-    userId: apiReview.user_id._id,
+    userId: apiReview.user_id?._id || '',
     reviewerId: apiReview.created_by._id,
   };
 };
@@ -201,16 +203,34 @@ export default function ReviewsManagement() {
         url: GetReviewMetrics,
         method: 'GET',
       });
-
+      
       if (response?.data?.result) {
         const { reviewCount, reviewedUserCount, allRatings, trend, allReviews } = response.data.result;
 
         let averageRating = 0;
+        let totalRatingsFromAllSources = 0;
+        let ratingCount = 0;
+
         if (allRatings && allRatings.length > 0) {
-          const totalRating = allRatings.reduce((sum: number, item: RatingItem) => {
-            return sum + parseInt(item.rating, 10);
-          }, 0);
-          averageRating = totalRating / allRatings.length;
+          allRatings.forEach((item: RatingItem) => {
+            const rating = parseInt(item.rating, 10);
+            if (rating > 0) {
+              totalRatingsFromAllSources += rating;
+              ratingCount++;
+            }
+          });
+        }
+
+        if (allReviews && allReviews.length > 0) {
+          allReviews.forEach((review: ReviewItem) => {
+            if (review.rating !== undefined && review.rating > 0) {
+              totalRatingsFromAllSources += review.rating;
+              ratingCount++;
+            }
+          });
+        }
+        if (ratingCount > 0) {
+          averageRating = totalRatingsFromAllSources / ratingCount;
         }
 
         const currentMonth = new Date().getMonth();

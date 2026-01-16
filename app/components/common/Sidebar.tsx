@@ -3,10 +3,11 @@
 import { useRouter, usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, Users, Building2, Shield,  
-  Star, CreditCard, AlertTriangle, BarChart3, 
+  Star, AlertTriangle, BarChart3, 
   FileText, Settings, ChevronLeft, ChevronRight, 
   Download,
-  Bell
+  Bell,
+  User
 } from 'lucide-react';
 import Image from 'next/image';
 import { useSelector } from 'react-redux';
@@ -54,9 +55,28 @@ const getUserRole = (user: ReduxUser | null | undefined) => {
 
 // Helper to get user avatar
 const getUserAvatar = (user: ReduxUser | null | undefined) => {
-    if (user?.avatar) return BASE_URL + user.avatar
-    if (user?.profile_pic) return BASE_URL + user.profile_pic
-    if (user?.profile_media) return BASE_URL + user.profile_media
+    const avatar = user?.avatar
+    const profilePic = user?.profile_pic
+    const profileMedia = user?.profile_media
+    
+    if (avatar && typeof avatar === 'string' && avatar.trim() !== '') {
+        const avatarUrl = BASE_URL + avatar
+        if (avatarUrl && avatarUrl !== 'undefined' && avatarUrl.trim() !== '') {
+            return avatarUrl
+        }
+    }
+    if (profilePic && typeof profilePic === 'string' && profilePic.trim() !== '') {
+        const picUrl = BASE_URL + profilePic
+        if (picUrl && picUrl !== 'undefined' && picUrl.trim() !== '') {
+            return picUrl
+        }
+    }
+    if (profileMedia && typeof profileMedia === 'string' && profileMedia.trim() !== '') {
+        const mediaUrl = BASE_URL + profileMedia
+        if (mediaUrl && mediaUrl !== 'undefined' && mediaUrl.trim() !== '') {
+            return mediaUrl
+        }
+    }
     return null
 }
 
@@ -191,15 +211,19 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#e2e8f0] bg-gradient-to-r from-blue-50 to-green-50">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#00C853] to-[#007BFF] flex items-center justify-center shadow-lg overflow-hidden">
-              {getUserAvatar(user) ? (
-                <img 
-                  src={getUserAvatar(user) || ''} 
-                  alt={getUserName(user)} 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="text-white text-sm">{getAvatarInitial(user)}</span>
-              )}
+              {(() => {
+                const avatarUrl = getUserAvatar(user)
+                if (avatarUrl) {
+                  return (
+                    <img 
+                      src={avatarUrl} 
+                      alt={getUserName(user)} 
+                      className="w-full h-full object-cover"
+                    />
+                  )
+                }
+                return <User className="w-5 h-5 text-white" />
+              })()}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-[#1e293b] truncate">{getUserName(user)}</p>

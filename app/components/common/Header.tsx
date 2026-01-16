@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {  Bell, User, LogOut, ChevronDown } from 'lucide-react'
 import { useSelector, useDispatch } from 'react-redux'
@@ -111,9 +111,28 @@ export default function Header() {
     
     // Helper to get user avatar
     const getUserAvatar = () => {
-        if (user?.avatar) return BASE_URL + user.avatar
-        if (user?.profile_pic) return BASE_URL + user.profile_pic
-        if (user?.profile_media) return BASE_URL + user.profile_media
+        const avatar = user?.avatar
+        const profilePic = user?.profile_pic
+        const profileMedia = user?.profile_media
+        if (avatar && typeof avatar === 'string' && avatar.trim() !== '') {
+            const avatarUrl = BASE_URL + avatar
+            if (avatarUrl && avatarUrl !== 'undefined' && avatarUrl.trim() !== '') {
+                return avatarUrl
+            }
+        }
+        if (profilePic && typeof profilePic === 'string' && profilePic.trim() !== '') {
+            const picUrl = BASE_URL + profilePic
+            if (picUrl && picUrl !== 'undefined' && picUrl.trim() !== '') {
+                return picUrl
+            }
+        }
+        if (profileMedia && typeof profileMedia === 'string' && profileMedia.trim() !== '') {
+            const mediaUrl = BASE_URL + profileMedia
+            if (mediaUrl && mediaUrl !== 'undefined' && mediaUrl.trim() !== '') {
+                return mediaUrl
+            }
+        }
+        console.log('No avatar found, returning null')
         return null
     }
     
@@ -128,7 +147,6 @@ export default function Header() {
     const closeUserMenu = () => {
         setShowUserMenu(false)
     };
-
 
     return (
         <header className="h-16 bg-white border-b border-[#e2e8f0] flex items-center justify-between px-6 sticky top-0 z-40">
@@ -168,15 +186,19 @@ export default function Header() {
                         className="flex items-center gap-2 px-2 py-1 hover:bg-[#F8FAFC] rounded-lg transition-colors"
                     >
                         <div className="w-8 h-8 rounded-full bg-linear-to-br from-[#00C853] to-[#007BFF] flex items-center justify-center overflow-hidden">
-                            {getUserAvatar() ? (
-                                <img 
-                                    src={getUserAvatar() || ''} 
-                                    alt={getUserName()} 
-                                    className="w-full h-full object-cover"
-                                />
-                            ) : (
-                                <User className="w-4 h-4 text-white" />
-                            )}
+                            {(() => {
+                                const avatarUrl = getUserAvatar()
+                                if (avatarUrl) {
+                                    return (
+                                        <img 
+                                            src={avatarUrl} 
+                                            alt={getUserName()} 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    )
+                                }
+                                return <User className="w-4 h-4 text-white" />
+                            })() as React.ReactNode}
                         </div>
                         <div className="text-left hidden md:block">
                             <p className="text-sm text-[#1e293b]">{getUserName()}</p>

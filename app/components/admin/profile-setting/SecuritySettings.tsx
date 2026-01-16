@@ -100,7 +100,7 @@ const SecuritySettings = () => {
           <CardDescription className="text-[#64748b]">Manage your account security</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+          {/* <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
             <div>
               <p className="text-sm text-[#1e293b]">Two-Factor Authentication</p>
               <p className="text-xs text-[#64748b]">Add an extra layer of security</p>
@@ -108,7 +108,7 @@ const SecuritySettings = () => {
             <Badge className= 'bg-green-100 text-green-700'>
               Enabled
             </Badge>
-          </div>
+          </div> */}
 
           <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
             <div>

@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search, Bell, User, LogOut, ChevronDown } from 'lucide-react'
+import {  Bell, User, LogOut, ChevronDown } from 'lucide-react'
 import { useSelector, useDispatch } from 'react-redux'
 import { RootState } from '@/redux/reducer'
 import makeRequest from "@/Api's/apiHelper"
@@ -20,39 +20,75 @@ export default function Header() {
     const { user } = useAuth()
     const notificationCount = useSelector((state: RootState) => state.notificationCount)
     
-    const fetchNotificationCount = useCallback(async () => {
-        if (!user?._id) return
+    const hasFetchedRef = useRef(false)
+    const isFetchingRef = useRef(false)
+    const getUserId = useCallback(() => {
+        if (user?._id) return user._id
+        if (typeof window !== 'undefined') {
+            try {
+                const storedUser = localStorage.getItem('user')
+                if (storedUser) {
+                    const parsedUser = JSON.parse(storedUser)
+                    if (parsedUser?._id) return parsedUser._id
+                }
+            } catch (e) {
+                console.error('Error parsing stored user:', e)
+            }
+        }
+        return null
+    }, [user])
+    
+    const fetchAndSetNotificationCount = useCallback(async () => {
+        const userId = getUserId()
+        if (!userId || isFetchingRef.current) return
+        isFetchingRef.current = true
         
         try {
             const response = await makeRequest<unknown[]>({
                 url: GetUnreadNotifications,
                 method: "GET",
-                params: { user_id: user._id },
+                params: { user_id: userId },
             })
             
-            const notifications = response.data ?? []
-            const count = Array.isArray(notifications) ? notifications.length : 0
+            const responseData = response.data as Record<string, unknown> | unknown[] | undefined
+            let notifications: unknown[] = []
+            
+            if (Array.isArray(responseData)) {
+                notifications = responseData
+            } else if (responseData && typeof responseData === 'object' && 'result' in responseData) {
+                const result = (responseData as { result?: unknown[] }).result
+                notifications = Array.isArray(result) ? result : []
+            }
+            
+            const count = notifications.length
             dispatch(setNotificationCount(count))
+            hasFetchedRef.current = true
         } catch (error) {
             console.error("Error fetching notification count:", error)
-            // Keep existing count on error
+            hasFetchedRef.current = true
         } finally {
+            isFetchingRef.current = false
         }
-    }, [user, dispatch])
+    }, [dispatch, getUserId])
     
+    // Watch for user availability and fetch notification count
     useEffect(() => {
-        fetchNotificationCount()
-    }, [fetchNotificationCount])
+        const userId = getUserId()
+        
+        if (userId && !hasFetchedRef.current && !isFetchingRef.current) {
+            fetchAndSetNotificationCount()
+        }
+    }, [user, fetchAndSetNotificationCount, getUserId])
     
     // Listen for notification updates from other components
     useEffect(() => {
         const handleNotificationUpdate = () => {
-            fetchNotificationCount()
+            fetchAndSetNotificationCount()
         }
         
         window.addEventListener('notificationCountUpdated', handleNotificationUpdate)
         return () => window.removeEventListener('notificationCountUpdated', handleNotificationUpdate)
-    }, [fetchNotificationCount])
+    }, [fetchAndSetNotificationCount])
     
     const getUserName = () => {
         if (user?.user_name) return user.user_name

@@ -41,6 +41,9 @@ import { Card, CardContent } from "@/app/components/ui/card";
 import makeRequest from "@/Api's/apiHelper";
 import {  GetUserById } from "@/Api's/repo";
 
+// Base URL for API images
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+
 type User = {
   id: string;
   name: string;
@@ -63,6 +66,13 @@ type User = {
   stories?: number;
   likes?: number;
   userLogs?: UserLog[];
+};
+
+// Helper function to get full image URL
+const getFullImageUrl = (url: string) => {
+  if (!url || url === 'undefined' || url.trim() === '') return '';
+  if (url.startsWith('http')) return url;
+  return `${BASE_URL}${url}`;
 };
 
 type UserLog = {
@@ -146,7 +156,7 @@ const fetchUserData = useCallback(async () => {
         dateOfBirth: userInfo?.date_of_birth
           ? new Date(userInfo.date_of_birth as string).toLocaleDateString()
           : '-',
-        profilePic: String(userInfo?.profile_pic || ''),
+        profilePic: getFullImageUrl(String(userInfo?.profile_pic || '')),
         followers: (relatedData?.followers as Array<unknown>)?.length || 0,
         following: (relatedData?.following as Array<unknown>)?.length || 0,
         posts: (relatedData?.posts as Array<unknown>)?.length || 0,

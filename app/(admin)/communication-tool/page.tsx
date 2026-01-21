@@ -484,14 +484,6 @@ export default function CommunicationTools() {
             <div className="flex items-center justify-center py-12">
               <Loader />
             </div>
-          ) : notifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <MessagesSquare className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No notifications found</h3>
-              <p className="text-gray-500">There are no push notifications to display.</p>
-            </div>
           ) : (
             <PushNotification 
               sentNotifications={notifications} 
@@ -509,14 +501,6 @@ export default function CommunicationTools() {
           {loadingNotifications ? (
             <div className="flex items-center justify-center py-12">
               <Loader />
-            </div>
-          ) : announcements.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <MessagesSquare className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No announcements found</h3>
-              <p className="text-gray-500">There are no in-app announcements to display.</p>
             </div>
           ) : (
             <InAppAnnouncements 
@@ -536,15 +520,7 @@ export default function CommunicationTools() {
             <div className="flex items-center justify-center py-12">
               <Loader />
             </div>
-          ) : scheduledNotifications.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <Clock className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-1">No scheduled notifications found</h3>
-              <p className="text-gray-500">There are no scheduled notifications to display.</p>
-            </div>
-          ) : (
+          ) :  (
             <ScheduledNotifications 
               scheduledNotifications={scheduledNotifications} 
               setShowNewScheduled={setShowNewScheduled} 

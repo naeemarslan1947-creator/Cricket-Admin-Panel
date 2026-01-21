@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
-import { AlertCircle, Clock, Edit2, Plus, Send, Target, Trash2 } from 'lucide-react'
+import { AlertCircle, Clock,  Plus, Send, Target } from 'lucide-react'
 import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
@@ -286,57 +286,47 @@ const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({
               {/* Active Rules */}
               <div>
                 <h4 className="text-[#1e293b] mb-3">Active Notification Rules</h4>
-                <div className="space-y-3">
-                  {scheduledNotifications.map((scheduled) => (
-                    <Card key={scheduled.id} className="border-[#e2e8f0]">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-[#1e293b]">{scheduled.title}</h4>
-                              <Badge className={scheduled.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
-                                {scheduled.status}
-                              </Badge>
-                              <Badge variant="outline">{scheduled.targetAudience}</Badge>
-                            </div>
-                            <p className="text-sm text-[#64748b] mb-2">{scheduled.message}</p>
-                            <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
-                              <span className="flex items-center gap-1">
-                                <Target className="w-3 h-3" />
-                                Trigger: {scheduled.trigger}
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Send className="w-3 h-3" />
-                                Sent {scheduled.sentCount} times
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                Last: {scheduled.lastTriggered}
-                              </span>
+                {scheduledNotifications.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-[#64748b] mb-2">No scheduled notifications found</p>
+                    <p className="text-sm text-[#94a3b8] mb-4">There are no scheduled notification rules to display.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {scheduledNotifications.map((scheduled) => (
+                      <Card key={scheduled.id} className="border-[#e2e8f0]">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="text-[#1e293b]">{scheduled.title}</h4>
+                                <Badge className={scheduled.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}>
+                                  {scheduled.status}
+                                </Badge>
+                                <Badge variant="outline">{scheduled.targetAudience}</Badge>
+                              </div>
+                              <p className="text-sm text-[#64748b] mb-2">{scheduled.message}</p>
+                              <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
+                                <span className="flex items-center gap-1">
+                                  <Target className="w-3 h-3" />
+                                  Trigger: {scheduled.trigger}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Send className="w-3 h-3" />
+                                  Sent {scheduled.sentCount} times
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  Last: {scheduled.lastTriggered}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          {/* <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="border-[#e2e8f0]">
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            {scheduled.status === 'Active' ? (
-                              <Button variant="outline" size="sm" className="border-orange-200 text-orange-600">
-                                Pause
-                              </Button>
-                            ) : (
-                              <Button variant="outline" size="sm" className="border-green-200 text-green-600">
-                                Activate
-                              </Button>
-                            )}
-                            <Button variant="outline" size="sm" className="border-red-200 text-red-600">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div> */}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

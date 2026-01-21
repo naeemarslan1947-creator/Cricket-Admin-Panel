@@ -252,38 +252,38 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
               {/* Active Announcements */}
               <div>
                 <h4 className="text-[#1e293b] mb-3">Active & Scheduled Announcements</h4>
-                <div className="space-y-3">
-                  {announcements.map((announcement) => (
-                    <Card key={announcement.id} className="border-[#e2e8f0]">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-[#1e293b]">{announcement.title}</h4>
-                              <Badge className={announcement.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}>
-                                {announcement.status}
-                              </Badge>
-                              <Badge variant="outline">{announcement.displayLocation}</Badge>
-                            </div>
-                            <p className="text-sm text-[#64748b] mb-2">{announcement.content}</p>
-                            <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
-                              <span>{announcement.views.toLocaleString()} views</span>
-                              <span>{announcement.startDate} - {announcement.endDate}</span>
+                {announcements.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-[#64748b] mb-2">No announcements found</p>
+                    <p className="text-sm text-[#94a3b8] mb-4">There are no in-app announcements to display.</p>
+                   
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {announcements.map((announcement) => (
+                      <Card key={announcement.id} className="border-[#e2e8f0]">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="text-[#1e293b]">{announcement.title}</h4>
+                                <Badge className={announcement.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}>
+                                  {announcement.status}
+                                </Badge>
+                                <Badge variant="outline">{announcement.displayLocation}</Badge>
+                              </div>
+                              <p className="text-sm text-[#64748b] mb-2">{announcement.content}</p>
+                              <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
+                                <span>{announcement.views.toLocaleString()} views</span>
+                                <span>{announcement.startDate} - {announcement.endDate}</span>
+                              </div>
                             </div>
                           </div>
-                          {/* <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="border-[#e2e8f0]">
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button variant="outline" size="sm" className="border-red-200 text-red-600">
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div> */}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

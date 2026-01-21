@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
-import {  Clock, Edit2, Plus, Send, Users } from 'lucide-react'
+import {  Clock,  Plus, Send, Users } from 'lucide-react'
 import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
@@ -253,40 +253,42 @@ const PushNotification: React.FC<PushNotificationProps> = ({
 
               <div>
                 <h4 className="text-[#1e293b] mb-3">Recent Notifications</h4>
-                <div className="space-y-3">
-                  {sentNotifications.map((notification) => (
-                    <Card key={notification.id} className="border-[#e2e8f0]">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="text-[#1e293b]">{notification.title}</h4>
-                              <Badge className={notification.color}>{notification.type}</Badge>
-                              <Badge className="bg-green-100 text-green-700">{notification.status}</Badge>
-                            </div>
-                            <p className="text-sm text-[#64748b] mb-2">{notification.message}</p>
-                            <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
-                              <span className="flex items-center gap-1">
-                                <Users className="w-3 h-3" />
-                                {notification.recipients.toLocaleString()} recipients
-                              </span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {notification.sentDate}
-                              </span>
+                {sentNotifications.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-[#64748b] mb-2">No notifications found</p>
+                    <p className="text-sm text-[#94a3b8] mb-4">There are no push notifications to display.</p>
+                  
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {sentNotifications.map((notification) => (
+                      <Card key={notification.id} className="border-[#e2e8f0]">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h4 className="text-[#1e293b]">{notification.title}</h4>
+                                <Badge className={notification.color}>{notification.type}</Badge>
+                                <Badge className="bg-green-100 text-green-700">{notification.status}</Badge>
+                              </div>
+                              <p className="text-sm text-[#64748b] mb-2">{notification.message}</p>
+                              <div className="flex items-center gap-4 text-xs text-[#94a3b8]">
+                                <span className="flex items-center gap-1">
+                                  <Users className="w-3 h-3" />
+                                  {notification.recipients.toLocaleString()} recipients
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {notification.sentDate}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          {/* <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="border-[#e2e8f0]">
-                              <Edit2 className="w-4 h-4 mr-1" />
-                              Resend
-                            </Button>
-                          </div> */}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

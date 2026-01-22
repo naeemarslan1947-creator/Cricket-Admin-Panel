@@ -19,6 +19,7 @@ interface ReviewItem {
     is_club: boolean;
     club_name?: string;
     profile_pic?: string;
+    is_verified?: boolean;
   };
   review: string;
   action_type: number;
@@ -33,7 +34,7 @@ interface ReviewItem {
   };
   updated_at: string;
   created_at: string;
-  rating: number;
+  rating: string | number;
 }
 
 interface RatingItem {
@@ -99,16 +100,30 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
   const reviewer = apiReview.created_by.full_name || apiReview.created_by.user_name || 'Unknown Reviewer';
 
   const reviewerProfilePic = apiReview.created_by.profile_pic || '';
+  const subjectProfilePic = apiReview.user_id?.profile_pic || '';
+  const subjectIsVerified = apiReview.user_id?.is_verified || false;
+
+  // Parse rating - handle both string and number
+  // rating "0" or 0 means no rating set, positive values are actual ratings
+  const ratingValue = typeof apiReview.rating === 'string' 
+    ? parseInt(apiReview.rating, 10) 
+    : apiReview.rating;
+  const hasRating = ratingValue > 0;
+
+  console.log('📢[mapApiReviewToReview]: ratingValue', ratingValue, 'hasRating', hasRating, 'apiReview.rating', apiReview.rating);
 
   return {
     id: apiReview._id as unknown as number,
     club: reviewedSubject,
     reviewer: reviewer,
     reviewerProfilePic: reviewerProfilePic,
+    subjectProfilePic: subjectProfilePic,
     date: formattedDate,
     comment: apiReview.review,
-    rating: apiReview.rating,
+    rating: ratingValue,
+    hasRating: hasRating,
     isVerified: apiReview.is_verified,
+    subjectIsVerified: subjectIsVerified,
     type: reviewerType,
     status,
     userId: apiReview.user_id?._id || '',
@@ -184,10 +199,13 @@ export default function ReviewsManagement() {
     club: string;
     reviewer: string;
     reviewerProfilePic: string;
+    subjectProfilePic: string;
     date: string;
     comment: string;
     rating: number;
+    hasRating: boolean;
     isVerified: boolean;
+    subjectIsVerified: boolean;
     type: 'Player' | 'Club Admin' | 'Youth' | 'Parent';
     status: 'Active' | 'Deleted' | 'Suspended';
     userId: string;
@@ -223,8 +241,11 @@ export default function ReviewsManagement() {
 
         if (allReviews && allReviews.length > 0) {
           allReviews.forEach((review: ReviewItem) => {
-            if (review.rating !== undefined && review.rating > 0) {
-              totalRatingsFromAllSources += review.rating;
+            const ratingValue = typeof review.rating === 'string' 
+              ? parseInt(review.rating, 10) 
+              : review.rating;
+            if (review.rating !== undefined && ratingValue > 0) {
+              totalRatingsFromAllSources += ratingValue;
               ratingCount++;
             }
           });
@@ -299,7 +320,7 @@ export default function ReviewsManagement() {
         trendData={trendData}
       />
       <ReviewsManagementList reviews={reviews} onStatusChange={handleStatusChange} />
-      <ReviewTable aggregateRatings={aggregateRatings} isLoading={isLoading} />
+      {/* <ReviewTable aggregateRatings={aggregateRatings} isLoading={isLoading} /> */}
     </div>
   );
 }

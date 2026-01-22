@@ -1,4 +1,4 @@
-import { XCircle, CheckCircle, Star, ShieldCheck } from 'lucide-react';
+import { XCircle, CheckCircle, Star, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/app/components/ui/card';
 import { Badge } from '@/app/components/ui/badge';
@@ -12,10 +12,13 @@ interface Review {
   club: string;
   reviewer: string;
   reviewerProfilePic?: string;
+  subjectProfilePic?: string;
   date: string;
   comment: string;
   rating?: number;
+  hasRating?: boolean;
   isVerified?: boolean;
+  subjectIsVerified?: boolean;
   type: 'Player' | 'Club Admin' | 'Youth' | 'Parent';
   status: 'Active' | 'Deleted' | 'Suspended';
   userId?: string;
@@ -63,7 +66,12 @@ export default function ReviewsManagementList({ reviews, onStatusChange }: Revie
     setDialogOpen(true);
   };
 
-  const renderStars = (rating: number) => {
+  const renderStars = (rating: number, hasRating: boolean) => {
+    if (!hasRating) {
+      return (
+        <span className="text-sm text-gray-400 italic">No rating</span>
+      );
+    }
     return (
       <div className="flex items-center gap-0.5">
         {[1, 2, 3, 4, 5].map((star) => (
@@ -92,23 +100,39 @@ export default function ReviewsManagementList({ reviews, onStatusChange }: Revie
         </CardHeader>
         <CardContent className="space-y-4">
           {reviews.map((review) => {
-            const profilePicUrl = getFullProfilePicUrl(review.reviewerProfilePic);
+            const reviewerProfilePicUrl = getFullProfilePicUrl(review.reviewerProfilePic);
+            const subjectProfilePicUrl = getFullProfilePicUrl(review.subjectProfilePic);
             
             return (
               <div key={review.id} className="p-4 border border-[#e2e8f0] rounded-lg hover: transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="text-[#1e293b]">{review.club}</h4>
-                      {review.isVerified && (
-                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                      {/* Subject profile pic */}
+                      {subjectProfilePicUrl && (
+                        <img
+                          src={subjectProfilePicUrl}
+                          alt={review.club}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      )}
+                      <h4 className="text-[#1e293b] font-medium">{review.club}</h4>
+                      {review.subjectIsVerified && (
+                        <span title="Verified">
+                          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                        </span>
+                      )}
+                      {!review.subjectIsVerified && (
+                        <span title="Not Verified">
+                          <ShieldAlert className="w-4 h-4 text-gray-400" />
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-[#64748b]">
                       {/* Reviewer Profile Pic */}
-                      {profilePicUrl && (
+                      {reviewerProfilePicUrl && (
                         <img
-                          src={profilePicUrl}
+                          src={reviewerProfilePicUrl}
                           alt={review.reviewer}
                           className="w-5 h-5 rounded-full object-cover"
                         />
@@ -123,7 +147,7 @@ export default function ReviewsManagementList({ reviews, onStatusChange }: Revie
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {review.rating !== undefined && renderStars(review.rating)}
+                    {renderStars(review.rating || 0, review.hasRating || false)}
                     <Badge className={`${getStatusBadgeClass(review.status)} hover:${getStatusBadgeClass(review.status).split(' ')[0]}`}>
                       {review.status}
                     </Badge>

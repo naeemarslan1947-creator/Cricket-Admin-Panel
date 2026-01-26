@@ -8,6 +8,8 @@ interface ClubInfoSectionProps {
   club: ClubDetail;
 }
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -39,15 +41,41 @@ export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
 
   return (
     <>
-      {/* Club Card */}
-      <Card className="border-slate-200  overflow-hidden">
-        <div className="relative bg-gradient-to-br from-emerald-50 via-white to-blue-50/30 px-6 pt-8 pb-6">
-          <div className="flex flex-col items-center text-center">
-            {/* Club Logo/Icon */}
-            <div className="relative mb-4">
-              <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-emerald-200 via-emerald-100 to-white flex items-center justify-center text-emerald-700 text-5xl border-2 border-white shadow-lg ring-1 ring-emerald-200/50">
-                {club.name.charAt(0)}
-              </div>
+      {/* Cover & Profile imgs Card */}
+      <Card className="border-slate-200 overflow-hidden">
+        {/* Cover Picture */}
+        {club.coverPic ? (
+          <div className="relative w-full h-40 bg-slate-200 overflow-hidden">
+            <img
+              src={`${API_BASE_URL}${club.coverPic}`}
+              alt="Club Cover"
+              className="object-cover hover:scale-105 transition-transform duration-300"
+            />
+          </div>
+        ) : (
+          <div className="relative w-full h-40 bg-linear-to-br from-emerald-50 via-blue-50 to-purple-50" />
+        )}
+
+        {/* Profile Info Section */}
+        <div className="relative px-6 pt-4 pb-6">
+          {/* Profile Picture */}
+          <div className="flex flex-col items-center">
+            <div className="relative -mt-20 mb-4">
+              {club.profilePic ? (
+                <div className="w-32 h-32 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-white shrink-0">
+                  <img
+                    src={`${API_BASE_URL}${club.profilePic}`}
+                    alt="Club Profile"
+                    width={128}
+                    height={128}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-32 h-32 rounded-2xl bg-linear-to-br from-emerald-200 via-emerald-100 to-white flex items-center justify-center text-emerald-700 text-5xl border-4 border-white shadow-lg">
+                  {club.name.charAt(0)}
+                </div>
+              )}
               {club.verified && (
                 <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center border-2 border-white shadow-md">
                   <Shield className="w-5 h-5 text-white" />
@@ -109,7 +137,7 @@ export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
 
       {/* Description Card */}
       <Card className="border-slate-200  overflow-hidden">
-        <div className="px-5 py-4 bg-gradient-to-br from-slate-50 to-white border-b border-slate-100">
+        <div className="px-5 py-4 bg-linear-to-br from-slate-50 to-white border-b border-slate-100">
           <h3 className="text-sm font-medium text-[#0f172a] flex items-center gap-2">
             <Shield className="w-4 h-4 text-slate-600" />
             About Club
@@ -147,7 +175,7 @@ export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
 
       {/* Statistics Card */}
       <Card className="border-slate-200  overflow-hidden">
-        <div className="px-5 py-4 bg-gradient-to-br from-purple-50 to-white border-b border-purple-100">
+        <div className="px-5 py-4 bg-linear-to-br from-purple-50 to-white border-b border-purple-100">
           <h3 className="text-sm font-medium text-[#0f172a] flex items-center gap-2">
             <BarChart3 className="w-4 h-4 text-purple-600" />
             Performance Metrics

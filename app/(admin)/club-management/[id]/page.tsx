@@ -11,7 +11,10 @@ import { ClubDetail, mapGetClubByIdResponseToDetail, GetClubByIdResponse } from 
 import ClubInfoSection from '@/app/components/admin/club-management/id/ClubInfoSection';
 import ClubMilestonesSection from '@/app/components/admin/club-management/id/ClubAchievementsSection';
 import ClubPlayersSection from '@/app/components/admin/club-management/id/ClubPlayersSection';
+import PostsGallerySection from '@/app/components/admin/club-management/id/PostsGallerySection';
 import ClubActionsSection from '@/app/components/admin/club-management/id/ClubActionsSection';
+import ReviewsRatingsSection from '@/app/components/admin/club-management/id/ReviewsRatingsSection';
+import ActivityLogsSection from '@/app/components/admin/club-management/id/ActivityLogsSection';
 import EditProfileModal from '@/app/components/admin/club-management/id/EditProfileModal';
 import AchievementsModal from '@/app/components/admin/club-management/id/AchievementsModal';
 import InviteModal from '@/app/components/admin/club-management/id/InviteModal';
@@ -288,6 +291,16 @@ export default function ClubProfilePage() {
             <ClubPlayersSection 
               onViewAll={() => setViewPlayersOpen(true)}
               teams={club?.teams}
+            />
+            <PostsGallerySection 
+              club={club}
+            />
+            <ReviewsRatingsSection 
+              ratings={club.userRatings}
+              reviews={club.userReviews}
+            />
+            <ActivityLogsSection 
+              logs={club.userLogs}
             />
             <ClubActionsSection 
               onEditProfile={() => setEditProfileOpen(true)}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Edit, MoreVertical, Star, Trash2, Ban } from 'lucide-react';
+import { Edit, MoreVertical, Star, Trash2, Ban, RotateCcw } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
 import { Button } from '../../ui/button';
@@ -9,8 +9,12 @@ import { Badge } from '../../ui/badge';
 import { User } from '../../../types/users'; 
 import { useRouter } from "next/navigation";
 import { useState } from 'react';
+import { toastError, toastSuccess } from '@/app/helper/toast';
+import makeRequest from "@/Api's/apiHelper";
+import { UpdateUserApiCall } from "@/Api's/repo";
 import SuspendDialog from '../users-management/id/SuspendDialog';
 import DeleteDialog from '../users-management/id/DeleteDialog';
+import PermanentDeleteDialog from '../users-management/id/PermanentDeleteDialog';
 import Pagination from '../../common/Pagination';
 
 interface UsersManagementTableProps {
@@ -33,8 +37,9 @@ export default function UsersManagementTable({
   onUserUpdated,
 }: UsersManagementTableProps) {
   const router = useRouter();
-  const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
+const [suspendDialogOpen, setSuspendDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [permanentDeleteDialogOpen, setPermanentDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const getStatusBadge = (status: string) => {
@@ -86,9 +91,46 @@ export default function UsersManagementTable({
     setSuspendDialogOpen(true);
   };
 
-  const handleDelete = (user: User) => {
+const handleDelete = (user: User) => {
     setSelectedUser(user);
     setDeleteDialogOpen(true);
+  };
+
+const handlePermanentDelete = (user: User) => {
+    setSelectedUser(user);
+    setPermanentDeleteDialogOpen(true);
+  };
+
+  const handleRestore = async (user: User) => {
+    if (!user.id) {
+      toastError("User ID is missing");
+      return;
+    }
+
+    try {
+      const response = await makeRequest({
+        url: UpdateUserApiCall,
+        method: "POST",
+        data: {
+          _id: user.id,
+          action_type: 2,
+        },
+      });
+
+      if (response.status === 200) {
+        toastSuccess("User account restored successfully!");
+        
+        if (onUserUpdated) {
+          onUserUpdated();
+        }
+      } else {
+        toastError(response.message || "Failed to restore user account");
+      }
+    } catch (error) {
+      console.error("Error restoring user account:", error);
+      const errorMessage = error instanceof Error ? error.message : "An error occurred while restoring the user account";
+      toastError(errorMessage);
+    }
   };
 
   // Filter out club users (only show non-club users)
@@ -164,11 +206,29 @@ export default function UsersManagementTable({
                             <Ban className="w-4 h-4 mr-2" />
                             Activate Account
                           </DropdownMenuItem>
-                        ) : user.status === "Deleted" ? (
-                          <DropdownMenuItem disabled>
-                            <Ban className="w-4 h-4 mr-2" />
-                            Cannot Modify (Deleted)
-                          </DropdownMenuItem>
+) : user.status === "Deleted" ? (
+                          <>
+                            <DropdownMenuItem disabled>
+                              <Ban className="w-4 h-4 mr-2" />
+                              Cannot Modify (Deleted)
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-green-600"
+                              onClick={() => handleRestore(user)}
+                            >
+                              <RotateCcw className="w-4 h-4 mr-2" />
+                              Restore
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => handlePermanentDelete(user)}
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Permanent Delete
+                            </DropdownMenuItem>
+                          </>
                         ) : (
                           <DropdownMenuItem 
                             className="text-orange-600"
@@ -216,9 +276,15 @@ export default function UsersManagementTable({
             suspendReason=""
             onSuccess={onUserUpdated}
           />
-          <DeleteDialog
+<DeleteDialog
             open={deleteDialogOpen}
             onOpenChange={setDeleteDialogOpen}
+            selectedUser={selectedUser}
+            onSuccess={onUserUpdated}
+          />
+          <PermanentDeleteDialog
+            open={permanentDeleteDialogOpen}
+            onOpenChange={setPermanentDeleteDialogOpen}
             selectedUser={selectedUser}
             onSuccess={onUserUpdated}
           />

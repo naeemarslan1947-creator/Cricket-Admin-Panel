@@ -9,6 +9,57 @@ export enum ActionType {
 }
 
 /**
+ * Club Details (nested inside ClubUser from API response)
+ */
+export interface ClubDetails {
+  _id: string;
+  user_id: {
+    _id: string;
+    user_name: string;
+    email: string;
+    is_user_verified: boolean;
+    full_name: string;
+    is_club: boolean;
+    is_club_verified: boolean;
+    action_type: ActionType;
+    is_admin: boolean;
+    is_teenager: boolean;
+    signed_up: boolean;
+    updated_at: string;
+    created_at: string;
+    __v?: number;
+    last_active?: string;
+    code?: string | null;
+    code_timeout?: string;
+    profile_pic?: string;
+    address: string;
+    bio: string;
+    city: string;
+    club_name: string;
+    club_type: string;
+    division: string;
+    postcode: string;
+    fcm_token?: string;
+    cover_pic?: string;
+  };
+  matches_won: number;
+  mathes_played: number;
+  finals_won: number;
+  finals_played: number;
+  titles_won: string[];
+  player_awards: Array<{
+    _id: string;
+    title: string;
+    year: string;
+    description?: string;
+  }>;
+  action_type: ActionType;
+  updated_at: string;
+  created_at: string;
+  __v?: number;
+}
+
+/**
  * Club User (from API response)
  */
 export interface ClubUser {
@@ -21,9 +72,10 @@ export interface ClubUser {
   is_club: boolean;
   is_club_verified: boolean;
   action_type: ActionType;
-  role_id: string[];
+  role_id?: string[];
   is_admin: boolean;
   is_teenager: boolean;
+  signed_up?: boolean;
   updated_at: string;
   created_at: string;
   __v?: number;
@@ -36,7 +88,7 @@ export interface ClubUser {
   club_name: string;
   club_type: string;
   division: string;
-  phone_number: string;
+  phone_number?: string;
   postcode: string;
   fcm_token?: string;
   cover_pic?: string;
@@ -49,6 +101,7 @@ export interface ClubUser {
     created_at: string;
     __v?: number;
   };
+  club?: ClubDetails;
   club_rating?: number | null;
   followers: number;
   followings: number;
@@ -78,7 +131,7 @@ export interface Club {
   id?: string; // Alias for _id for compatibility
   name: string;
   location: string;
-  status: 'Verified' | 'Pending' | 'Hidden';
+  status: 'Verified' | 'Pending' | 'Hidden' | 'Deleted' | 'Suspended';
   rating: number;
   members: number;
   teams?: number | ClubTeam[]; // Can be number or array depending on context
@@ -104,6 +157,13 @@ export interface Club {
   isAdmin: boolean;
   createdAt: string;
   updatedAt: string;
+  // New fields from API response
+  userNameHandle: string;
+  isTeenager: boolean;
+  matchesWon: number;
+  matchesPlayed: number;
+  finalsWon: number;
+  finalsPlayed: number;
 }
 
 /**
@@ -127,9 +187,12 @@ export function getActionTypeLabel(actionType: ActionType): string {
 /**
  * Get status based on verification
  */
-export function getClubStatus(clubUser: ClubUser): 'Verified' | 'Pending' | 'Hidden' {
+export function getClubStatus(clubUser: ClubUser): 'Verified' | 'Pending' | 'Hidden' | 'Deleted' | 'Suspended' {
   if (clubUser.action_type === ActionType.DEACTIVATE) {
-    return 'Hidden';
+    return 'Suspended';
+  }
+  if (clubUser.action_type === ActionType.DELETE) {
+    return 'Deleted';
   }
   if (clubUser.is_club_verified && clubUser.is_user_verified) {
     return 'Verified';
@@ -143,14 +206,17 @@ export function getClubStatus(clubUser: ClubUser): 'Verified' | 'Pending' | 'Hid
 export function mapClubUserToClub(clubUser: ClubUser): Club {
   const status = getClubStatus(clubUser);
   
+  // Extract nested club data if available
+  const clubData = clubUser.club;
+  
   return {
     _id: clubUser._id,
     id: clubUser._id,
     name: clubUser.club_name || clubUser.full_name,
     location: `${clubUser.city}, ${clubUser.division}`,
     status,
-    rating: clubUser.club_rating || 0,
-    members: clubUser.followers || 0,
+    rating: clubUser.club_rating ?? 0,
+    members: clubUser.followers ?? 0,
     teams: 0, // Not in API response
     verified: clubUser.is_club_verified,
     description: clubUser.bio,
@@ -161,7 +227,7 @@ export function mapClubUserToClub(clubUser: ClubUser): Club {
     clubName: clubUser.club_name,
     clubType: clubUser.club_type,
     division: clubUser.division,
-    phoneNumber: clubUser.phone_number,
+    phoneNumber: clubUser.phone_number ?? '',
     bio: clubUser.bio,
     city: clubUser.city,
     postcode: clubUser.postcode,
@@ -174,6 +240,13 @@ export function mapClubUserToClub(clubUser: ClubUser): Club {
     isAdmin: clubUser.is_admin,
     createdAt: clubUser.created_at,
     updatedAt: clubUser.updated_at,
+    // New fields from API response
+    userNameHandle: clubUser.user_name,
+    isTeenager: clubUser.is_teenager,
+    matchesWon: clubData?.matches_won ?? 0,
+    matchesPlayed: clubData?.mathes_played ?? 0,
+    finalsWon: clubData?.finals_won ?? 0,
+    finalsPlayed: clubData?.finals_played ?? 0,
   };
 }
 
@@ -246,6 +319,53 @@ export interface ClubMilestone {
   __v?: number;
 }
 
+export interface UserRating {
+  _id: string;
+  user_id: string;
+  rating_type: string;
+  rating: string | number;
+  action_type: ActionType;
+  created_by: string;
+  updated_at: string;
+  created_at: string;
+  __v?: number;
+}
+
+export interface UserReview {
+  _id: string;
+  user_id: string;
+  review?: string;
+  rating_type: string;
+  rating: string | number;
+  action_type: ActionType;
+  created_by: string;
+  updated_at: string;
+  created_at: string;
+  __v?: number;
+}
+
+export interface UserLog {
+  _id: string;
+  user_id: string;
+  interacted_with_user_id?: string | null;
+  action_taken: number;
+  details: {
+    request: {
+      method: string;
+      path: string;
+      ip: string;
+      body: Record<string, unknown>;
+    };
+    response: {
+      statusCode: number;
+      duration_ms: number;
+    };
+  };
+  response_status: number;
+  created_at: string;
+  __v?: number;
+}
+
 export interface ClubRelatedData {
   is_following: boolean | null;
   followers: Array<{
@@ -312,6 +432,9 @@ export interface ClubRelatedData {
     _id: string;
     [key: string]: unknown;
   }>;
+  user_ratings?: UserRating[];
+  user_review?: UserReview[];
+  user_logs?: UserLog[];
 }
 
 /**
@@ -344,7 +467,7 @@ export interface ClubDetail {
   id?: string;
   name: string;
   address: string;
-  status: 'Verified' | 'Pending' | 'Hidden';
+  status: 'Verified' | 'Pending' | 'Hidden' | 'Deleted' | 'Suspended';
   rating: number;
   verified: boolean;
   description: string;
@@ -381,6 +504,9 @@ export interface ClubDetail {
   featuredAchievers: ClubRelatedData['featured_achievers'];
   moments: ClubRelatedData['moments'];
   trophies: ClubRelatedData['trophies'];
+  userRatings: UserRating[];
+  userReviews: UserReview[];
+  userLogs: UserLog[];
   
   // Computed
   followersCount: number;
@@ -388,6 +514,9 @@ export interface ClubDetail {
   postsCount: number;
   teamsCount: number;
   milestonesCount: number;
+  ratingsCount: number;
+  reviewsCount: number;
+  logsCount: number;
 }
 
 /**
@@ -404,7 +533,7 @@ export function mapGetClubByIdResponseToDetail(response: GetClubByIdResponse): C
     name: user.club_name || user.full_name,
     address: `${user.city}, ${user.division}`,
     status: getClubStatus(user),
-    rating: user.club_rating || 0,
+    rating: user.club_rating ?? 0,
     verified: user.is_club_verified,
     description: user.bio,
     actionType: user.action_type,
@@ -414,7 +543,7 @@ export function mapGetClubByIdResponseToDetail(response: GetClubByIdResponse): C
     clubName: user.club_name,
     clubType: user.club_type,
     division: user.division,
-    phoneNumber: user.phone_number,
+    phoneNumber: user.phone_number ?? '',
     bio: user.bio,
     city: user.city,
     postcode: user.postcode,
@@ -440,6 +569,9 @@ export function mapGetClubByIdResponseToDetail(response: GetClubByIdResponse): C
     featuredAchievers: relatedData.featured_achievers || [],
     moments: relatedData.moments || [],
     trophies: relatedData.trophies || [],
+    userRatings: relatedData.user_ratings || [],
+    userReviews: relatedData.user_review || [],
+    userLogs: relatedData.user_logs || [],
     
     // Computed counts
     followersCount: relatedData.followers?.length || 0,
@@ -447,5 +579,8 @@ export function mapGetClubByIdResponseToDetail(response: GetClubByIdResponse): C
     postsCount: relatedData.posts?.length || 0,
     teamsCount: relatedData.teams?.length || 0,
     milestonesCount: relatedData.milestones?.length || 0,
+    ratingsCount: relatedData.user_ratings?.length || 0,
+    reviewsCount: relatedData.user_review?.length || 0,
+    logsCount: relatedData.user_logs?.length || 0,
   };
 }

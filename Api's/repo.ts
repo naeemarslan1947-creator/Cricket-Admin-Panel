@@ -19,7 +19,9 @@ export const UpdateUserApiCall = API_BASE_URL + "api/user/update-user";
 
 export const SendResetPasswordEmail = API_BASE_URL + "api/admin-user/reset-password";
 
-export const DeleteUserAccount = API_BASE_URL + "api/admin-user/hard-delete-account";
+export const DeleteUserAccount = API_BASE_URL + "api/admin-user/soft-delete-account";
+
+export const PermanentDeleteUserAccount = API_BASE_URL + "api/admin-user/hard-delete-account";
 
 export const SuspendUserAccount = API_BASE_URL + "api/admin-user/suspend-account";
 

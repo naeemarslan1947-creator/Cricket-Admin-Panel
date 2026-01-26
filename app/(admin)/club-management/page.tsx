@@ -131,8 +131,17 @@ export default function ClubsManagement() {
     let filtered = clubList;
 
     if (status !== 'all') {
+      // Map filter values to status values
+      const statusMap: Record<string, string> = {
+        'verified': 'Verified',
+        'pending': 'Pending',
+        'suspended': 'Suspended',
+        'deleted': 'Deleted',
+        'hidden': 'Hidden',
+      };
+      const targetStatus = statusMap[status.toLowerCase()] || status;
       filtered = filtered.filter(
-        (club) => club.status?.toLowerCase() === status.toLowerCase()
+        (club) => club.status?.toLowerCase() === targetStatus.toLowerCase()
       );
     }
 
@@ -141,7 +150,9 @@ export default function ClubsManagement() {
       filtered = filtered.filter(
         (club) =>
           club.name?.toLowerCase().includes(query) ||
-          club.location?.toLowerCase().includes(query)
+          club.location?.toLowerCase().includes(query) ||
+          club.clubName?.toLowerCase().includes(query) ||
+          club.city?.toLowerCase().includes(query)
       );
     }
 
@@ -201,6 +212,7 @@ export default function ClubsManagement() {
           clubs={filteredClubs}
           isLoading={isLoading}
           onOverrideStatus={handleOpenStatusModal}
+          onRefresh={() => fetchClubs(currentPage, debouncedSearchQuery)}
         />
 
         {filteredClubs.length > 0 && (

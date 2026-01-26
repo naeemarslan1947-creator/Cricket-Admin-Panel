@@ -13,7 +13,6 @@ export default function PostsGallerySection({ club }: PostsGallerySectionProps) 
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Posts Section */}
       <Card className="border-slate-200 overflow-hidden">
         <div className="px-6 py-5 bg-linear-to-br from-cyan-50 to-white border-b border-cyan-100">
           <div className="flex items-center justify-between">
@@ -38,7 +37,7 @@ export default function PostsGallerySection({ club }: PostsGallerySectionProps) 
               {displayPosts.map((post) => (
                 <div
                   key={post._id}
-                  className="bg-white px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer group"
+                  className="bg-white px-4 py-3  transition-colors group"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
@@ -76,7 +75,6 @@ export default function PostsGallerySection({ club }: PostsGallerySectionProps) 
         </CardContent>
       </Card>
 
-      {/* Stories Section */}
       <Card className="border-slate-200 overflow-hidden">
         <div className="px-6 py-5 bg-linear-to-br from-rose-50 to-white border-b border-rose-100">
           <div className="flex items-center justify-between">
@@ -101,7 +99,7 @@ export default function PostsGallerySection({ club }: PostsGallerySectionProps) 
               {displayStories.map((story) => (
                 <div
                   key={story._id}
-                  className="bg-white px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer group"
+                  className="bg-white px-4 py-3 transition-colors group"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">

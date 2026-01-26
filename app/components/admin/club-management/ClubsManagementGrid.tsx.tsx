@@ -1,18 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { CheckCircle, Star, Users, MapPin, Shield, AlertCircle, Lock, RotateCcw, Trash2, Trophy, Target } from 'lucide-react';
+import { CheckCircle, Star, Users, MapPin, Shield, AlertCircle, Lock,  Trophy, Target } from 'lucide-react';
 import { Card, CardContent } from '../../ui/card';
 import { Button } from '../../ui/button';
 import { Badge } from '../../ui/badge';
 import { Skeleton } from '../../ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '../../ui/avatar';
-import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/app/components/ui/alert-dialog';
-import { PermanentDeleteUserAccount, updateClubProfile } from "@/Api's/repo";
-import makeRequest from "@/Api's/apiHelper";
-import { toastError, toastSuccess } from "@/app/helper/toast";
 import type { Club, ActionType } from '@/app/types/clubs';
 
 interface ClubsManagementGridProps {
@@ -22,97 +16,13 @@ interface ClubsManagementGridProps {
   onRefresh?: () => void;
 }
 
-export default function ClubsManagementGrid({ clubs, isLoading = false, onOverrideStatus, onRefresh }: ClubsManagementGridProps) {
+export default function ClubsManagementGrid({ clubs, isLoading = false, onOverrideStatus }: ClubsManagementGridProps) {
   const router = useRouter();
 
-  // Dialog state management
-  const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
-  const [permanentDeleteConfirmOpen, setPermanentDeleteConfirmOpen] = useState(false);
-  const [selectedClub, setSelectedClub] = useState<Club | null>(null);
-  const [isLoadingAction, setIsLoadingAction] = useState(false);
+  
 
-  // Handle Restore Club
-  const handleRestore = async () => {
-    if (!selectedClub?._id) {
-      toastError("Club ID is missing");
-      return;
-    }
 
-    setIsLoadingAction(true);
-    try {
-      const response = await makeRequest({
-        url: updateClubProfile,
-        method: "POST",
-        data: {
-          user_id: selectedClub._id,
-          action_type: 2, // EDIT action type for restore
-        },
-      });
-
-      if (response.status === 200) {
-        toastSuccess("Club restored successfully!");
-        setRestoreConfirmOpen(false);
-        setSelectedClub(null);
-        router.refresh();
-        onRefresh?.();
-      } else {
-        toastError((response.data as { message?: string })?.message || "Failed to restore club");
-      }
-    } catch (error) {
-      console.error("Error restoring club:", error);
-      const errorMessage = error instanceof Error ? error.message : "An error occurred while restoring the club";
-      toastError(errorMessage);
-    } finally {
-      setIsLoadingAction(false);
-    }
-  };
-
-  // Handle Permanent Delete Club
-  const handlePermanentDelete = async () => {
-    if (!selectedClub?._id) {
-      toastError("Club ID is missing");
-      return;
-    }
-
-    setIsLoadingAction(true);
-    try {
-      const response = await makeRequest({
-        url: PermanentDeleteUserAccount,
-        method: "POST",
-        data: {
-          user_id: selectedClub._id,
-        },
-      });
-
-      if (response.status === 200) {
-        toastSuccess("Club permanently deleted successfully!");
-        setPermanentDeleteConfirmOpen(false);
-        setSelectedClub(null);
-        router.refresh();
-        onRefresh?.();
-      } else {
-        toastError((response.data as { message?: string })?.message || "Failed to permanently delete club");
-      }
-    } catch (error) {
-      console.error("Error permanently deleting club:", error);
-      const errorMessage = error instanceof Error ? error.message : "An error occurred while permanently deleting the club";
-      toastError(errorMessage);
-    } finally {
-      setIsLoadingAction(false);
-    }
-  };
-
-  // Open restore confirmation dialog
-  const openRestoreDialog = (club: Club) => {
-    setSelectedClub(club);
-    setRestoreConfirmOpen(true);
-  };
-
-  // Open permanent delete confirmation dialog
-  const openPermanentDeleteDialog = (club: Club) => {
-    setSelectedClub(club);
-    setPermanentDeleteConfirmOpen(true);
-  };
+ 
 
   const getStatusBadge = (status: string, actionType: ActionType) => {
     if (actionType === 4) {
@@ -313,32 +223,7 @@ export default function ClubsManagementGrid({ clubs, isLoading = false, onOverri
 
             {/* Action Button */}
             <div className="flex gap-3">
-              {club.actionType === 3 ? (
-                // Deleted club - show Restore and Permanent Delete buttons
-                <>
-                  <Button
-                    className="flex-1 h-12 bg-green-600 hover:bg-green-700 text-white"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openRestoreDialog(club);
-                    }}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" />
-                    Restore
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1 h-12 border-red-300 text-red-600 hover:bg-red-50"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openPermanentDeleteDialog(club);
-                    }}
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
-                </>
-              ) : (
+           
                 <>
                   <Button
                     className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white"
@@ -363,55 +248,10 @@ export default function ClubsManagementGrid({ clubs, isLoading = false, onOverri
                     </Button>
                   )}
                 </>
-              )}
             </div>
           </CardContent>
         </Card>
       ))}
-      
-      {/* Restore Confirmation Dialog */}
-      <AlertDialog open={restoreConfirmOpen} onOpenChange={setRestoreConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Restore Club</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to restore {selectedClub?.name}? This will make the club active again.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoadingAction}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleRestore} 
-              className="bg-green-600 hover:bg-green-700"
-              disabled={isLoadingAction}
-            >
-              {isLoadingAction ? "Restoring..." : "Restore"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Permanent Delete Confirmation Dialog */}
-      <AlertDialog open={permanentDeleteConfirmOpen} onOpenChange={setPermanentDeleteConfirmOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Permanently Delete Club</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action is permanent and cannot be undone. This will permanently delete {selectedClub?.name} and remove all associated data from the system.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoadingAction}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handlePermanentDelete} 
-              className="bg-red-600 hover:bg-red-700"
-              disabled={isLoadingAction}
-            >
-              {isLoadingAction ? "Deleting..." : "Permanent Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+        </div>
   );
 }

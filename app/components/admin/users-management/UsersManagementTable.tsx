@@ -206,30 +206,7 @@ const handlePermanentDelete = (user: User) => {
                             <Ban className="w-4 h-4 mr-2" />
                             Activate Account
                           </DropdownMenuItem>
-) : user.status === "Deleted" ? (
-                          <>
-                            <DropdownMenuItem disabled>
-                              <Ban className="w-4 h-4 mr-2" />
-                              Cannot Modify (Deleted)
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-green-600"
-                              onClick={() => handleRestore(user)}
-                            >
-                              <RotateCcw className="w-4 h-4 mr-2" />
-                              Restore
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-red-600"
-                              onClick={() => handlePermanentDelete(user)}
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Permanent Delete
-                            </DropdownMenuItem>
-                          </>
-                        ) : (
+) : (
                           <DropdownMenuItem 
                             className="text-orange-600"
                             onClick={() => handleSuspend(user)}

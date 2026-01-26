@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "@/app/components/ui/alert-dialog";
 import { toastError, toastSuccess } from "@/app/helper/toast";
-import { DeleteUserAccount } from "@/Api's/repo";
+import { PermanentDeleteUserAccount } from "@/Api's/repo";
 import makeRequest from "@/Api's/apiHelper";
 
 interface DeleteDialogProps {
@@ -30,7 +30,7 @@ export default function DeleteDialog({
     setIsLoading(true);
     try {
       const response = await makeRequest({
-        url: DeleteUserAccount,
+        url: PermanentDeleteUserAccount,
         method: "POST",
         data: {
           user_id: selectedUser.id,

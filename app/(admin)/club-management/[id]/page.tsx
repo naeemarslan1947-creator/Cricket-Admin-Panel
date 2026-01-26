@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import makeRequest from '@/Api\'s/apiHelper';
-import { GetClubById, updateClubProfile } from '@/Api\'s/repo';
+import { DeleteUserAccount, GetClubById, updateClubProfile } from '@/Api\'s/repo';
 import { toastSuccess, toastError } from '@/app/helper/toast';
 import type { ApiResponse } from '@/Api\'s/types';
 import { ClubDetail, mapGetClubByIdResponseToDetail, GetClubByIdResponse } from '@/app/types/clubs';
@@ -100,11 +100,10 @@ export default function ClubProfilePage() {
       setDeleting(true);
       
       const response = await makeRequest<ApiResponse>({
-        url: updateClubProfile,
+        url: DeleteUserAccount,
         method: 'POST',
         data: {
           user_id: clubId,
-          action_type: 3,
         },
       });
 

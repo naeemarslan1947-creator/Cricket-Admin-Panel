@@ -4,7 +4,6 @@ import ReviewsManagementHeader from '@/app/components/admin/reviews-rating/Revie
 import ReviewsManagementSummary from '@/app/components/admin/reviews-rating/ReviewsManagementSummary';
 import ReviewsManagementTrendChart from '@/app/components/admin/reviews-rating/ReviewsManagementTrendChart';
 import ReviewsManagementList from '@/app/components/admin/reviews-rating/ReviewsManagementList';
-import ReviewTable from '@/app/components/admin/reviews-rating/ReviewTable';
 import makeRequest from "@/Api's/apiHelper";
 import { GetReviewMetrics } from "@/Api's/repo";
 import Loader from '@/app/components/common/Loader';
@@ -87,7 +86,7 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
     status = 'Active';
   }
 
-  const reviewerType = apiReview.created_by.is_club 
+  const reviewerType = apiReview.created_by?.is_club 
     ? 'Club Admin' as const 
     : 'Player' as const;
 
@@ -97,9 +96,9 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
       ? (apiReview.user_id.club_name || apiReview.user_id.full_name || 'Unknown Club')
       : (apiReview.user_id.full_name || 'Unknown Player');
 
-  const reviewer = apiReview.created_by.full_name || apiReview.created_by.user_name || 'Unknown Reviewer';
+  const reviewer = apiReview.created_by?.full_name || apiReview.created_by?.user_name || 'Unknown Reviewer';
 
-  const reviewerProfilePic = apiReview.created_by.profile_pic || '';
+  const reviewerProfilePic = apiReview.created_by?.profile_pic || '';
   const subjectProfilePic = apiReview.user_id?.profile_pic || '';
   const subjectIsVerified = apiReview.user_id?.is_verified || false;
 
@@ -110,7 +109,6 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
     : apiReview.rating;
   const hasRating = ratingValue > 0;
 
-  console.log('📢[mapApiReviewToReview]: ratingValue', ratingValue, 'hasRating', hasRating, 'apiReview.rating', apiReview.rating);
 
   return {
     id: apiReview._id as unknown as number,
@@ -127,7 +125,7 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
     type: reviewerType,
     status,
     userId: apiReview.user_id?._id || '',
-    reviewerId: apiReview.created_by._id,
+    reviewerId: apiReview.created_by?._id || '',
   };
 };
 
@@ -224,7 +222,6 @@ export default function ReviewsManagement() {
       
       if (response?.data?.result) {
         const { reviewCount, reviewedUserCount, allRatings, trend, allReviews } = response.data.result;
-
         let averageRating = 0;
         let totalRatingsFromAllSources = 0;
         let ratingCount = 0;

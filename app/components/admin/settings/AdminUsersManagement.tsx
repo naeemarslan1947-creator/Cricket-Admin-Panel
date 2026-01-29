@@ -1,18 +1,30 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
-import { AlertCircle, Edit2, Lock, Trash2, UserPlus } from 'lucide-react'
+import { AlertCircle, Lock, Trash2, UserPlus } from 'lucide-react'
 import { Button } from '../../ui/button'
 import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../ui/alert-dialog'
 import makeRequest from "@/Api's/apiHelper"
-import { AdminUserCreation, UpdateAdminProfile } from "@/Api's/repo"
+import { AdminUserCreation, PermanentDeleteUserAccount } from "@/Api's/repo"
 import { toastSuccess, toastError } from '@/app/helper/toast'
 
 /* -------------------- Types -------------------- */
 
 interface AdminUser {
   id: string
+  user_id: string
   name: string
   email: string
   role: string
@@ -54,18 +66,13 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
   rolePermissions,
   onRoleRefetch,
 }) => {
-  console.log("📢[AdminUsersManagement.tsx:55]: rolePermissions: ", rolePermissions);
+  console.log("📢[AdminUsersManagement.tsx:55]: rolePermissions: ", adminUsers);
   const [newUserName, setNewUserName] = useState('')
   const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserRoleId, setNewUserRoleId] = useState('')
   const [newUserPassword, setNewUserPassword] = useState('')
   const [isCreating, setIsCreating] = useState(false)
-  
-  // Edit form state
-  const [editUserName, setEditUserName] = useState('')
-  const [editUserEmail, setEditUserEmail] = useState('')
-  const [editUserRoleId, setEditUserRoleId] = useState('')
-  const [isUpdating, setIsUpdating] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleCreateAdminUser = async () => {
     if (!newUserName || !newUserEmail || !newUserRoleId || !newUserPassword) {
@@ -107,45 +114,6 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
     }
   }
 
-  const handleUpdateAdminUser = async () => {
-    if (!editingUser || !editUserName || !editUserEmail || !editUserRoleId) {
-      toastError('Please fill in all fields')
-      return
-    }
-
-    setIsUpdating(true)
-    try {
-      // Create FormData for file uploads
-      const formData = new FormData()
-      formData.append('_id', editingUser)
-      formData.append('full_name', editUserName)
-      formData.append('email', editUserEmail)
-      formData.append('permission_id', editUserRoleId)
-      formData.append('is_admin', 'true')
-
-      const response = await makeRequest({
-        url: UpdateAdminProfile,
-        method: 'POST',
-        data: formData,
-      })
-
-      console.log("📢[AdminUsersManagement.tsx:112]: response: ", response)
-      toastSuccess('Admin user updated successfully')
-      
-      // Reset edit form and close
-      setEditUserName('')
-      setEditUserEmail('')
-      setEditUserRoleId('')
-      setEditingUser(null)
-      await onRoleRefetch()
-    } catch (error) {
-      toastError('Failed to update admin user')
-      console.error('Error updating admin user:', error)
-    } finally {
-      setIsUpdating(false)
-    }
-  }
-
   const resetForm = () => {
     setNewUserName('')
     setNewUserEmail('')
@@ -154,31 +122,37 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
     setShowAddAdmin(false)
   }
 
-  const resetEditForm = () => {
-    setEditUserName('')
-    setEditUserEmail('')
-    setEditUserRoleId('')
-    setEditingUser(null)
+  const handlePermanentDeleteUser = async (userId: string) => {
+    setIsDeleting(true)
+    try {
+      const response = await makeRequest({
+        url: PermanentDeleteUserAccount,
+        method: 'POST',
+        data: { user_id: userId },
+      })
+
+      console.log("📢[AdminUsersManagement.tsx:155]: response: ", response)
+      toastSuccess('Admin user permanently deleted successfully')
+
+      // Refetch data
+      await onRoleRefetch()
+    } catch (error) {
+      toastError('Failed to permanently delete admin user')
+      console.error('Error permanently deleting admin user:', error)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
-  // Initialize edit form when editingUser changes
+  const resetEditForm = React.useCallback(() => {
+    setEditingUser(null)
+  }, [setEditingUser])
+
   React.useEffect(() => {
-    if (editingUser) {
-      const userToEdit = adminUsers.find(user => user.id === editingUser)
-      if (userToEdit) {
-        setEditUserName(userToEdit.name)
-        setEditUserEmail(userToEdit.email)
-        // Find the role permission that matches the role name
-        const matchingRole = rolePermissions.find(rp => rp.name === userToEdit.role)
-        if (matchingRole) {
-          setEditUserRoleId(matchingRole._id)
-        }
-      }
-    } else {
+    if (!editingUser) {
       resetEditForm()
     }
-  }, [editingUser, adminUsers, rolePermissions])
-
+  }, [editingUser, resetEditForm])
   return (
     <div>
       {!isSuperAdmin && (
@@ -266,7 +240,9 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
                       onChange={(e) => setNewUserRoleId(e.target.value)}
                     >
                       <option value="">Select Role</option>
-                      {rolePermissions.map((role) => (
+                      {rolePermissions
+                        .filter((role) => role.name !== 'Super-Admin')
+                        .map((role) => (
                         <option key={role._id} value={role._id}>
                           {role.name}
                         </option>
@@ -301,76 +277,6 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
                     variant="outline"
                     onClick={resetForm}
                     disabled={isCreating}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Edit Admin User Form */}
-          {editingUser && isSuperAdmin && (
-            <Card className="border-[#FF9800] bg-orange-50">
-              <CardContent className="p-4 space-y-4">
-                <h4 className="text-[#1e293b]">
-                  Edit Admin User
-                </h4>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="edit-name">Full Name</Label>
-                    <Input
-                      id="edit-name"
-                      placeholder="John Doe"
-                      value={editUserName}
-                      onChange={(e) => setEditUserName(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="edit-email">Email Address</Label>
-                    <Input
-                      id="edit-email"
-                      type="email"
-                      placeholder="admin@crickit.com"
-                      value={editUserEmail}
-                      onChange={(e) => setEditUserEmail(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="edit-role">Role</Label>
-                    <select
-                      id="edit-role"
-                      className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-lg"
-                      value={editUserRoleId}
-                      onChange={(e) => setEditUserRoleId(e.target.value)}
-                    >
-                      <option value="">Select Role</option>
-                      {rolePermissions.map((role) => (
-                        <option key={role._id} value={role._id}>
-                          {role.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Button
-                    className="bg-[#007BFF] hover:bg-[#0056b3] text-white"
-                    onClick={handleUpdateAdminUser}
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? 'Updating...' : 'Update Admin User'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={resetEditForm}
-                    disabled={isUpdating}
                   >
                     Cancel
                   </Button>
@@ -426,34 +332,40 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
                       </div>
                     </div>
 
-                    {/* <div className="flex gap-2">
+                    <div className="flex gap-2">
                       {isSuperAdmin ? (
                         <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              setEditingUser(
-                                editingUser === user.id
-                                  ? null
-                                  : user.id
-                              )
-                            }
-                            className="border-[#e2e8f0]"
-                          >
-                            <Edit2 className="w-4 h-4 mr-2" />
-                            Edit
-                          </Button>
-
-                          {user.role !== 'Super Admin' && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="border-red-200 text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Remove
-                            </Button>
+                          {user.role !== 'Super-Admin' && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-red-200 text-red-600 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Delete
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This action cannot be undone. This will permanently delete the admin user account and remove all associated data.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handlePermanentDeleteUser(user.user_id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                    disabled={isDeleting}
+                                  >
+                                    {isDeleting ? 'Deleting...' : 'Delete Permanently'}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           )}
                         </>
                       ) : (
@@ -462,7 +374,7 @@ const AdminUsersManagement: React.FC<AdminUsersManagementProps> = ({
                           Locked
                         </Button>
                       )}
-                    </div> */}
+                    </div>
                   </div>
 
                  

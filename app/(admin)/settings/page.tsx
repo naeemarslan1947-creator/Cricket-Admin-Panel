@@ -34,7 +34,7 @@ interface AdminUserData {
     updated_at: string;
     created_at: string;
     profile_pic?: string;
-  };
+  } | null;
   permission: {
     _id: string;
     name: string;
@@ -49,10 +49,12 @@ interface AdminUserData {
   updated_at: string;
   created_at: string;
   __v: number;
+  created_by?: string;
 }
 
 interface AdminUser {
   id: string;
+  user_id: string;
   email: string;
   name: string;
   role: string;
@@ -92,40 +94,78 @@ export default function SystemSettings() {
 
   const fetchAllRoles = async () => {
     try {
-      const response = await makeRequest<{ result: AdminUserData[] }>({
+      // Type the response to include the API structure
+      const response = await makeRequest<{ result: unknown[] }>({
         url: GetAllRoles,
         method: "GET",
       });
       console.log('GetAllRoles Response:', response);
 
-      if (response.data?.result) {
-        const mappedUsers: AdminUser[] = response.data.result.map((item: AdminUserData) => {
+      // Based on your API response, data is at response.data.result
+      const resultArray = response.data?.result || [];
+      
+      if (Array.isArray(resultArray) && resultArray.length > 0) {
+        const mappedUsers: AdminUser[] = (resultArray as Array<Record<string, unknown>>).map((item: Record<string, unknown>) => {
+          // Handle cases where user_id is null
+          if (!item.user_id) {
+            const typedItem = item as Record<string, unknown>;
+            const permission = typedItem.permission as Record<string, unknown> | undefined;
+            return {
+              user_id: (typedItem.created_by as string) || 'Unknown',
+              id: (typedItem._id as string),
+              email: 'N/A',
+              name: 'Unknown User',
+              role: (permission?.name as string) || 'No Role',
+              permissions: (permission?.action as string[]) || [],
+              status: 'Unknown',
+              lastLogin: new Date(typedItem.updated_at as string).toLocaleString(),
+              color: 'bg-gray-100 text-gray-700 border-gray-200'
+            };
+          }
+          
+          const typedItem = item as { 
+            user_id: { 
+              _id: string; 
+              email: string; 
+              full_name?: string; 
+              action_type: number 
+            }; 
+            _id: string;
+            permission?: { 
+              name?: string; 
+              action?: string[] 
+            };
+            updated_at: string;
+          };
+          
           // Determine status based on action_type
           let status = 'Active';
           let color = 'bg-gray-100 text-gray-700 border-gray-200';
           
-          if (item.user_id.action_type === 3) {
+          if (typedItem.user_id.action_type === 3) {
             status = 'Deleted';
             color = 'bg-red-100 text-red-700 border-red-200';
-          } else if (item.user_id.action_type === 4) {
+          } else if (typedItem.user_id.action_type === 4) {
             status = 'Suspended';
             color = 'bg-orange-100 text-orange-700 border-orange-200';
-          } else if (item.user_id.action_type === 1 || item.user_id.action_type === 2) {
+          } else if (typedItem.user_id.action_type === 1 || typedItem.user_id.action_type === 2) {
             color = 'bg-green-100 text-green-700 border-green-200';
           }
           
           return {
-            id: item._id,
-            email: item.user_id.email,
-            name: item.user_id.full_name || 'Unknown',
-            role: item.permission?.name || 'No Role',
-            permissions: item.permission?.action || [],
+            user_id: typedItem.user_id._id,
+            id: typedItem._id,
+            email: typedItem.user_id.email,
+            name: typedItem.user_id.full_name || 'Unknown',
+            role: typedItem.permission?.name || 'No Role',
+            permissions: typedItem.permission?.action || [],
             status: status,
-            lastLogin: new Date(item.updated_at).toLocaleString(),
+            lastLogin: new Date(typedItem.updated_at).toLocaleString(),
             color: color
           };
         });
         
+        console.log('Mapped Admin Users:', mappedUsers);
         setAdminUsers(mappedUsers);
       }
     } catch (error) {

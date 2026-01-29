@@ -53,7 +53,7 @@ const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({
   setShowNewScheduled,
   showNewScheduled,
   userTypeOptions,
-  subscriptionTypeOptions,
+  // subscriptionTypeOptions,
   loadingAudience,
   triggerRefetch
 }) => {
@@ -92,10 +92,10 @@ const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({
             toastError('Please select a subscription type')
             return
           }
-          if (!scheduledAt) {
-            toastError('Please select a scheduled date and time')
-            return
-          }
+          // if (!scheduledAt) {
+          //   toastError('Please select a scheduled date and time')
+          //   return
+          // }
       
           setIsSending(true)
           try {
@@ -110,7 +110,7 @@ const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({
                 title: title.trim(),
                 body: message.trim(),
                 user_type: extractValue(selectedUserType),
-                user_subscription_type: extractValue(selectedSubscriptionType),
+                // user_subscription_type: extractValue(selectedSubscriptionType),
                 scheduled_at: scheduledAtISO,
                 type: "adminNotification"
               },
@@ -225,7 +225,7 @@ const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({
                                        </select>
                                      </div>
                
-                                     <div>
+                                     {/* <div>
                                        <Label htmlFor="notif-subscription-type">Subscription Type</Label>
                                        <select 
                                          id="notif-subscription-type" 
@@ -249,7 +249,7 @@ const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({
                                            <option value="">No options available</option>
                                          )}
                                        </select>
-                                     </div>
+                                     </div> */}
 
                                      <div>
                                        <Label htmlFor="scheduled-at">Scheduled Date & Time</Label>

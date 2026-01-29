@@ -53,7 +53,7 @@ const PushNotification: React.FC<PushNotificationProps> = ({
   setShowNewNotification,
   sentNotifications,
   userTypeOptions,
-  subscriptionTypeOptions,
+  // subscriptionTypeOptions,
   loadingAudience,
   triggerRefetch
 }) => {
@@ -88,10 +88,7 @@ const PushNotification: React.FC<PushNotificationProps> = ({
       toastError('Please select a user type')
       return
     }
-    if (!selectedSubscriptionType) {
-      toastError('Please select a subscription type')
-      return
-    }
+   
 
     setIsSending(true)
     try {
@@ -103,7 +100,7 @@ const PushNotification: React.FC<PushNotificationProps> = ({
           title: title.trim(),
           body: message.trim(),
           user_type: extractValue(selectedUserType),
-          user_subscription_type: extractValue(selectedSubscriptionType),
+          // user_subscription_type: extractValue(selectedSubscriptionType),
           type: "adminNotification"
         },
       })
@@ -204,7 +201,7 @@ const PushNotification: React.FC<PushNotificationProps> = ({
                         </select>
                       </div>
 
-                      <div>
+                      {/* <div>
                         <Label htmlFor="notif-subscription-type">Subscription Type</Label>
                         <select 
                           id="notif-subscription-type" 
@@ -228,7 +225,7 @@ const PushNotification: React.FC<PushNotificationProps> = ({
                             <option value="">No options available</option>
                           )}
                         </select>
-                      </div>
+                      </div> */}
 
                    
                     </div>

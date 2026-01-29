@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
-import { Edit2, Plus, Send, Trash2 } from 'lucide-react'
+import { Plus, Send } from 'lucide-react'
 import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
@@ -52,7 +52,7 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
   setShowNewAnnouncement,
   showNewAnnouncement,
   userTypeOptions,
-  subscriptionTypeOptions,
+  // subscriptionTypeOptions,
   loadingAudience,
   triggerRefetch
 }) => {
@@ -86,10 +86,10 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
           toastError('Please select a user type')
           return
         }
-        if (!selectedSubscriptionType) {
-          toastError('Please select a subscription type')
-          return
-        }
+        // if (!selectedSubscriptionType) {
+        //   toastError('Please select a subscription type')
+        //   return
+        // }
     
         setIsSending(true)
         try {
@@ -101,7 +101,7 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
               title: title.trim(),
               body: message.trim(),
               user_type: extractValue(selectedUserType),
-              user_subscription_type: extractValue(selectedSubscriptionType),
+              // user_subscription_type: extractValue(selectedSubscriptionType),
               type: "adminAnnouncement"
             },
           })
@@ -202,7 +202,7 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
                         </select>
                       </div>
 
-                      <div>
+                      {/* <div>
                         <Label htmlFor="ann-subscription-type">Subscription Type</Label>
                         <select 
                           id="ann-subscription-type" 
@@ -226,7 +226,7 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
                             <option value="">No options available</option>
                           )}
                         </select>
-                      </div>
+                      </div> */}
 
                    
                     </div>

@@ -2,7 +2,7 @@
 import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card'
 import { Button } from '../../ui/button'
-import { Plus, Send } from 'lucide-react'
+import { Plus, Send, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Label } from '../../ui/label'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
@@ -26,6 +26,14 @@ interface AudienceOption {
   value: string
   label: string
 }
+
+interface PaginationState {
+  currentPage: number
+  totalPages: number
+  totalRecords: number
+  limit: number
+}
+
 interface AnnouncementApiResponse {
   response_code?: number
   success?: boolean
@@ -45,6 +53,8 @@ interface InAppAnnouncementsProps {
   subscriptionTypeOptions: AudienceOption[]
   loadingAudience: boolean
   triggerRefetch?: () => void
+  pagination?: PaginationState
+  onPageChange?: (page: number) => void
 }
 
 const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
@@ -54,13 +64,14 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
   userTypeOptions,
   // subscriptionTypeOptions,
   loadingAudience,
-  triggerRefetch
+  triggerRefetch,
+  pagination,
+  onPageChange
 }) => {
   const {user} = useAuth()
     const [title, setTitle] = useState('')
     const [message, setMessage] = useState('')
     const [selectedUserType, setSelectedUserType] = useState('')
-    const [selectedSubscriptionType, setSelectedSubscriptionType] = useState('')
     const [isSending, setIsSending] = useState(false)
   
     // Helper to extract clean value from option value
@@ -114,7 +125,6 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
             setTitle('')
             setMessage('')
             setSelectedUserType('')
-            setSelectedSubscriptionType('')
             setShowNewAnnouncement(false)
             // Trigger refetch to update the list
             triggerRefetch?.()
@@ -282,6 +292,40 @@ const InAppAnnouncements: React.FC<InAppAnnouncementsProps> = ({
                         </CardContent>
                       </Card>
                     ))}
+                  </div>
+                )}
+
+                {/* Pagination Controls */}
+                {pagination && pagination.totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-[#e2e8f0]">
+                    <div className="text-sm text-[#64748b]">
+                      Showing {(pagination.currentPage - 1) * pagination.limit + 1} to{' '}
+                      {Math.min(pagination.currentPage * pagination.limit, pagination.totalRecords)} of{' '}
+                      {pagination.totalRecords} results
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onPageChange?.(pagination.currentPage - 1)}
+                        disabled={pagination.currentPage === 1}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
+                      </Button>
+                      <span className="text-sm text-[#64748b]">
+                        Page {pagination.currentPage} of {pagination.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onPageChange?.(pagination.currentPage + 1)}
+                        disabled={pagination.currentPage === pagination.totalPages}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

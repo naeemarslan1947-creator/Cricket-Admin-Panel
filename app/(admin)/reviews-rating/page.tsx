@@ -19,7 +19,7 @@ interface ReviewItem {
     club_name?: string;
     profile_pic?: string;
     is_verified?: boolean;
-  };
+  } | null;
   review: string;
   action_type: number;
   is_verified: boolean;
@@ -30,9 +30,9 @@ interface ReviewItem {
     full_name: string;
     is_club: boolean;
     profile_pic?: string;
-  };
+  } | null;
   updated_at: string;
-  created_at: string;
+  created_at?: string; // Made optional since it might be missing
   rating: string | number;
 }
 
@@ -67,6 +67,7 @@ interface ReviewMetricsResult {
   allReviews: ReviewItem[];
   allRatings: RatingItem[];
 }
+
 interface ApiResponse {
   response_code: number;
   success: boolean;
@@ -74,7 +75,9 @@ interface ApiResponse {
 }
 
 const mapApiReviewToReview = (apiReview: ReviewItem) => {
-  const createdDate = new Date(apiReview.created_at);
+  // Handle missing created_at - use updated_at as fallback
+  const dateToUse = apiReview.created_at || apiReview.updated_at;
+  const createdDate = new Date(dateToUse);
   const formattedDate = createdDate.toISOString().split('T')[0];
 
   let status: 'Active' | 'Deleted' | 'Suspended';
@@ -90,11 +93,13 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
     ? 'Club Admin' as const 
     : 'Player' as const;
 
-  const reviewedSubject = apiReview.user_id === null
-    ? 'Unknown Subject'
-    : apiReview.user_id.is_club === true
+  // Handle null user_id
+  let reviewedSubject = 'Unknown Subject';
+  if (apiReview.user_id) {
+    reviewedSubject = apiReview.user_id.is_club === true
       ? (apiReview.user_id.club_name || apiReview.user_id.full_name || 'Unknown Club')
       : (apiReview.user_id.full_name || 'Unknown Player');
+  }
 
   const reviewer = apiReview.created_by?.full_name || apiReview.created_by?.user_name || 'Unknown Reviewer';
 
@@ -108,7 +113,6 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
     ? parseInt(apiReview.rating, 10) 
     : apiReview.rating;
   const hasRating = ratingValue > 0;
-
 
   return {
     id: apiReview._id as unknown as number,
@@ -128,60 +132,6 @@ const mapApiReviewToReview = (apiReview: ReviewItem) => {
     reviewerId: apiReview.created_by?._id || '',
   };
 };
-
-const calculateAggregateRatings = (allRatings: RatingItem[]) => {
-  const clubStats: { [key: string]: { userRating: number[], clubRating: number[], count: number, isClub: boolean } } = {};
-
-  allRatings.forEach(rating => {
-    const displayName = rating.user_id.is_club
-      ? rating.user_id.club_name || 'Unknown Club'
-      : rating.user_id.full_name || rating.user_id.user_name || 'Unknown';
-
-    if (!clubStats[displayName]) {
-      clubStats[displayName] = { userRating: [], clubRating: [], count: 0, isClub: rating.user_id.is_club };
-    }
-    clubStats[displayName].count++;
-
-    if (rating.rating_type === 'userRating' && parseInt(rating.rating) > 0) {
-      clubStats[displayName].userRating.push(parseInt(rating.rating));
-    }
-    if (rating.rating_type === 'clubRating' && parseInt(rating.rating) > 0) {
-      clubStats[displayName].clubRating.push(parseInt(rating.rating));
-    }
-  });
-
-  const aggregates = Object.entries(clubStats).map(([club, stats]) => {
-    const userRatingAvg = stats.userRating.length > 0
-      ? stats.userRating.reduce((a, b) => a + b, 0) / stats.userRating.length
-      : 0;
-    const clubRatingAvg = stats.clubRating.length > 0
-      ? stats.clubRating.reduce((a, b) => a + b, 0) / stats.clubRating.length
-      : 0;
-    const overallAvg = [...stats.userRating, ...stats.clubRating].length > 0
-      ? [...stats.userRating, ...stats.clubRating].reduce((a, b) => a + b, 0) / [...stats.userRating, ...stats.clubRating].length
-      : 0;
-
-    return {
-      name: club,
-      isClub: stats.isClub,
-      userRatingAvg: userRatingAvg.toFixed(1),
-      clubRatingAvg: clubRatingAvg.toFixed(1),
-      overallAvg: overallAvg.toFixed(1),
-      totalRatings: stats.count,
-    };
-  });
-
-  return aggregates;
-};
-
-interface AggregateRating {
-  name: string;
-  isClub: boolean;
-  userRatingAvg: string;
-  clubRatingAvg: string;
-  overallAvg: string;
-  totalRatings: number;
-}
 
 export default function ReviewsManagement() {
   const [timeRange, setTimeRange] = useState<string>('30d');
@@ -209,7 +159,6 @@ export default function ReviewsManagement() {
     userId: string;
     reviewerId: string;
   }[]>([]);
-  const [aggregateRatings, setAggregateRatings] = useState<AggregateRating[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchReviewMetrics = async () => {
@@ -222,42 +171,48 @@ export default function ReviewsManagement() {
       
       if (response?.data?.result) {
         const { reviewCount, reviewedUserCount, allRatings, trend, allReviews } = response.data.result;
-        let averageRating = 0;
-        let totalRatingsFromAllSources = 0;
+        
+        console.log('API Response:', response.data.result); // For debugging
+        
+        let totalRatings = 0;
         let ratingCount = 0;
 
+        // Process ratings from allRatings array
         if (allRatings && allRatings.length > 0) {
           allRatings.forEach((item: RatingItem) => {
             const rating = parseInt(item.rating, 10);
-            if (rating > 0) {
-              totalRatingsFromAllSources += rating;
+            if (!isNaN(rating) && rating > 0) {
+              totalRatings += rating;
               ratingCount++;
             }
           });
         }
 
+        // Process ratings from allReviews array
         if (allReviews && allReviews.length > 0) {
           allReviews.forEach((review: ReviewItem) => {
             const ratingValue = typeof review.rating === 'string' 
               ? parseInt(review.rating, 10) 
               : review.rating;
-            if (review.rating !== undefined && ratingValue > 0) {
-              totalRatingsFromAllSources += ratingValue;
+            if (!isNaN(ratingValue) && ratingValue > 0) {
+              totalRatings += ratingValue;
               ratingCount++;
             }
           });
         }
-        if (ratingCount > 0) {
-          averageRating = totalRatingsFromAllSources / ratingCount;
-        }
 
+        const averageRating = ratingCount > 0 ? totalRatings / ratingCount : 0;
+
+        // Calculate current month reviews
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
         const currentMonthReviewCount = allReviews?.filter((review) => {
-          const reviewDate = new Date(review.created_at);
+          const dateToUse = review.created_at || review.updated_at;
+          const reviewDate = new Date(dateToUse);
           return reviewDate.getMonth() === currentMonth && reviewDate.getFullYear() === currentYear;
         }).length || 0;
 
+        // Map trend data
         const mappedTrendData = trend?.map((item) => {
           const dateObj = new Date(item.date);
           const formattedDate = dateObj.toLocaleDateString('en-US', { 
@@ -270,20 +225,22 @@ export default function ReviewsManagement() {
           };
         }) || [];
 
+        // Map reviews data
         const mappedReviews = allReviews?.map((review) => 
           mapApiReviewToReview(review)
         ) || [];
 
         setSummaryData({
           reviewCount: reviewCount || 0,
-          averageRating: averageRating || 0,
+          averageRating: parseFloat(averageRating.toFixed(1)), // Round to 1 decimal place
           reviewedUserCount: reviewedUserCount || 0,
           currentMonthReviewCount,
         });
         
         setTrendData(mappedTrendData);
         setReviews(mappedReviews);
-        setAggregateRatings(calculateAggregateRatings(allRatings));
+        
+        console.log('Mapped Reviews:', mappedReviews); // For debugging
       }
     } catch (error) {
       console.error('GetReviewMetrics Error:', error);
@@ -305,9 +262,11 @@ export default function ReviewsManagement() {
     await fetchReviewMetrics();
   };
 
-  return isLoading ? (
-    <Loader />
-  ) : (
+  if (isLoading) {
+    return <Loader />;
+  }
+
+  return (
     <div className="space-y-6">
       <ReviewsManagementHeader />
       <ReviewsManagementSummary summaryData={summaryData} isLoading={isLoading} />
@@ -317,7 +276,6 @@ export default function ReviewsManagement() {
         trendData={trendData}
       />
       <ReviewsManagementList reviews={reviews} onStatusChange={handleStatusChange} />
-      {/* <ReviewTable aggregateRatings={aggregateRatings} isLoading={isLoading} /> */}
     </div>
   );
 }

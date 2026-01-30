@@ -102,7 +102,6 @@ export default function ReviewsManagementList({ reviews, onStatusChange }: Revie
           {reviews.map((review) => {
             const reviewerProfilePicUrl = getFullProfilePicUrl(review.reviewerProfilePic);
             const subjectProfilePicUrl = getFullProfilePicUrl(review.subjectProfilePic);
-            
             return (
               <div key={review.id} className="p-4 border border-[#e2e8f0] rounded-lg hover: transition-shadow">
                 <div className="flex items-start justify-between mb-3">

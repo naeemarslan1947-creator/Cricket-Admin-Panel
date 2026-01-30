@@ -111,8 +111,18 @@ interface NotificationApiResponse {
   status_code?: number
   message?: string
   error_message?: string | null
+  total_records?: number
+  page_number?: number
+  total_pages?: number
   result?: RawNotificationResponse[] | Announcement[] | ScheduledNotification[]
   misc_data?: unknown
+}
+
+interface PaginationState {
+  currentPage: number
+  totalPages: number
+  totalRecords: number
+  limit: number
 }
 
 export default function CommunicationTools() {
@@ -139,6 +149,22 @@ export default function CommunicationTools() {
   const [notificationsLoaded, setNotificationsLoaded] = useState(false);
   const [announcementsLoaded, setAnnouncementsLoaded] = useState(false);
   const shouldRefetchRef = useRef(false);
+
+  // Pagination state for notifications
+  const [notificationsPagination, setNotificationsPagination] = useState<PaginationState>({
+    currentPage: 1,
+    totalPages: 1,
+    totalRecords: 0,
+    limit: 10
+  });
+
+  // Pagination state for announcements
+  const [announcementsPagination, setAnnouncementsPagination] = useState<PaginationState>({
+    currentPage: 1,
+    totalPages: 1,
+    totalRecords: 0,
+    limit: 10
+  });
 
   // Fetch audience data on mount
   useEffect(() => {
@@ -203,12 +229,17 @@ export default function CommunicationTools() {
   // Fetch communication header data
   useEffect(() => {
     const fetchCommunicationHeader = async () => {
+      if (!user?._id) return;
+
       try {
         const response = await makeRequest<{
           result: CommunicationHeaderData
         }>({
           url: GetCommunicationHeader,
           method: "GET",
+          params: {
+            user_id: user._id
+          }
         })
         
         console.log("Communication Header Response:", response);
@@ -226,7 +257,7 @@ export default function CommunicationTools() {
   }, []);
 
   // Fetch notifications based on type
-  const fetchNotifications = useCallback(async (type: string) => {
+  const fetchNotifications = useCallback(async (type: string, page: number = 1) => {
     if (!user?._id) return;
     
     setLoadingNotifications(true);
@@ -236,7 +267,8 @@ export default function CommunicationTools() {
         method: "GET",
         params: {
           type: type,
-          created_by: user._id
+          created_by: user._id,
+          page: page
         }
       });
       
@@ -266,6 +298,17 @@ export default function CommunicationTools() {
 
         if (type === 'adminNotification') {
           setNotifications(mappedNotifications);
+          
+          // Update pagination state
+          if (response.data) {
+            const data = response.data;
+            setNotificationsPagination(prev => ({
+              ...prev,
+              currentPage: data.page_number || 1,
+              totalPages: data.total_pages || 1,
+              totalRecords: data.total_records || 0
+            }));
+          }
           
           // Also filter and set scheduled notifications from the same response
           const scheduledItems = (response.data.result as RawNotificationResponse[]).filter(item => item.scheduled_at);
@@ -314,6 +357,17 @@ export default function CommunicationTools() {
             endDate: new Date(new Date(item.created_at).setMonth(new Date(item.created_at).getMonth() + 1)).toISOString().split('T')[0]
           }));
           setAnnouncements(mappedAnnouncements);
+
+          // Update pagination state
+          if (response.data) {
+            const data = response.data;
+            setAnnouncementsPagination(prev => ({
+              ...prev,
+              currentPage: data.page_number || 1,
+              totalPages: data.total_pages || 1,
+              totalRecords: data.total_records || 0
+            }));
+          }
         } 
       }
     } catch (error) {
@@ -332,6 +386,22 @@ export default function CommunicationTools() {
       'admin': 'bg-red-100 text-red-700'
     };
     return colorMap[userType] || 'bg-gray-100 text-gray-700';
+  };
+
+  // Handle page change for notifications
+  const handleNotificationsPageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= notificationsPagination.totalPages) {
+      setNotificationsPagination(prev => ({ ...prev, currentPage: newPage }));
+      fetchNotifications('adminNotification', newPage);
+    }
+  };
+
+  // Handle page change for announcements
+  const handleAnnouncementsPageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= announcementsPagination.totalPages) {
+      setAnnouncementsPagination(prev => ({ ...prev, currentPage: newPage }));
+      fetchNotifications('adminAnnouncement', newPage);
+    }
   };
 
   // Fetch notifications when tab changes - with caching
@@ -363,10 +433,14 @@ export default function CommunicationTools() {
     setNotificationsLoaded(false);
     setAnnouncementsLoaded(false);
     
+    // Reset pagination to page 1 when new data is created
+    setNotificationsPagination(prev => ({ ...prev, currentPage: 1 }));
+    setAnnouncementsPagination(prev => ({ ...prev, currentPage: 1 }));
+    
     // Fetch notifications and announcements in parallel
     await Promise.all([
-      fetchNotifications('adminNotification'),
-      fetchNotifications('adminAnnouncement')
+      fetchNotifications('adminNotification', 1),
+      fetchNotifications('adminAnnouncement', 1)
     ]);
     
     // Also refetch the communication header to update stats in real-time
@@ -376,6 +450,9 @@ export default function CommunicationTools() {
       }>({
         url: GetCommunicationHeader,
         method: "GET",
+        params: {
+          user_id: user?._id
+        }
       })
       
       if (headerResponse.data?.result) {
@@ -388,7 +465,7 @@ export default function CommunicationTools() {
     setNotificationsLoaded(true);
     setAnnouncementsLoaded(true);
     shouldRefetchRef.current = false;
-  }, [fetchNotifications]);
+  }, [fetchNotifications, user]);
 
   // Initial fetch for push notifications on mount
   useEffect(() => {
@@ -493,6 +570,8 @@ export default function CommunicationTools() {
               subscriptionTypeOptions={audienceData.subscriptionTypeOptions}
               loadingAudience={loadingAudience}
               triggerRefetch={triggerRefetch}
+              pagination={notificationsPagination}
+              onPageChange={handleNotificationsPageChange}
             />
           )}
         </TabsContent>
@@ -511,6 +590,8 @@ export default function CommunicationTools() {
               subscriptionTypeOptions={audienceData.subscriptionTypeOptions}
               loadingAudience={loadingAudience}
               triggerRefetch={triggerRefetch}
+              pagination={announcementsPagination}
+              onPageChange={handleAnnouncementsPageChange}
             />
           )}
         </TabsContent>

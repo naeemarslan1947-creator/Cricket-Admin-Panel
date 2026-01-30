@@ -23,35 +23,6 @@ interface RolePermission {
   created_at: string;
   __v: number;
 }
-
-interface AdminUserData {
-  _id: string;
-  user_id: {
-    _id: string;
-    email: string;
-    full_name?: string;
-    action_type: number;
-    updated_at: string;
-    created_at: string;
-    profile_pic?: string;
-  } | null;
-  permission: {
-    _id: string;
-    name: string;
-    action: string[];
-    permission_type: string;
-    action_type: number;
-    updated_at: string;
-    created_at: string;
-    __v: number;
-  };
-  action_type: number;
-  updated_at: string;
-  created_at: string;
-  __v: number;
-  created_by?: string;
-}
-
 interface AdminUser {
   id: string;
   user_id: string;

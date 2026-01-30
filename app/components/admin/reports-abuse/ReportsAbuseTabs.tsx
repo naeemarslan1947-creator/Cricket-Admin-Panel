@@ -15,7 +15,29 @@ interface ReporterInfo {
   email: string;
 }
 
-// Reported media info structure
+      // User type structure (for bullying, impersonation, spam reports)
+interface ReportedUserInfo {
+  _id: string;
+  user_name: string;
+  email: string;
+  full_name?: string;
+  profile_pic?: string;
+  bio?: string;
+  geo_location?: string;
+  about_me?: string;
+  date_of_birth?: string;
+  last_active?: string;
+  is_user_verified?: boolean;
+  is_club?: boolean;
+  is_club_verified?: boolean;
+  stats_link?: string;
+  media_type?: string;
+  action_type: number;
+  updated_at: string;
+  created_at: string;
+}
+
+// Post type structure
 interface ReportedMediaInfo {
   _id: string;
   media?: string[];
@@ -33,12 +55,13 @@ interface ReportedMediaInfo {
 
 interface ApiReportItem {
   _id: string;
-  reported_media_id: ReportedMediaInfo;
+  reported_media_id: ReportedUserInfo | ReportedMediaInfo;
   reported_media_type: string;
   reason: string;
   detail: string;
   created_by: ReporterInfo;
   action_type: number;
+  escalation?: number;
   updated_at: string;
   created_at: string;
 }
@@ -59,13 +82,22 @@ interface ApiResponse {
 interface Report {
   id: string | number;
   reporterName: string;
+  reporterEmail?: string;
   reportedUser: string;
+  reportedUserFullName?: string;
+  reportedUserProfilePic?: string;
+  reportedUserBio?: string;
+  reportedUserLocation?: string;
+  reportedUserAbout?: string;
+  reportedUserVerified?: boolean;
+  reportedUserLastActive?: string;
   description: string;
   timestamp: string;
   reasonCode: string;
   status: 'active' | 'suspended' | 'deleted';
   mediaUrls?: string[];
   mediaType?: 'image' | 'video' | null;
+  escalation?: number;
 }
 
 interface ReportsData {
@@ -115,13 +147,35 @@ export default function ReportsAbuseTabs({ activeTab, setActiveTab }: ReportsAbu
     let description = apiReport.detail || '';
     let reportedUser = '';
     let mediaUrls: string[] = [];
+    
+    // User info fields
+    let reportedUserFullName = '';
+    let reportedUserProfilePic = '';
+    let reportedUserBio = '';
+    let reportedUserLocation = '';
+    let reportedUserAbout = '';
+    let reportedUserVerified = false;
+    let reportedUserLastActive = '';
 
-    if ('caption' in reportedMedia) {
+    // Check if it's a User type (has user_name property which is unique to User type)
+    if ('user_name' in reportedMedia && 'email' in reportedMedia) {
+      // User type structure (for bullying, impersonation, spam)
+      const userInfo = reportedMedia as ReportedUserInfo;
+      description = apiReport.detail || '';
+      reportedUser = userInfo.user_name || '';
+      reportedUserFullName = userInfo.full_name || '';
+      reportedUserProfilePic = userInfo.profile_pic ? `${BASE_URL}${userInfo.profile_pic}` : '';
+      reportedUserBio = userInfo.bio || '';
+      reportedUserLocation = userInfo.geo_location || '';
+      reportedUserAbout = userInfo.about_me || '';
+      reportedUserVerified = userInfo.is_user_verified || false;
+      reportedUserLastActive = userInfo.last_active || '';
+    } else if ('caption' in reportedMedia) {
       // Post type structure
       description = reportedMedia.caption || apiReport.detail || '';
       reportedUser = reportedMedia.user_id || '';
       mediaUrls = (reportedMedia.media || []).map(
-        (url) =>`${BASE_URL}${url}`
+        (url) => `${BASE_URL}${url}`
       );
     } else if ('comment' in reportedMedia) {
       // Comment type structure
@@ -146,7 +200,15 @@ export default function ReportsAbuseTabs({ activeTab, setActiveTab }: ReportsAbu
     return {
       id: apiReport._id,
       reporterName: apiReport.created_by.user_name || apiReport.created_by.email,
+      reporterEmail: apiReport.created_by.email,
       reportedUser,
+      reportedUserFullName,
+      reportedUserProfilePic,
+      reportedUserBio,
+      reportedUserLocation,
+      reportedUserAbout,
+      reportedUserVerified,
+      reportedUserLastActive,
       description,
       timestamp: formattedDate,
       reasonCode: apiReport.reason,
@@ -155,6 +217,7 @@ export default function ReportsAbuseTabs({ activeTab, setActiveTab }: ReportsAbu
         ? (reportedMedia.media_type === 'video' || mediaUrls[0]?.endsWith('.mp4') ? 'video' as const : 'image' as const)
         : null,
       mediaUrls,
+      escalation: apiReport.escalation,
     };
   }, []);
 

@@ -1,7 +1,8 @@
 import { useState, ReactNode } from 'react';
 import { Badge } from '@/app/components/ui/badge';
 import { Button } from '../../ui/button';
-import { Loader2 } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/app/components/ui/avatar';
+import { Loader2, MapPin, Shield, Clock, AlertTriangle, User, Mail, FileText } from 'lucide-react';
 import makeRequest from "@/Api's/apiHelper";
 import { DeleteReport, SuspendReport, SuspendMedia, EscalateReport } from "@/Api's/repo";
 import { toastSuccess, toastError } from '@/app/helper/toast';
@@ -10,13 +11,22 @@ import ReportActionConfirmationModal from './ReportActionConfirmationModal';
 interface Report {
   id: string | number;
   reporterName: string;
+  reporterEmail?: string;
   reportedUser: string;
+  reportedUserFullName?: string;
+  reportedUserProfilePic?: string;
+  reportedUserBio?: string;
+  reportedUserLocation?: string;
+  reportedUserAbout?: string;
+  reportedUserVerified?: boolean;
+  reportedUserLastActive?: string;
   description: string;
   timestamp: string;
   reasonCode: string;
   status: 'active' | 'suspended' | 'deleted';
   mediaUrls?: string[];
   mediaType?: 'image' | 'video' | null;
+  escalation?: number;
 }
 
 interface ReportItemProps {
@@ -171,6 +181,17 @@ export default function ReportItem({ report, getReasonBadgeColor, formatTimestam
     ? formatTimestamp(report.timestamp) 
     : defaultFormatTimestamp(report.timestamp);
 
+  // Get initials from username
+  const getInitials = (name: string) => {
+    return name
+      .split('@')[0]
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   const renderMedia = () => {
     if (!report.mediaUrls?.length) return null;
 
@@ -189,6 +210,81 @@ export default function ReportItem({ report, getReasonBadgeColor, formatTimestam
             </div>
           ))}
         </div>
+      </div>
+    );
+  };
+
+  // Render user profile card for User type reports
+  const renderUserProfileCard = () => {
+    const hasUserInfo = report.reportedUserFullName || report.reportedUserProfilePic || report.reportedUserLocation || report.reportedUserAbout;
+    
+    if (!hasUserInfo) return null;
+
+    return (
+      <div className="mt-5 p-4 bg-slate-50 rounded-xl border border-slate-200">
+        <div className="flex items-start gap-4">
+          <Avatar className="h-16 w-16 border-2 border-white shadow-sm">
+            <AvatarImage src={report.reportedUserProfilePic} alt={report.reportedUserFullName || report.reportedUser} />
+            <AvatarFallback className="bg-[#007BFF] text-white text-lg">
+              {getInitials(report.reportedUser || 'U')}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h4 className="text-lg font-semibold text-slate-800">
+                {report.reportedUserFullName || report.reportedUser}
+              </h4>
+              {report.reportedUserVerified && (
+                <Shield className="h-4 w-4 text-blue-500" />
+              )}
+            </div>
+            
+            <p className="text-sm text-slate-500 mt-1">{report.reportedUser}</p>
+            
+            {report.reportedUserLocation && (
+              <div className="flex items-center gap-1 mt-2 text-sm text-slate-600">
+                <MapPin className="h-3.5 w-3.5" />
+                <span>{report.reportedUserLocation}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {(report.reportedUserAbout || report.reportedUserBio) && (
+          <div className="mt-3 pt-3 border-t border-slate-200">
+            <p className="text-sm text-slate-600">
+              {report.reportedUserAbout || report.reportedUserBio}
+            </p>
+          </div>
+        )}
+
+        {report.reportedUserLastActive && (
+          <div className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+            <Clock className="h-3 w-3" />
+            <span>Last active: {new Date(report.reportedUserLastActive).toLocaleDateString('en-GB', {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render escalation badge
+  const renderEscalation = () => {
+    if (!report.escalation) return null;
+
+    return (
+      <div className="flex items-center gap-1.5 mt-3">
+        <AlertTriangle className="h-4 w-4 text-amber-500" />
+        <Badge className="bg-amber-100 text-amber-800 border-amber-200">
+          Escalation Level: {report.escalation}
+        </Badge>
       </div>
     );
   };
@@ -218,24 +314,36 @@ export default function ReportItem({ report, getReasonBadgeColor, formatTimestam
           </p>
 
           <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-            <span>
+            <span className="flex items-center gap-1">
+              <User className="h-3.5 w-3.5" />
               Reporter: <span className="text-slate-800 font-medium">{report.reporterName}</span>
             </span>
 
             <span className="text-slate-400">•</span>
 
-            <span>
+            <span className="flex items-center gap-1">
+              <User className="h-3.5 w-3.5" />
               Reported User: <span className="text-slate-800 font-medium">{report.reportedUser}</span>
             </span>
 
             <span className="text-slate-400">•</span>
 
-            <span>{formattedTimestamp}</span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3.5 w-3.5" />
+              {formattedTimestamp}
+            </span>
           </div>
         </div>
       </div>
 
+      {/* User Profile Card */}
+      {renderUserProfileCard()}
+
+      {/* Media */}
       {renderMedia()}
+
+      {/* Escalation */}
+      {renderEscalation()}
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2 mt-6">

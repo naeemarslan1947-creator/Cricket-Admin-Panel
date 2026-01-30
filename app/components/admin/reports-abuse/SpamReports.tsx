@@ -5,13 +5,22 @@ import { ReactNode } from 'react';
 interface Report {
   id: string | number;
   reporterName: string;
+  reporterEmail?: string;
   reportedUser: string;
+  reportedUserFullName?: string;
+  reportedUserProfilePic?: string;
+  reportedUserBio?: string;
+  reportedUserLocation?: string;
+  reportedUserAbout?: string;
+  reportedUserVerified?: boolean;
+  reportedUserLastActive?: string;
   description: string;
   timestamp: string;
   reasonCode: string;
   status: 'active' | 'suspended' | 'deleted';
   mediaUrls?: string[];
   mediaType?: 'image' | 'video' | null;
+  escalation?: number;
 }
 
 interface SpamReportsProps {
@@ -33,7 +42,6 @@ export default function SpamReports({ reports, formatTimestamp, getReasonBadgeCo
               getReasonBadgeColor={getReasonBadgeColor}
               onActionComplete={onActionComplete}
             />
-
           </CardContent>
         </Card>
       ))}

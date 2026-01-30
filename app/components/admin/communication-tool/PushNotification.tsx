@@ -110,7 +110,7 @@ const PushNotification: React.FC<PushNotificationProps> = ({
           title: title.trim(),
           body: message.trim(),
           user_type: extractValue(selectedUserType),
-          // user_subscription_type: extractValue(selectedSubscriptionType),
+          user_subscription_type: "free",
           type: "adminNotification"
         },
       })

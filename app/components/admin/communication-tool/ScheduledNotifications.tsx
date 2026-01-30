@@ -110,7 +110,7 @@ const ScheduledNotifications: React.FC<ScheduledNotificationsProps> = ({
                 title: title.trim(),
                 body: message.trim(),
                 user_type: extractValue(selectedUserType),
-                // user_subscription_type: extractValue(selectedSubscriptionType),
+                user_subscription_type: "free",
                 scheduled_at: scheduledAtISO,
                 type: "adminNotification"
               },

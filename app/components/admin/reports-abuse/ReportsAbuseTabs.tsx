@@ -1,12 +1,16 @@
 "use client";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/app/components/ui/tabs';
-import BullyingReports from './BullyingReports';
 import InappropriateContentReports from './InappropriateContentReports';
 import ImpersonationReports from './ImpersonationReports';
 import SpamReports from './SpamReports';
+import PrivacyViolationReports from './PrivacyViolationReports';
+import UnderageUserReports from './UnderageUserReports';
+import HarassmentReports from './HarassmentReports';
+import ClubLeagueRulesViolationReports from './ClubLeagueRulesViolationReports';
+import OtherReports from './OtherReports';
 import makeRequest from "@/Api's/apiHelper";
 import { GetReportedMedia } from "@/Api's/repo";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, ReactNode } from 'react';
 import { Loader2, FileWarning } from 'lucide-react';
 
 interface ReporterInfo {
@@ -101,42 +105,61 @@ interface Report {
 }
 
 interface ReportsData {
-  bullying: Report[];
   inappropriate: Report[];
   impersonation: Report[];
   spam: Report[];
+  privacyViolation: Report[];
+  underageUser: Report[];
+  harassmentOrBullying: Report[];
+  clubLeagueRulesViolation: Report[];
+  other: Report[];
 }
 
 interface ReportsAbuseTabsProps {
   activeTab: string;
   setActiveTab: (value: string) => void;
+  onActionComplete?: () => void;
 }
 
 interface LoadingState {
-  bullying: boolean;
   inappropriate: boolean;
   impersonation: boolean;
   spam: boolean;
+  privacyViolation: boolean;
+  underageUser: boolean;
+  harassmentOrBullying: boolean;
+  clubLeagueRulesViolation: boolean;
+  other: boolean;
 }
 
-export default function ReportsAbuseTabs({ activeTab, setActiveTab }: ReportsAbuseTabsProps) {
+export default function ReportsAbuseTabs({ activeTab, setActiveTab, onActionComplete }: ReportsAbuseTabsProps): ReactNode {
   const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 
 
-  const [reports, setReports] = useState<ReportsData>({
-    bullying: [],
+const [reports, setReports] = useState<ReportsData>({
     inappropriate: [],
     impersonation: [],
     spam: [],
+    privacyViolation: [],
+    underageUser: [],
+    harassmentOrBullying: [],
+    clubLeagueRulesViolation: [],
+    other: [],
   });
-  const [cachedTabs, setCachedTabs] = useState<Set<string>>(new Set());
-  const [loadingState, setLoadingState] = useState<LoadingState>({
-    bullying: false,
+const [loadingState, setLoadingState] = useState<LoadingState>({
     inappropriate: false,
     impersonation: false,
     spam: false,
+    privacyViolation: false,
+    underageUser: false,
+    harassmentOrBullying: false,
+    clubLeagueRulesViolation: false,
+    other: false,
   });
+  
+  // Use a counter to force re-render after actions
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const mapApiReportToReport = useCallback((apiReport: ApiReportItem, tab: string): Report => {
     const createdDate = new Date(apiReport.created_at);
@@ -222,13 +245,33 @@ export default function ReportsAbuseTabs({ activeTab, setActiveTab }: ReportsAbu
   }, []);
 
   const fetchReportedMedia = useCallback(async (tab: string) => {
-    if (cachedTabs.has(tab)) return;
+    // Map tab values to state keys
+    const stateKeyMap: Record<string, string> = {
+      'inappropriate-or-offensive': 'inappropriate',
+      'spam-or-misleading': 'spam',
+      'privacy-violation': 'privacyViolation',
+      'underage-user': 'underageUser',
+      'harassment-or-bullying': 'harassmentOrBullying',
+      'club-league-rules-violation': 'clubLeagueRulesViolation',
+      'impersonation': 'impersonation',
+      'other': 'other',
+    };
 
-    setLoadingState(prev => ({ ...prev, [tab]: true }));
+    const stateKey = stateKeyMap[tab] || tab;
+
+    setLoadingState(prev => ({ ...prev, [stateKey]: true }));
+    
     try {
-      const query = tab === 'bullying' ? 'Bullying' :
-                    tab === 'inappropriate' ? 'Inappropriate' :
-                    tab === 'impersonation' ? 'Impersonation' : 'Spam';
+      const query = 
+        tab === 'inappropriate-or-offensive' ? 'Inappropriate-or-offensive' :
+        tab === 'spam-or-misleading' ? 'Spam-or-misleading' :
+        tab === 'privacy-violation' ? 'Privacy-violation' :
+        tab === 'underage-user' ? 'Underage-user' :
+        tab === 'harassment-or-bullying' ? 'Harrassment-or-bullying' :
+        tab === 'club-league-rules-violation' ? 'Club/League-rules-violation' :
+        tab === 'impersonation' ? 'Impersonation' :
+        'Other';
+      
       const response = await makeRequest<ApiResponse>({
         url: `${GetReportedMedia}?reason=${encodeURIComponent(query)}&reported_media_type=User`,
         method: 'GET',
@@ -239,35 +282,59 @@ export default function ReportsAbuseTabs({ activeTab, setActiveTab }: ReportsAbu
 
         setReports(prev => ({
           ...prev,
-          [tab]: mappedReports,
+          [stateKey]: mappedReports,
         }));
-
-        setCachedTabs(prev => new Set([...prev, tab]));
+        
         console.log(`Reported ${tab} response:`, response.data);
       }
     } catch (error) {
       console.error(`Error fetching reported ${tab}:`, error);
     } finally {
-      setLoadingState(prev => ({ ...prev, [tab]: false }));
+      setLoadingState(prev => ({ ...prev, [stateKey]: false }));
     }
-  }, [cachedTabs, mapApiReportToReport]);
+  }, [mapApiReportToReport]);
+
+  // Helper function to remove a report by ID
+  const removeReportById = useCallback((reportId: string | number) => {
+    setReports(prev => ({
+      ...prev,
+      inappropriate: prev.inappropriate.filter((r: Report) => r.id !== reportId),
+      spam: prev.spam.filter((r: Report) => r.id !== reportId),
+      privacyViolation: prev.privacyViolation.filter((r: Report) => r.id !== reportId),
+      underageUser: prev.underageUser.filter((r: Report) => r.id !== reportId),
+      harassmentOrBullying: prev.harassmentOrBullying.filter((r: Report) => r.id !== reportId),
+      clubLeagueRulesViolation: prev.clubLeagueRulesViolation.filter((r: Report) => r.id !== reportId),
+      impersonation: prev.impersonation.filter((r: Report) => r.id !== reportId),
+      other: prev.other.filter((r: Report) => r.id !== reportId),
+    }));
+  }, []);
 
   // Fetch reported media only once when tab changes and not cached
   useEffect(() => {
     fetchReportedMedia(activeTab);
   }, [activeTab, fetchReportedMedia]);
 
-  const getReasonBadgeColor = (code: string) => {
+const getReasonBadgeColor = (code: string) => {
     switch (code) {
-      case 'BULLYING':
       case 'HARASSMENT':
+      case 'HARASSMENT_OR_BULLYING':
         return 'bg-red-100 text-red-800 border-red-200 border hover:bg-red-100';
       case 'INAPPROPRIATE_CONTENT':
+      case 'INAPPROPRIATE_OR_OFFENSIVE':
         return 'bg-purple-100 text-purple-800 border-purple-200 border hover:bg-purple-100';
       case 'IMPERSONATION':
         return 'bg-orange-100 text-orange-800 border-orange-200 border hover:bg-orange-100';
       case 'SPAM':
+      case 'SPAM_OR_MISLEADING':
         return 'bg-amber-100 text-amber-800 border-amber-200 border hover:bg-amber-100';
+      case 'PRIVACY_VIOLATION':
+        return 'bg-blue-100 text-blue-800 border-blue-200 border hover:bg-blue-100';
+      case 'UNDERAGE_USER':
+        return 'bg-pink-100 text-pink-800 border-pink-200 border hover:bg-pink-100';
+      case 'CLUB_LEAGUE_RULES_VIOLATION':
+        return 'bg-indigo-100 text-indigo-800 border-indigo-200 border hover:bg-indigo-100';
+      case 'OTHER':
+        return 'bg-gray-100 text-gray-800 border-gray-200 border hover:bg-gray-100';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200 border hover:bg-gray-100';
     }
@@ -313,71 +380,170 @@ export default function ReportsAbuseTabs({ activeTab, setActiveTab }: ReportsAbu
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <TabsList>
-        <TabsTrigger value="bullying">Bullying</TabsTrigger>
-        <TabsTrigger value="inappropriate">Inappropriate Content</TabsTrigger>
+        <TabsTrigger value="inappropriate-or-offensive">Inappropriate/Offensive</TabsTrigger>
+        <TabsTrigger value="spam-or-misleading">Spam/Misleading</TabsTrigger>
+        <TabsTrigger value="privacy-violation">Privacy Violation</TabsTrigger>
+        <TabsTrigger value="underage-user">Underage User</TabsTrigger>
+        <TabsTrigger value="harassment-or-bullying">Harassment/Bullying</TabsTrigger>
+        <TabsTrigger value="club-league-rules-violation">Club/League Rules</TabsTrigger>
         <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
-        <TabsTrigger value="spam">Spam</TabsTrigger>
+        <TabsTrigger value="other">Other</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="bullying" className="space-y-4">
-        {loadingState.bullying ? (
-          renderLoadingState()
-        ) : reports.bullying.length > 0 ? (
-          <BullyingReports
-            reports={reports.bullying}
-            formatTimestamp={formatTimestamp}
-            getReasonBadgeColor={getReasonBadgeColor}
-            onActionComplete={() => {
-              setCachedTabs(prev => {
-                const newSet = new Set(prev);
-                newSet.delete('bullying');
-                return newSet;
-              });
-              fetchReportedMedia('bullying');
-            }}
-          />
-        ) : (
-          renderEmptyState('No Bullying Reports', 'There are no bullying reports to display.')
-        )}
-      </TabsContent>
-
-      <TabsContent value="inappropriate" className="space-y-4">
+      <TabsContent value="inappropriate-or-offensive" className="space-y-4" key="inappropriate-or-offensive">
         {loadingState.inappropriate ? (
           renderLoadingState()
         ) : reports.inappropriate.length > 0 ? (
-          <InappropriateContentReports
+<InappropriateContentReports
+            key={`inappropriate-${refreshCounter}`}
             reports={reports.inappropriate}
             formatTimestamp={formatTimestamp}
             getReasonBadgeColor={getReasonBadgeColor}
-            onActionComplete={() => {
-              setCachedTabs(prev => {
-                const newSet = new Set(prev);
-                newSet.delete('inappropriate');
-                return newSet;
-              });
-              fetchReportedMedia('inappropriate');
+            onActionComplete={(reportId) => {
+              if (reportId) {
+                removeReportById(reportId);
+              }
+              setRefreshCounter(prev => prev + 1);
+              fetchReportedMedia('inappropriate-or-offensive');
+              onActionComplete?.();
             }}
           />
         ) : (
-          renderEmptyState('No Inappropriate Content Reports', 'There are no inappropriate content reports to display.')
+          renderEmptyState('No Inappropriate/Offensive Reports', 'There are no inappropriate or offensive reports to display.')
         )}
       </TabsContent>
 
-      <TabsContent value="impersonation" className="space-y-4">
+      <TabsContent value="spam-or-misleading" className="space-y-4" key="spam-or-misleading">
+        {loadingState.spam ? (
+          renderLoadingState()
+        ) : reports.spam.length > 0 ? (
+<SpamReports
+            key={`spam-${refreshCounter}`}
+            reports={reports.spam}
+            formatTimestamp={formatTimestamp}
+            getReasonBadgeColor={getReasonBadgeColor}
+            onActionComplete={(reportId) => {
+              if (reportId) {
+                removeReportById(reportId);
+              }
+              setRefreshCounter(prev => prev + 1);
+              fetchReportedMedia('spam-or-misleading');
+              onActionComplete?.();
+            }}
+          />
+        ) : (
+          renderEmptyState('No Spam/Misleading Reports', 'There are no spam or misleading reports to display.')
+        )}
+      </TabsContent>
+
+      <TabsContent value="privacy-violation" className="space-y-4" key="privacy-violation">
+        {loadingState.privacyViolation ? (
+          renderLoadingState()
+        ) : reports.privacyViolation.length > 0 ? (
+<PrivacyViolationReports
+            key={`privacy-${refreshCounter}`}
+            reports={reports.privacyViolation}
+            formatTimestamp={formatTimestamp}
+            getReasonBadgeColor={getReasonBadgeColor}
+            onActionComplete={(reportId) => {
+              if (reportId) {
+                removeReportById(reportId);
+              }
+              setRefreshCounter(prev => prev + 1);
+              fetchReportedMedia('privacy-violation');
+              onActionComplete?.();
+            }}
+          />
+        ) : (
+          renderEmptyState('No Privacy Violation Reports', 'There are no privacy violation reports to display.')
+        )}
+      </TabsContent>
+
+      <TabsContent value="underage-user" className="space-y-4" key="underage-user">
+        {loadingState.underageUser ? (
+          renderLoadingState()
+        ) : reports.underageUser.length > 0 ? (
+<UnderageUserReports
+            key={`underage-${refreshCounter}`}
+            reports={reports.underageUser}
+            formatTimestamp={formatTimestamp}
+            getReasonBadgeColor={getReasonBadgeColor}
+            onActionComplete={(reportId) => {
+              if (reportId) {
+                removeReportById(reportId);
+              }
+              setRefreshCounter(prev => prev + 1);
+              fetchReportedMedia('underage-user');
+              onActionComplete?.();
+            }}
+          />
+        ) : (
+          renderEmptyState('No Underage User Reports', 'There are no underage user reports to display.')
+        )}
+      </TabsContent>
+
+      <TabsContent value="harassment-or-bullying" className="space-y-4" key="harassment-or-bullying">
+        {loadingState.harassmentOrBullying ? (
+          renderLoadingState()
+        ) : reports.harassmentOrBullying.length > 0 ? (
+<HarassmentReports
+            key={`harassment-${refreshCounter}`}
+            reports={reports.harassmentOrBullying}
+            formatTimestamp={formatTimestamp}
+            getReasonBadgeColor={getReasonBadgeColor}
+            onActionComplete={(reportId) => {
+              if (reportId) {
+                removeReportById(reportId);
+              }
+              setRefreshCounter(prev => prev + 1);
+              fetchReportedMedia('harassment-or-bullying');
+              onActionComplete?.();
+            }}
+          />
+        ) : (
+          renderEmptyState('No Harassment/Bullying Reports', 'There are no harassment or bullying reports to display.')
+        )}
+      </TabsContent>
+
+      <TabsContent value="club-league-rules-violation" className="space-y-4" key="club-league-rules-violation">
+        {loadingState.clubLeagueRulesViolation ? (
+          renderLoadingState()
+        ) : reports.clubLeagueRulesViolation.length > 0 ? (
+<ClubLeagueRulesViolationReports
+            key={`club-${refreshCounter}`}
+            reports={reports.clubLeagueRulesViolation}
+            formatTimestamp={formatTimestamp}
+            getReasonBadgeColor={getReasonBadgeColor}
+            onActionComplete={(reportId) => {
+              if (reportId) {
+                removeReportById(reportId);
+              }
+              setRefreshCounter(prev => prev + 1);
+              fetchReportedMedia('club-league-rules-violation');
+              onActionComplete?.();
+            }}
+          />
+        ) : (
+          renderEmptyState('No Club/League Rules Violation Reports', 'There are no club/league rules violation reports to display.')
+        )}
+      </TabsContent>
+
+      <TabsContent value="impersonation" className="space-y-4" key="impersonation">
         {loadingState.impersonation ? (
           renderLoadingState()
         ) : reports.impersonation.length > 0 ? (
-          <ImpersonationReports
+<ImpersonationReports
+            key={`impersonation-${refreshCounter}`}
             reports={reports.impersonation}
             formatTimestamp={formatTimestamp}
             getReasonBadgeColor={getReasonBadgeColor}
-            onActionComplete={() => {
-              setCachedTabs(prev => {
-                const newSet = new Set(prev);
-                newSet.delete('impersonation');
-                return newSet;
-              });
+            onActionComplete={(reportId) => {
+              if (reportId) {
+                removeReportById(reportId);
+              }
+              setRefreshCounter(prev => prev + 1);
               fetchReportedMedia('impersonation');
+              onActionComplete?.();
             }}
           />
         ) : (
@@ -385,25 +551,26 @@ export default function ReportsAbuseTabs({ activeTab, setActiveTab }: ReportsAbu
         )}
       </TabsContent>
 
-      <TabsContent value="spam" className="space-y-4">
-        {loadingState.spam ? (
+      <TabsContent value="other" className="space-y-4" key="other">
+        {loadingState.other ? (
           renderLoadingState()
-        ) : reports.spam.length > 0 ? (
-          <SpamReports
-            reports={reports.spam}
+        ) : reports.other.length > 0 ? (
+<OtherReports
+            key={`other-${refreshCounter}`}
+            reports={reports.other}
             formatTimestamp={formatTimestamp}
             getReasonBadgeColor={getReasonBadgeColor}
-            onActionComplete={() => {
-              setCachedTabs(prev => {
-                const newSet = new Set(prev);
-                newSet.delete('spam');
-                return newSet;
-              });
-              fetchReportedMedia('spam');
+            onActionComplete={(reportId) => {
+              if (reportId) {
+                removeReportById(reportId);
+              }
+              setRefreshCounter(prev => prev + 1);
+              fetchReportedMedia('other');
+              onActionComplete?.();
             }}
           />
         ) : (
-          renderEmptyState('No Spam Reports', 'There are no spam reports to display.')
+          renderEmptyState('No Other Reports', 'There are no other reports to display.')
         )}
       </TabsContent>
     </Tabs>

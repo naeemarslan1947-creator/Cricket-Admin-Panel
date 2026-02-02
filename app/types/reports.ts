@@ -27,3 +27,25 @@ export interface ReportsSummaryData {
   spam: number;
 }
 
+// Report Interface for UI
+export interface Report {
+  id: string | number;
+  reporterName: string;
+  reporterEmail?: string;
+  reportedUser: string;
+  reportedUserFullName?: string;
+  reportedUserProfilePic?: string;
+  reportedUserBio?: string;
+  reportedUserLocation?: string;
+  reportedUserAbout?: string;
+  reportedUserVerified?: boolean;
+  reportedUserLastActive?: string;
+  description: string;
+  timestamp: string;
+  reasonCode: string;
+  status: 'active' | 'suspended' | 'deleted';
+  mediaUrls?: string[];
+  mediaType?: 'image' | 'video' | null;
+  escalation?: number;
+}
+

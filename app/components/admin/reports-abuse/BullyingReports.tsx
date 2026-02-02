@@ -27,20 +27,20 @@ interface BullyingReportsProps {
   reports: Report[];
   formatTimestamp?: (timestamp: string) => string;
   getReasonBadgeColor?: (code: string) => string;
-  onActionComplete?: () => void;
+  onActionComplete?: (reportId?: string | number) => void;
 }
 
 export default function BullyingReports({ reports, formatTimestamp, getReasonBadgeColor, onActionComplete }: BullyingReportsProps): ReactNode {
   return (
     <>
       {reports.map((report) => (
-        <Card key={report.id} className="border-[#e2e8f0] ">
+        <Card key={report.id} className="border-[#e2e8f0]">
           <CardContent className="p-6">
             <ReportItem
               report={report}
               formatTimestamp={formatTimestamp}
               getReasonBadgeColor={getReasonBadgeColor}
-              onActionComplete={onActionComplete}
+              onActionComplete={() => onActionComplete?.(report.id)}
             />
           </CardContent>
         </Card>

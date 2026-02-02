@@ -27,20 +27,20 @@ interface ImpersonationReportsProps {
   reports: Report[];
   formatTimestamp?: (timestamp: string) => string;
   getReasonBadgeColor?: (code: string) => string;
-  onActionComplete?: () => void;
+  onActionComplete?: (reportId?: string | number) => void;
 }
 
 export default function ImpersonationReports({ reports, formatTimestamp, getReasonBadgeColor, onActionComplete }: ImpersonationReportsProps): ReactNode {
   return (
     <>
       {reports.map((report) => (
-        <Card key={report.id} className="border-[#e2e8f0] ">
+        <Card key={report.id} className="border-[#e2e8f0]">
           <CardContent className="p-6">
             <ReportItem
               report={report}
               formatTimestamp={formatTimestamp}
               getReasonBadgeColor={getReasonBadgeColor}
-              onActionComplete={onActionComplete}
+              onActionComplete={() => onActionComplete?.(report.id)}
             />
           </CardContent>
         </Card>

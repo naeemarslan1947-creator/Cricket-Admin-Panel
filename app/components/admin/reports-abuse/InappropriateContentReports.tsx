@@ -27,7 +27,7 @@ interface InappropriateContentReportsProps {
   reports: Report[];
   formatTimestamp?: (timestamp: string) => string;
   getReasonBadgeColor?: (code: string) => string;
-  onActionComplete?: () => void;
+  onActionComplete?: (reportId?: string | number) => void;
 }
 
 export default function InappropriateContentReports({ reports, formatTimestamp, getReasonBadgeColor, onActionComplete }: InappropriateContentReportsProps): ReactNode {
@@ -40,7 +40,7 @@ export default function InappropriateContentReports({ reports, formatTimestamp, 
               report={report}
               formatTimestamp={formatTimestamp}
               getReasonBadgeColor={getReasonBadgeColor}
-              onActionComplete={onActionComplete}
+              onActionComplete={() => onActionComplete?.(report.id)}
             />
           </CardContent>
         </Card>

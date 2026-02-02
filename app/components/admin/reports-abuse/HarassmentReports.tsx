@@ -1,6 +1,4 @@
-import { Card, CardContent } from '@/app/components/ui/card';
 import ReportItem from './ReportItem';
-import { ReactNode } from 'react';
 
 interface Report {
   id: string | number;
@@ -23,28 +21,31 @@ interface Report {
   escalation?: number;
 }
 
-interface SpamReportsProps {
+interface HarassmentReportsProps {
   reports: Report[];
   formatTimestamp?: (timestamp: string) => string;
   getReasonBadgeColor?: (code: string) => string;
   onActionComplete?: (reportId?: string | number) => void;
 }
 
-export default function SpamReports({ reports, formatTimestamp, getReasonBadgeColor, onActionComplete }: SpamReportsProps): ReactNode {
+export default function HarassmentReports({
+  reports,
+  formatTimestamp,
+  getReasonBadgeColor,
+  onActionComplete,
+}: HarassmentReportsProps) {
   return (
-    <>
+    <div className="space-y-4">
       {reports.map((report) => (
-        <Card key={report.id} className="border-[#e2e8f0]">
-          <CardContent className="p-6">
-            <ReportItem
-              report={report}
-              formatTimestamp={formatTimestamp}
-              getReasonBadgeColor={getReasonBadgeColor}
-              onActionComplete={() => onActionComplete?.(report.id)}
-            />
-          </CardContent>
-        </Card>
+        <ReportItem
+          key={report.id}
+          report={report}
+          formatTimestamp={formatTimestamp}
+          getReasonBadgeColor={getReasonBadgeColor}
+          onActionComplete={() => onActionComplete?.(report.id)}
+        />
       ))}
-    </>
+    </div>
   );
 }
+

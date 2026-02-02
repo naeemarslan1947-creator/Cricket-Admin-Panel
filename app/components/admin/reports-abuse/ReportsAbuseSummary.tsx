@@ -8,7 +8,11 @@ import { ReportHeaderResponse, ReportsSummaryData } from '@/app/types/reports';
 import { ReportHeader } from "@/Api's/repo";
 import Loader from '../../common/Loader';
 
-export default function ReportsAbuseSummary() {
+interface ReportsAbuseSummaryProps {
+  refreshTrigger?: number;
+}
+
+export default function ReportsAbuseSummary({ refreshTrigger = 0 }: ReportsAbuseSummaryProps) {
   const [summaryData, setSummaryData] = useState<ReportsSummaryData>({
     openReports: 0,
     bullying: 0,
@@ -18,8 +22,9 @@ export default function ReportsAbuseSummary() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
+useEffect(() => {
     const fetchReportHeader = async () => {
+      setIsLoading(true);
       try {
         const response = await makeRequest<ReportHeaderResponse>({
           url: ReportHeader,
@@ -61,7 +66,7 @@ export default function ReportsAbuseSummary() {
     };
 
     fetchReportHeader();
-  }, []);
+  }, [refreshTrigger]);
 
   const summaryItems = [
     { title: 'Open Reports', value: summaryData.openReports, icon: AlertTriangle, color: 'red' },

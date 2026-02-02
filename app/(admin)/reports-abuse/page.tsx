@@ -5,13 +5,22 @@ import ReportsAbuseSummary from '@/app/components/admin/reports-abuse/ReportsAbu
 import ReportsAbuseTabs from '@/app/components/admin/reports-abuse/ReportsAbuseTabs';
 
 export default function ReportsAbuse() {
-  const [activeTab, setActiveTab] = useState('bullying');
+  const [activeTab, setActiveTab] = useState('inappropriate-or-offensive');
+  const [summaryRefreshTrigger, setSummaryRefreshTrigger] = useState(0);
+
+  const handleRefreshSummary = () => {
+    setSummaryRefreshTrigger(prev => prev + 1);
+  };
 
   return (
     <div className="space-y-6">
       <ReportsAbuseHeader />
-      <ReportsAbuseSummary />
-      <ReportsAbuseTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+      <ReportsAbuseSummary refreshTrigger={summaryRefreshTrigger} />
+      <ReportsAbuseTabs 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab}
+        onActionComplete={handleRefreshSummary}
+      />
     </div>
   );
 }

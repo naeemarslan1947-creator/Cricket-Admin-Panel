@@ -326,12 +326,7 @@ export default function ReportItem({ report, getReasonBadgeColor, formatTimestam
               Reported User: <span className="text-slate-800 font-medium">{report.reportedUser}</span>
             </span>
 
-            <span className="text-slate-400">•</span>
-
-            <span className="flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {formattedTimestamp}
-            </span>
+           
           </div>
         </div>
       </div>

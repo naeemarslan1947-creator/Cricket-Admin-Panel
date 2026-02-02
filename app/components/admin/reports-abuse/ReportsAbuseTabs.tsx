@@ -135,6 +135,9 @@ interface LoadingState {
 export default function ReportsAbuseTabs({ activeTab, setActiveTab, onActionComplete }: ReportsAbuseTabsProps): ReactNode {
   const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
+  // Set to track which tabs have been cached/fetched
+  const [cachedTabs, setCachedTabs] = useState<Set<string>>(new Set());
+
 
 
 const [reports, setReports] = useState<ReportsData>({
@@ -285,6 +288,9 @@ const [loadingState, setLoadingState] = useState<LoadingState>({
           [stateKey]: mappedReports,
         }));
         
+        // Mark this tab as cached
+        setCachedTabs(prev => new Set(prev).add(tab));
+        
         console.log(`Reported ${tab} response:`, response.data);
       }
     } catch (error) {
@@ -311,8 +317,10 @@ const [loadingState, setLoadingState] = useState<LoadingState>({
 
   // Fetch reported media only once when tab changes and not cached
   useEffect(() => {
-    fetchReportedMedia(activeTab);
-  }, [activeTab, fetchReportedMedia]);
+    if (!cachedTabs.has(activeTab)) {
+      fetchReportedMedia(activeTab);
+    }
+  }, [activeTab, fetchReportedMedia, cachedTabs]);
 
 const getReasonBadgeColor = (code: string) => {
     switch (code) {

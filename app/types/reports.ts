@@ -22,9 +22,14 @@ export interface ReportHeaderResponse {
 
 export interface ReportsSummaryData {
   openReports: number;
-  bullying: number;
-  impersonation: number;
+  inappropriateContent: number;
   spam: number;
+  privacyViolation: number;
+  underageUser: number;
+  harassmentBullying: number;
+  clubRulesViolation: number;
+  impersonation: number;
+  other: number;
 }
 
 // Report Interface for UI

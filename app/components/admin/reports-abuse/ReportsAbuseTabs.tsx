@@ -105,6 +105,7 @@ interface Report {
 }
 
 interface ReportsData {
+  all: Report[];
   inappropriate: Report[];
   impersonation: Report[];
   spam: Report[];
@@ -122,6 +123,7 @@ interface ReportsAbuseTabsProps {
 }
 
 interface LoadingState {
+  all: boolean;
   inappropriate: boolean;
   impersonation: boolean;
   spam: boolean;
@@ -141,6 +143,7 @@ export default function ReportsAbuseTabs({ activeTab, setActiveTab, onActionComp
 
 
 const [reports, setReports] = useState<ReportsData>({
+    all: [],
     inappropriate: [],
     impersonation: [],
     spam: [],
@@ -151,6 +154,7 @@ const [reports, setReports] = useState<ReportsData>({
     other: [],
   });
 const [loadingState, setLoadingState] = useState<LoadingState>({
+    all: false,
     inappropriate: false,
     impersonation: false,
     spam: false,
@@ -250,6 +254,7 @@ const [loadingState, setLoadingState] = useState<LoadingState>({
   const fetchReportedMedia = useCallback(async (tab: string) => {
     // Map tab values to state keys
     const stateKeyMap: Record<string, string> = {
+      'all': 'all',
       'inappropriate-or-offensive': 'inappropriate',
       'spam-or-misleading': 'spam',
       'privacy-violation': 'privacyViolation',
@@ -265,18 +270,27 @@ const [loadingState, setLoadingState] = useState<LoadingState>({
     setLoadingState(prev => ({ ...prev, [stateKey]: true }));
     
     try {
-      const query = 
-        tab === 'inappropriate-or-offensive' ? 'Inappropriate-or-offensive' :
-        tab === 'spam-or-misleading' ? 'Spam-or-misleading' :
-        tab === 'privacy-violation' ? 'Privacy-violation' :
-        tab === 'underage-user' ? 'Underage-user' :
-        tab === 'harassment-or-bullying' ? 'Harrassment-or-bullying' :
-        tab === 'club-league-rules-violation' ? 'Club/League-rules-violation' :
-        tab === 'impersonation' ? 'Impersonation' :
-        'Other';
+      let url = '';
+      
+      if (tab === 'all') {
+        // For "all" tab, only pass reported_media_type=User without reason
+        url = `${GetReportedMedia}?reported_media_type=User`;
+      } else {
+        const query = 
+          tab === 'inappropriate-or-offensive' ? 'Inappropriate-or-offensive' :
+          tab === 'spam-or-misleading' ? 'Spam-or-misleading' :
+          tab === 'privacy-violation' ? 'Privacy-violation' :
+          tab === 'underage-user' ? 'Underage-user' :
+          tab === 'harassment-or-bullying' ? 'Harrassment-or-bullying' :
+          tab === 'club-league-rules-violation' ? 'Club/League-rules-violation' :
+          tab === 'impersonation' ? 'Impersonation' :
+          'Other';
+        
+        url = `${GetReportedMedia}?reason=${encodeURIComponent(query)}&reported_media_type=User`;
+      }
       
       const response = await makeRequest<ApiResponse>({
-        url: `${GetReportedMedia}?reason=${encodeURIComponent(query)}&reported_media_type=User`,
+        url: url,
         method: 'GET',
       });
 
@@ -304,6 +318,7 @@ const [loadingState, setLoadingState] = useState<LoadingState>({
   const removeReportById = useCallback((reportId: string | number) => {
     setReports(prev => ({
       ...prev,
+      all: prev.all.filter((r: Report) => r.id !== reportId),
       inappropriate: prev.inappropriate.filter((r: Report) => r.id !== reportId),
       spam: prev.spam.filter((r: Report) => r.id !== reportId),
       privacyViolation: prev.privacyViolation.filter((r: Report) => r.id !== reportId),
@@ -388,6 +403,7 @@ const getReasonBadgeColor = (code: string) => {
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
       <TabsList>
+        <TabsTrigger value="all">All</TabsTrigger>
         <TabsTrigger value="inappropriate-or-offensive">Inappropriate/Offensive</TabsTrigger>
         <TabsTrigger value="spam-or-misleading">Spam/Misleading</TabsTrigger>
         <TabsTrigger value="privacy-violation">Privacy Violation</TabsTrigger>
@@ -397,6 +413,29 @@ const getReasonBadgeColor = (code: string) => {
         <TabsTrigger value="impersonation">Impersonation</TabsTrigger>
         <TabsTrigger value="other">Other</TabsTrigger>
       </TabsList>
+
+      <TabsContent value="all" className="space-y-4" key="all">
+        {loadingState.all ? (
+          renderLoadingState()
+        ) : reports.all.length > 0 ? (
+          <InappropriateContentReports
+            key={`all-${refreshCounter}`}
+            reports={reports.all}
+            formatTimestamp={formatTimestamp}
+            getReasonBadgeColor={getReasonBadgeColor}
+            onActionComplete={(reportId) => {
+              if (reportId) {
+                removeReportById(reportId);
+              }
+              setRefreshCounter(prev => prev + 1);
+              fetchReportedMedia('all');
+              onActionComplete?.();
+            }}
+          />
+        ) : (
+          renderEmptyState('No Reports', 'There are no reports to display.')
+        )}
+      </TabsContent>
 
       <TabsContent value="inappropriate-or-offensive" className="space-y-4" key="inappropriate-or-offensive">
         {loadingState.inappropriate ? (

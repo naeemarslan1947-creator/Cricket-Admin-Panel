@@ -5,7 +5,7 @@ import ReportsAbuseSummary from '@/app/components/admin/reports-abuse/ReportsAbu
 import ReportsAbuseTabs from '@/app/components/admin/reports-abuse/ReportsAbuseTabs';
 
 export default function ReportsAbuse() {
-  const [activeTab, setActiveTab] = useState('inappropriate-or-offensive');
+  const [activeTab, setActiveTab] = useState('all');
   const [summaryRefreshTrigger, setSummaryRefreshTrigger] = useState(0);
 
   const handleRefreshSummary = () => {

@@ -137,6 +137,7 @@ const DEFAULT_PAGINATION = {
 export default function ContentModerationTabs({
   activeTab,
   setActiveTab,
+  onActionComplete,
 }: ContentModerationTabsProps) {
   const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
@@ -416,6 +417,8 @@ export default function ContentModerationTabs({
                   return newSet;
                 });
                 fetchReportedMedia('posts', currentPagination.currentPage, currentPagination.limit);
+                // Call parent callback to refresh header counts
+                onActionComplete?.();
               }}
             />
             {renderPagination('posts')}
@@ -439,6 +442,8 @@ export default function ContentModerationTabs({
                   return newSet;
                 });
                 fetchReportedMedia('comments', currentPagination.currentPage, currentPagination.limit);
+                // Call parent callback to refresh header counts
+                onActionComplete?.();
               }}
               formatTimestamp={formatTimestamp}
               getReasonBadgeColor={getReasonBadgeColor}

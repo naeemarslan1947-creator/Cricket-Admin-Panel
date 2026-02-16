@@ -116,7 +116,7 @@ export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
             {/* Rating */}
             <div className="flex items-center gap-1 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">
               <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-              <span className="text-xl font-semibold text-[#0f172a]">{club.rating}</span>
+              <span className="text-xl font-semibold text-[#0f172a]">{club.avg_rating}</span>
               <span className="text-sm text-[#64748b]">/5.0</span>
             </div>
           </div>

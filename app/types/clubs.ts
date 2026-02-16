@@ -67,6 +67,7 @@ export interface ClubUser {
   user_name: string;
   email: string;
   password?: string;
+  avg_rating?: number;
   is_user_verified: boolean;
   full_name: string;
   is_club: boolean;
@@ -156,6 +157,7 @@ export interface Club {
   isClubVerified: boolean;
   isAdmin: boolean;
   createdAt: string;
+  avg_rating: number;
   updatedAt: string;
   // New fields from API response
   userNameHandle: string;
@@ -226,6 +228,7 @@ export function mapClubUserToClub(clubUser: ClubUser): Club {
     fullName: clubUser.full_name,
     clubName: clubUser.club_name,
     clubType: clubUser.club_type,
+    avg_rating: clubUser.avg_rating ?? 0,
     division: clubUser.division,
     phoneNumber: clubUser.phone_number ?? '',
     bio: clubUser.bio,
@@ -368,6 +371,7 @@ export interface UserLog {
 
 export interface ClubRelatedData {
   is_following: boolean | null;
+  avg_rating?: number;
   followers: Array<{
     _id: string;
     following_id: string;
@@ -489,6 +493,7 @@ export interface ClubDetail {
   isAdmin: boolean;
   createdAt: string;
   updatedAt: string;
+  avg_rating: number;
   
   // Related data
   isFollowing: boolean;
@@ -530,6 +535,7 @@ export function mapGetClubByIdResponseToDetail(response: GetClubByIdResponse): C
     // Base club info
     _id: user._id,
     id: user._id,
+    avg_rating: relatedData.avg_rating ?? 0,
     name: user.club_name || user.full_name,
     address: `${user.city}, ${user.division}`,
     status: getClubStatus(user),

@@ -183,7 +183,7 @@ export default function ClubsManagementGrid({ clubs, isLoading = false, onOverri
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 rounded-full border border-amber-200">
                   <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                   <span className="text-sm font-semibold text-[#0f172a]">
-                    {club.rating !== null && club.rating !== undefined ? club.rating : 'N/A'}
+                    {club.rating !== null && club.rating !== undefined ? Number(club.rating).toFixed(1) : 'N/A'}
                   </span>
                 </div>
               </div>

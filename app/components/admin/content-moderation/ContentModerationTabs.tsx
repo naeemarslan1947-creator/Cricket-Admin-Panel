@@ -146,7 +146,6 @@ export default function ContentModerationTabs({
     comments: [],
     media: [],
   });
-  const [cachedTabs, setCachedTabs] = useState<Set<string>>(new Set());
   const [loadingState, setLoadingState] = useState<LoadingState>({
     posts: false,
     comments: false,
@@ -233,12 +232,7 @@ export default function ContentModerationTabs({
   }, []);
 
   const fetchReportedMedia = useCallback(async (tab: string, page: number = 1, limit: number = 10) => {
-    // Clear cache when fetching new page to ensure fresh data
-    setCachedTabs(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(tab);
-      return newSet;
-    });
+  
 
     setLoadingState(prev => ({ ...prev, [tab]: true }));
     try {
@@ -268,7 +262,6 @@ export default function ContentModerationTabs({
           },
         }));
 
-        setCachedTabs(prev => new Set([...prev, tab]));
         console.log(`Reported ${tab} response:`, response.data);
       }
     } catch (error) {

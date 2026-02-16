@@ -12,6 +12,7 @@ import makeRequest from "@/Api's/apiHelper";
 import { GetReportedMedia } from "@/Api's/repo";
 import { useState, useEffect, useCallback, ReactNode } from 'react';
 import { Loader2, FileWarning } from 'lucide-react';
+import { messaging, onMessage } from '@/app/lib/firebase/firebase';
 
 interface ReporterInfo {
   _id: string;
@@ -337,7 +338,26 @@ const [loadingState, setLoadingState] = useState<LoadingState>({
     }
   }, [activeTab, fetchReportedMedia, cachedTabs]);
 
-const getReasonBadgeColor = (code: string) => {
+  useEffect(() => {
+    if (!messaging) {
+      return;
+    }
+
+    console.log("ReportsAbuseTabs: Setting up Firebase notification listener...");
+
+    const unsubscribe = onMessage(messaging, () => {
+      setActiveTab('all');
+      setCachedTabs(new Set());
+      fetchReportedMedia('all');
+      onActionComplete?.();
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [fetchReportedMedia, onActionComplete, setActiveTab, setCachedTabs]);
+
+  const getReasonBadgeColor = (code: string) => {
     switch (code) {
       case 'HARASSMENT':
       case 'HARASSMENT_OR_BULLYING':

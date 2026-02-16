@@ -411,13 +411,20 @@ export default function ContentModerationTabs({
               reports={reports.posts}
               onActionComplete={() => {
                 const currentPagination = pagination.posts;
-                setCachedTabs(prev => {
+                setReports(prev => ({ ...prev, posts: [] }));
+                setPagination(prev => ({
+                  ...prev,
+                  posts: {
+                    ...prev.posts,
+                    totalRecords: Math.max(0, prev.posts.totalRecords - 1),
+                  },
+                }));
+                setFetchedTabs(prev => {
                   const newSet = new Set(prev);
-                  newSet.delete('posts');
+                  newSet.delete(`posts-${currentPagination.currentPage}`);
                   return newSet;
                 });
                 fetchReportedMedia('posts', currentPagination.currentPage, currentPagination.limit);
-                // Call parent callback to refresh header counts
                 onActionComplete?.();
               }}
             />
@@ -436,9 +443,17 @@ export default function ContentModerationTabs({
             <CommentReports
               onActionComplete={() => {
                 const currentPagination = pagination.comments;
-                setCachedTabs(prev => {
+                setReports(prev => ({ ...prev, comments: [] }));
+                setPagination(prev => ({
+                  ...prev,
+                  comments: {
+                    ...prev.comments,
+                    totalRecords: Math.max(0, prev.comments.totalRecords - 1),
+                  },
+                }));
+                setFetchedTabs(prev => {
                   const newSet = new Set(prev);
-                  newSet.delete('comments');
+                  newSet.delete(`comments-${currentPagination.currentPage}`);
                   return newSet;
                 });
                 fetchReportedMedia('comments', currentPagination.currentPage, currentPagination.limit);

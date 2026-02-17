@@ -103,15 +103,19 @@ export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
             )}
 
             {/* Badges */}
-            <div className="flex flex-wrap gap-2 justify-center mb-4">
-              {getStatusBadge(club.status)}
-              {club.verified && (
-                <Badge className="bg-blue-50 text-blue-700 border-blue-200 border hover:bg-blue-50">
-                  <CheckCircle className="w-3 h-3 mr-1" />
-                  Verified
-                </Badge>
-              )}
-            </div>
+           <div className="flex flex-wrap gap-2 justify-center mb-4">
+  <Badge
+    className={
+      club.verified
+        ? "bg-blue-50 text-blue-700 border-blue-200 border hover:bg-blue-50"
+        : "bg-red-50 text-red-700 border-red-200 border hover:bg-red-50"
+    }
+  >
+    <CheckCircle className="w-3 h-3 mr-1" />
+    {club.verified ? "Verified" : "Unverified"}
+  </Badge>
+</div>
+
 
             {/* Rating */}
             <div className="flex items-center gap-1 bg-amber-50 px-4 py-2 rounded-lg border border-amber-200">

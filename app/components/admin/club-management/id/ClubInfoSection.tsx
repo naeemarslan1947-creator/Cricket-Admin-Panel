@@ -11,33 +11,6 @@ interface ClubInfoSectionProps {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'Verified':
-        return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 border hover:bg-emerald-50">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5" />
-            {status}
-          </Badge>
-        );
-      case 'Pending':
-        return (
-          <Badge className="bg-amber-50 text-amber-700 border-amber-200 border hover:bg-amber-50">
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mr-1.5" />
-            {status}
-          </Badge>
-        );
-      case 'Hidden':
-        return (
-          <Badge className="bg-slate-50 text-slate-600 border-slate-200 border hover:bg-slate-50">
-            <div className="w-1.5 h-1.5 rounded-full bg-slate-500 mr-1.5" />
-            {status}
-          </Badge>
-        );
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
 
   return (
     <>
@@ -177,38 +150,7 @@ export default function ClubInfoSection({ club }: ClubInfoSectionProps) {
         </CardContent>
       </Card>
 
-      {/* Statistics Card */}
-      <Card className="border-slate-200  overflow-hidden">
-        <div className="px-5 py-4 bg-linear-to-br from-purple-50 to-white border-b border-purple-100">
-          <h3 className="text-sm font-medium text-[#0f172a] flex items-center gap-2">
-            <BarChart3 className="w-4 h-4 text-purple-600" />
-            Performance Metrics
-          </h3>
-        </div>
-        <CardContent className="p-5 space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#64748b]">Member Growth</span>
-              <span className="text-sm font-medium text-emerald-600">+24%</span>
-            </div>
-            <Progress value={75} className="h-2" />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#64748b]">Engagement Rate</span>
-              <span className="text-sm font-medium text-blue-600">82%</span>
-            </div>
-            <Progress value={82} className="h-2" />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-[#64748b]">Activity Level</span>
-              <span className="text-sm font-medium text-purple-600">High</span>
-            </div>
-            <Progress value={90} className="h-2" />
-          </div>
-        </CardContent>
-      </Card>
+     
     </>
   );
 }

@@ -74,10 +74,10 @@ export default function DataExportTools() {
       try {
         const response = await makeRequest<{
           result: {
-            total_records: Array<{ count: number }>;
-            total_size: Array<{ _id: null; totalSize: number }>;
-            records_this_month: Array<{ count: number }>;
-            records_last_month: Array<{ count: number }>;
+            total_records: number | number[];
+            total_size: number | number[];
+            records_this_month: number | number[];
+            records_last_month: number | number[];
           };
         }>({
           url: ExportDataHeader,
@@ -89,10 +89,10 @@ export default function DataExportTools() {
         const result = response.data?.result;
         if (result) {
           setStatsData({
-            totalRecords: result.total_records?.[0]?.count || 0,
-            thisMonth: result.records_this_month?.[0]?.count || 0,
-            lastMonth: result.records_last_month?.[0]?.count || 0,
-            totalSize: result.total_size?.[0]?.totalSize || 0
+            totalRecords: Array.isArray(result.total_records) ? result.total_records[0] || 0 : result.total_records || 0,
+            thisMonth: Array.isArray(result.records_this_month) ? result.records_this_month[0] || 0 : result.records_this_month || 0,
+            lastMonth: Array.isArray(result.records_last_month) ? result.records_last_month[0] || 0 : result.records_last_month || 0,
+            totalSize: Array.isArray(result.total_size) ? result.total_size[0] || 0 : result.total_size || 0
           });
         }
       } catch (error) {
